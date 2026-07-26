@@ -1,7 +1,7 @@
 {% if user_perms.cash_handling.dashboard_view %}
 <div class="has-sub" id="{{ cash_submenu_id|default:'sub-cash-handling' }}">
   <div class="menu-link" onclick="toggleSubmenu(this)">
-    <i class="bi bi-cash"></i><span>Cash Handling</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+    <i class="bi bi-cash"></i><span>Cash Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
   </div>
   <div class="sub-menu">
     <a href="{% url 'cash_handling:dashboard' %}" class="{% if active_page == 'cash_dashboard' %}active{% endif %}"><span>Dashboard</span></a>

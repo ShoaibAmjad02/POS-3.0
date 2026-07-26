@@ -135,17 +135,17 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
     </div>
     <div class="sidebar-menu">
         {% if user.is_software_owner %}
-        <div class="menu-label">Power User</div>
+        <div class="menu-label">Administration</div>
         <a href="{% url 'users:system_settings' %}" class="{% if active_page == 'settings' %}active{% endif %}"><i class="bi bi-sliders"></i><span>System Settings</span></a>
         {% endif %}
         {% if user.is_staff and not user.is_software_owner %}
-        {% if 'pos' in enabled_modules and user_perms.sales.create %}<a href="{% url 'users:admin_pos' %}"><i class="bi bi-cart"></i><span>POS</span></a>{% endif %}
-        <a href="{% url 'users:admin_dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-        <a href="{% url 'users:invoice_search_page' %}" class="{% if active_page == 'invoices' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Invoices</span></a>
+        {% if 'pos' in enabled_modules and user_perms.sales.create %}<a href="{% url 'users:admin_pos' %}"><i class="bi bi-cart"></i><span>Point of Sale</span></a>{% endif %}
+        <a href="{% url 'users:admin_dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i><span>Overview</span></a>
+        <a href="{% url 'users:invoice_search_page' %}" class="{% if active_page == 'invoices' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Invoice Management</span></a>
         {% if 'products' in enabled_modules and user_perms.products.create %}
         <div class="has-sub" id="sub-products">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-box-seam"></i><span>Products</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-box-seam"></i><span>Product Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:product_list' %}" class="{% if active_page == 'products' %}active{% endif %}"><span>Products</span></a>
@@ -156,7 +156,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         {% if 'inventory' in enabled_modules and user_perms.inventory.stock_position %}
         <div class="has-sub" id="sub-inventory">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-bar-chart"></i><span>Inventory</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-bar-chart"></i><span>Inventory Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:stock_position' %}" class="{% if active_page == 'stock' %}active{% endif %}"><span>Stock Position</span></a>
@@ -168,7 +168,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         {% if 'returns' in enabled_modules and user_perms.return_invoice %}
         <div class="has-sub" id="sub-returns">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-arrow-return-left"></i><span>Returns</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-arrow-return-left"></i><span>Returns Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:return_invoice_page' %}" class="{% if active_page == 'return_invoice' %}active{% endif %}"><span>Return Invoice</span></a>
@@ -177,12 +177,12 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         </div>
         {% endif %}
         {% if 'customers' in enabled_modules and user_perms.customers.manage %}
-        <a href="{% url 'users:admin_loyalty_list' %}" class="{% if active_page == 'loyalty' %}active{% endif %}"><i class="bi bi-star"></i><span>Loyalty Cards</span></a>
+        <a href="{% url 'users:admin_loyalty_list' %}" class="{% if active_page == 'loyalty' %}active{% endif %}"><i class="bi bi-star"></i><span>Customer Loyalty</span></a>
         {% endif %}
         {% if 'offers' in enabled_modules and user_perms.products.create %}
         <div class="has-sub" id="sub-offers">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-megaphone"></i><span>Offers</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-megaphone"></i><span>Promotions</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:offer_list' %}" class="{% if active_page == 'offers' %}active{% endif %}"><span>Time-Based Offers</span></a>
@@ -193,7 +193,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         {% if 'expenses' in enabled_modules and user_perms.expenses.view %}
         <div class="has-sub" id="sub-expenses">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-cash-stack"></i><span>Expenses</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-cash-stack"></i><span>Expense Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:expense_list' %}" class="{% if active_page == 'expenses' %}active{% endif %}"><span>Business Expenses</span></a>
@@ -204,7 +204,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         {% if 'wholesale' in enabled_modules and user_perms.wholesale.access %}
         <div class="has-sub" id="sub-wholesale">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-shop"></i><span>Wholesale</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-shop"></i><span>Wholesale Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:wholesale_pos_page' %}" class="{% if active_page == 'wholesale_pos' %}active{% endif %}"><span>Wholesale POS</span></a>
@@ -221,12 +221,12 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         </div>
         {% endif %}
         {% if 'profit_loss' in enabled_modules and user_perms.reports.view %}
-        <a href="{% url 'users:profit_loss_statement' %}" class="{% if active_page == 'profit_loss' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Profit & Loss</span></a>
+        <a href="{% url 'users:profit_loss_statement' %}" class="{% if active_page == 'profit_loss' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Financial Reports</span></a>
         {% endif %}
         {% if user_perms.users.manage %}
         <div class="has-sub" id="sub-operations">
           <div class="menu-link" onclick="toggleSubmenu(this)">
-            <i class="bi bi-gear"></i><span>Operations</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+            <i class="bi bi-gear"></i><span>User Management</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
           </div>
           <div class="sub-menu">
             <a href="{% url 'users:operator_users_page' %}"><span>Operators</span></a>
@@ -235,11 +235,11 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         </div>
         {% endif %}
         {% if user_perms.sales.create %}
-        <a href="{% url 'users:admin_pending_approvals' %}"><i class="bi bi-clock-history"></i><span>Pending Approvals{% if pending_approvals_count > 0 %} <span class="badge bg-warning text-dark ms-1" style="font-size:10px">{{ pending_approvals_count }}</span>{% endif %}</span></a>
-        <a href="{% url 'users:mysql_backup' %}" class="{% if active_page == 'backup' %}active{% endif %}"><i class="bi bi-database"></i><span>Backup</span></a>
+        <a href="{% url 'users:admin_pending_approvals' %}"><i class="bi bi-clock-history"></i><span>Approvals{% if pending_approvals_count > 0 %} <span class="badge bg-warning text-dark ms-1" style="font-size:10px">{{ pending_approvals_count }}</span>{% endif %}</span></a>
+        <a href="{% url 'users:mysql_backup' %}" class="{% if active_page == 'backup' %}active{% endif %}"><i class="bi bi-database"></i><span>Database Backup</span></a>
         {% endif %}
         {% elif user.is_operator %}
-        <a href="{% url 'users:operator_dashboard' %}"><i class="bi bi-cart"></i><span>POS</span></a>
+        <a href="{% url 'users:operator_dashboard' %}"><i class="bi bi-cart"></i><span>Point of Sale</span></a>
         {% with cash_submenu_id="sub-cash-handling-operator" %}{% include "cash_handling/menu.html" %}{% endwith %}
         {% endif %}
         {% if theme_allow_switch and theme_dark_enabled %}
