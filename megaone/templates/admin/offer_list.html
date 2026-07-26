@@ -1,0 +1,152 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Time-Based Offers - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Time-Based <span>Offers</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Manage your time-based discount offers.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:offer_add' %}" class="btn btn-warning fw-bold" style="border-radius:10px;padding:10px 20px"><i class="bi bi-plus-lg me-1"></i> Add Offer</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+            <div class="stat-value">{{ total_offers }}</div>
+            <div class="stat-label">Total Offers</div>
+            <i class="bi bi-megaphone stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            <div class="stat-value">{{ active_offers }}</div>
+            <div class="stat-label">Active Offers</div>
+            <i class="bi bi-check-circle stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-card" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            <div class="stat-value">{{ expired_offers }}</div>
+            <div class="stat-label">Expired Offers</div>
+            <i class="bi bi-clock-history stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="stat-card gradient-orders">
+            <div class="stat-value">{{ usage_count }}</div>
+            <div class="stat-label">Total Usage</div>
+            <i class="bi bi-graph-up stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-custom d-flex align-items-center gap-2 mb-4" data-aos="fade-up">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle text-success{% else %}exclamation-circle text-warning{% endif %}"></i>
+    <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="table-card" data-aos="fade-up">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="bi bi-list me-2"></i>All Offers</h5>
+        <span class="badge bg-warning text-dark">{{ offers|length }} entries</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="offersTable">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Discount %</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th>Usage</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for offer in offers %}
+                <tr>
+                    <td><strong>{{ offer.title }}</strong></td>
+                    <td><span class="badge bg-warning text-dark">{{ offer.discount_percentage }}%</span></td>
+                    <td>{{ offer.start_date|date:"d-m-Y" }} {{ offer.start_time|time:"g:i A" }}</td>
+                    <td>{{ offer.end_date|date:"d-m-Y" }} {{ offer.end_time|time:"g:i A" }}</td>
+                    <td>
+                        {% if offer.is_active %}
+                        <span class="status-badge status-active">Active</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ offer.usage_count }}</td>
+                    <td>{{ offer.created_at|date:"d-m-Y" }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'users:offer_detail' offer.id %}" class="btn btn-sm btn-outline-info" title="View"><i class="bi bi-eye"></i></a>
+                            <a href="{% url 'users:offer_edit' offer.id %}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <a href="#" onclick="confirmDelete('{{ offer.id }}','{{ offer.title|escapejs }}')" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No offers found. <a href="{% url 'users:offer_add' %}" class="text-warning">Create one</a></td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);color:#e2e8f0;border-radius:16px">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Delete Offer</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete "<strong id="deleteItemName"></strong>"?</p>
+                <p class="text-muted" style="font-size:13px">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" id="deleteForm" style="display:inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger-custom"><i class="bi bi-trash me-1"></i> Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(id, name) {
+    document.getElementById('deleteItemName').textContent = name;
+    document.getElementById('deleteForm').action = "{% url 'users:offer_delete' 0 %}".replace('/0/', '/' + id + '/');
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+$(document).ready(function() {
+    $('#offersTable').DataTable({
+        pageLength:10,
+        lengthMenu:[[10,25,50,-1],[10,25,50,'All']],
+        order:[[6,'desc']],
+        language:{
+            search:'', searchPlaceholder:'Search offers...',
+            emptyTable:'No offers found',
+            info:'Showing _START_ to _END_ of _TOTAL_ offers',
+            infoEmpty:'No offers',
+        },
+        dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+    });
+});
+</script>
+{% endblock %}

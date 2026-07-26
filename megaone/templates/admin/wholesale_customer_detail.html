@@ -1,0 +1,226 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}{{ customer.company_name }} - Wholesale Customer{% endblock %}
+{% block extra_css %}
+<style>
+.content-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:24px;margin-bottom:24px}
+.stat-card{background:#0f172a;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:16px;text-align:center;height:100%}
+.stat-card .stat-val{font-size:22px;font-weight:800;margin-top:4px}
+.stat-card .stat-label{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.badge-active{background:rgba(34,197,94,.15);color:#22c55e;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-suspended{background:rgba(234,179,8,.15);color:#eab308;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-frozen{background:rgba(239,68,68,.15);color:#ef4444;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-inactive{background:rgba(100,116,139,.15);color:#94a3b8;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+.tx-type{font-size:11px;font-weight:700;padding:3px 10px;border-radius:50px;display:inline-block}
+.tx-deposit{background:rgba(16,185,129,.15);color:#10b981}
+.tx-redeem{background:rgba(245,158,11,.15);color:#f59e0b}
+.tx-payment{background:rgba(59,130,246,.15);color:#3b82f6}
+.tx-refund{background:rgba(239,68,68,.15);color:#ef4444}
+.tx-adjustment{background:rgba(139,92,246,.15);color:#8b5cf6}
+.amount-pos{color:#10b981;font-weight:700}
+.amount-neg{color:#ef4444;font-weight:700}
+.adjust-section{background:#0f172a;border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:16px;margin-top:16px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>{{ customer.company_name }}</h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Wholesale customer account details</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:wholesale_customer_edit' customer.id %}" class="btn btn-warning btn-action px-3"><i class="bi bi-pencil me-1"></i> Edit</a>
+        <a href="{% url 'users:wholesale_customer_list' %}" class="btn btn-outline-secondary btn-action px-3"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-3 mb-4" data-aos="fade-up">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Account Balance</div>
+            <div class="stat-val" style="color:#10b981">{% format_currency customer.balance 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Deposits</div>
+            <div class="stat-val" style="color:#3b82f6">{% format_currency customer.total_deposits 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Redeemed</div>
+            <div class="stat-val" style="color:#f59e0b">{% format_currency customer.total_redeemed 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Purchases</div>
+            <div class="stat-val" style="color:#22d3ee">{% format_currency total_purchases 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Credit Limit</div>
+            <div class="stat-val" style="color:#8b5cf6">{% format_currency customer.credit_limit 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Used Credit</div>
+            <div class="stat-val" style="color:#f59e0b">{% format_currency customer.used_credit 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Available Credit</div>
+            <div class="stat-val" style="color:#10b981">{% format_currency customer.available_credit 0 %}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4" data-aos="fade-up">
+    <!-- Customer Info -->
+    <div class="col-lg-4">
+        <div class="content-card">
+            <h5 class="mb-3" style="color:#10b981;font-weight:700"><i class="bi bi-person-badge me-2"></i>Customer Info</h5>
+            <table class="table table-sm" style="color:#e2e8f0;font-size:13px">
+                <tr><td style="border:none;color:#94a3b8;padding:6px 0">Contact Person</td><td style="border:none;padding:6px 0" class="fw-semibold">{{ customer.contact_person }}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Email</td><td style="padding:6px 0">{{ customer.email|default:"-" }}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Phone</td><td style="padding:6px 0">{{ customer.phone|default:"-" }}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Credit Limit</td><td style="padding:6px 0;color:#10b981;font-weight:600">{% format_currency customer.credit_limit 0 %}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Account Status</td>
+                    <td style="padding:6px 0">
+                        {% if customer.account_status == 'active' %}<span class="badge-active">Active</span>
+                        {% elif customer.account_status == 'suspended' %}<span class="badge-suspended">Suspended</span>
+                        {% elif customer.account_status == 'frozen' %}<span class="badge-frozen">Frozen</span>
+                        {% else %}<span class="badge-inactive">{{ customer.account_status }}</span>{% endif %}
+                    </td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Active</td>
+                    <td style="padding:6px 0">{% if customer.is_active %}<span class="badge-active">Yes</span>{% else %}<span class="badge-inactive">No</span>{% endif %}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Registered</td><td style="padding:6px 0">{{ customer.created_at|date:"d-m-Y" }}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Last Updated</td><td style="padding:6px 0">{{ customer.updated_at|date:"d-m-Y h:i A" }}</td></tr>
+                <tr><td style="color:#94a3b8;padding:6px 0">Address</td><td style="padding:6px 0">{{ customer.address|default:"-"|truncatechars:50 }}</td></tr>
+            </table>
+        </div>
+
+        <!-- Manual Adjustment (staff only) -->
+        <div class="adjust-section">
+            <h6 style="color:#8b5cf6;font-weight:700;font-size:13px"><i class="bi bi-sliders2 me-1"></i>Manual Adjustment</h6>
+            <p style="font-size:11px;color:#94a3b8;margin-bottom:10px">Adjust account balance. Use positive for credit, negative for debit.</p>
+            <input type="number" id="adjAmount" placeholder="Amount (+/-)" step="0.01" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:8px">
+            <input type="text" id="adjReason" placeholder="Reason (required)" style="width:100%;background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px;padding:8px 12px;font-size:14px;margin-bottom:8px">
+            <button class="btn btn-sm btn-outline-purple w-100" onclick="doAdjustment({{ customer.id }})" style="background:rgba(139,92,246,.15);color:#8b5cf6;border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:8px;font-weight:600"><i class="bi bi-check2 me-1"></i> Apply Adjustment</button>
+            <div id="adjMsg" style="font-size:11px;margin-top:6px;display:none"></div>
+        </div>
+    </div>
+
+    <!-- Transaction History -->
+    <div class="col-lg-8">
+        <div class="content-card">
+            <h5 class="mb-3" style="color:#10b981;font-weight:700"><i class="bi bi-arrow-left-right me-2"></i>Account Transaction History</h5>
+            <div class="table-responsive" style="max-height:400px;overflow-y:auto">
+                <table class="table table-sm" style="color:#e2e8f0;font-size:12px">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Before</th>
+                            <th>After</th>
+                            <th>Invoice</th>
+                            <th>By</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr>
+                            <td style="white-space:nowrap">{{ t.created_at|date:"d-m-Y h:i A" }}</td>
+                            <td><span class="tx-type tx-{{ t.transaction_type }}">{{ t.get_transaction_type_display }}</span></td>
+                            <td class="{% if t.amount > 0 %}amount-pos{% elif t.amount < 0 %}amount-neg{% endif %}">
+                                {% format_currency t.amount 0 %}
+                            </td>
+                            <td>{% format_currency t.balance_before 0 %}</td>
+                            <td>{% format_currency t.balance_after 0 %}</td>
+                            <td>{% if t.invoice %}<a href="{% url 'users:wholesale_invoice_pdf' t.invoice.uuid_token %}" target="_blank" style="color:#10b981">{{ t.invoice.invoice_number }}</a>{% else %}-{% endif %}</td>
+                            <td>{{ t.performed_by.name|default:"-" }}</td>
+                            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">{{ t.notes|default:"-"|truncatechars:30 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center text-muted py-4">No transactions yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Invoices -->
+        <div class="content-card">
+            <h5 class="mb-3" style="color:#10b981;font-weight:700"><i class="bi bi-receipt me-2"></i>Recent Invoices</h5>
+            <div class="table-responsive" style="max-height:300px;overflow-y:auto">
+                <table class="table table-sm" style="color:#e2e8f0;font-size:12px">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Paid</th>
+                            <th>Credit</th>
+                            <th>Due</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in invoices %}
+                        <tr>
+                            <td class="fw-semibold">{{ inv.invoice_number }}</td>
+                            <td style="white-space:nowrap">{{ inv.created_at|date:"d-m-Y h:i A" }}</td>
+                            <td style="color:#f59e0b;font-weight:600">{% format_currency inv.total_amount 0 %}</td>
+                            <td style="color:#10b981">{% format_currency inv.cash_received 0 %}</td>
+                            <td>{% if inv.credit_used > 0 %}<span style="color:#8b5cf6">{% format_currency inv.credit_used 0 %}</span>{% else %}-{% endif %}</td>
+                            <td>{% if inv.remaining_due > 0 %}<span style="color:#ef4444;font-weight:600">{% format_currency inv.remaining_due 0 %}</span>{% else %}-{% endif %}</td>
+                            <td><span class="badge {% if inv.payment_status == 'paid' %}bg-success{% elif inv.payment_status == 'credit_due' %}bg-warning text-dark{% elif inv.payment_status == 'partial' %}bg-info text-dark{% else %}bg-secondary{% endif %}">{{ inv.get_payment_status_display }}</span></td>
+                            <td><a href="{% url 'users:wholesale_invoice_pdf' inv.uuid_token %}" target="_blank" class="btn btn-sm btn-outline-success"><i class="bi bi-file-pdf"></i></a></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="9" class="text-center text-muted py-4">No invoices yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+function doAdjustment(customerId) {
+    const amount = parseFloat(document.getElementById('adjAmount').value) || 0;
+    const reason = document.getElementById('adjReason').value.trim();
+    const msg = document.getElementById('adjMsg');
+    if (amount === 0) { msg.style.cssText = 'display:block;color:#ef4444'; msg.textContent = 'Amount cannot be zero'; return; }
+    if (!reason) { msg.style.cssText = 'display:block;color:#ef4444'; msg.textContent = 'Reason is required'; return; }
+    fetch("{% url 'users:wholesale_account_adjust' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({customer_id: customerId, amount: amount, reason: reason})
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { msg.style.cssText = 'display:block;color:#ef4444'; msg.textContent = d.error; return; }
+        msg.style.cssText = 'display:block;color:#10b981';
+        msg.textContent = d.message;
+        setTimeout(() => location.reload(), 1500);
+    })
+    .catch(e => { msg.style.cssText = 'display:block;color:#ef4444'; msg.textContent = 'Error: ' + e; });
+}
+</script>
+{% endblock %}

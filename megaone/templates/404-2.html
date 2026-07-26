@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block html_attributes %}{% endblock html_attributes %}
+
+{% block title %}404 Error | HTML5 {% endblock title %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static '404-2/css/bundle.min.css' %}">
+<link rel="stylesheet" href="{% static '404-2/css/line-awesome.min.css' %}">
+<!-- Style Sheet -->
+<link rel="stylesheet" href="{% static '404-2/css/style.css' %}">
+{% endblock css %}
+
+{% block body_attributes %}{% endblock body_attributes %}
+
+{% block content %}
+
+<section class="error-page-2">
+    <div class="container">
+        <div class="row text-center">
+
+            <div class="col-12">
+                <div class="erro-text">
+                    <h1 class="error-text">404 ERROR</h1>
+                    <p class="main-heading">Sorry,Page not Found!</p>
+                    <p class="sub-heading">Please try again later.</p>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="error-img-2">
+                    <img src="{% static '404-2/img/404-2.png' %}" alt="ERROR IMAGE">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock content %}
+
+
+{% block javascript %}
+<script src="{% static '404-2/js/bundle.min.js' %}"></script>
+<script src="{% static '404-2/js/script.js' %}"></script>
+{% endblock javascript %}

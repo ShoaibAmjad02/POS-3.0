@@ -1,0 +1,210 @@
+{% load static i18n %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ company_name }} POS - Login</title>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    background:#000;
+}
+
+.login-box{
+    width:380px;
+    padding:40px;
+    border:2px solid #ffffff;
+    border-radius:20px;
+    background:#111;
+    box-shadow:
+        0 0 10px #ff5900,
+        0 0 20px #ff7b00,
+        0 0 40px #ff6600;
+}
+
+.logo{
+    width:90px;
+    height:90px;
+    margin:0 auto 20px;
+    border-radius:50%;
+    background:#000;
+    border:3px solid #ffffff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:#ff7b00;
+    font-size:40px;
+    box-shadow:
+        0 0 10px #ff7b00,
+        0 0 25px #ff7b00;
+}
+
+.logo img{
+    width:80%;
+    height:80%;
+    border-radius:50%;
+}
+
+h2{
+    text-align:center;
+    color:#fff;
+    margin-bottom:30px;
+    letter-spacing:2px;
+}
+
+.input-box.password-box{
+    position:relative;
+}
+
+.input-box.password-box input{
+    padding-right:45px;
+}
+
+.toggle-password{
+    position:absolute;
+    right:15px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#bbb;
+    cursor:pointer;
+    font-size:18px;
+    transition:.3s;
+}
+
+.toggle-password:hover{
+    color:#ff7b00;
+}
+
+.input-box{
+    margin:20px 0;
+}
+
+.input-box input{
+    width:100%;
+    padding:14px;
+    background:transparent;
+    border:2px solid #ff7b00;
+    border-radius:10px;
+    color:#fff;
+    font-size:16px;
+    outline:none;
+    transition:.3s;
+    box-shadow:0 0 10px rgba(255,123,0,.4);
+}
+
+.input-box input:focus{
+    box-shadow:
+        0 0 10px #ff7b00,
+        0 0 20px #ff7b00;
+}
+
+.input-box input::placeholder{
+    color:#bbb;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    margin-top:10px;
+    border:none;
+    border-radius:10px;
+    background:#49cfff;
+    color:#000000;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.3s;
+    box-shadow:
+        0 0 10px #130202,
+        0 0 20px #170e05;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="login-box">
+
+    <!-- Brand Logo -->
+    <div class="logo">
+{% if company_logo %}
+       <img src="{{ company_logo.url }}" alt="{{ company_name }}" style="width:80%;height:80%;border-radius:50%;">
+{% else %}
+       <img src="{% static 'food-delivery/img/logo.png' %}" alt="Brand Logo">
+{% endif %}
+    </div>
+
+    <h2>Please Login</h2>
+
+    {% if messages %}
+    {% for message in messages %}
+    <script>alert("{{ message|escapejs }}");</script>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" action="{% url 'users:login' %}">
+        {% csrf_token %}
+        {% if request.GET.next %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
+        {% endif %}
+
+        <div class="input-box">
+            <input type="email" name="email" placeholder="Email Address" required>
+        </div>
+
+        <div class="input-box password-box">
+    <input
+        type="password"
+        name="password"
+        id="password"
+        placeholder="Password"
+        required
+    >
+    <i class="fa-solid fa-eye toggle-password" id="togglePassword"></i>
+</div>
+
+        <button type="submit">LOGIN</button>
+
+    </form>
+
+</div>
+
+
+
+<script>
+const password = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+togglePassword.addEventListener("click", function () {
+
+    if (password.type === "password") {
+        password.type = "text";
+        this.classList.remove("fa-eye");
+        this.classList.add("fa-eye-slash");
+    } else {
+        password.type = "password";
+        this.classList.remove("fa-eye-slash");
+        this.classList.add("fa-eye");
+    }
+
+});
+</script>
+</body>
+</html>

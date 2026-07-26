@@ -1,0 +1,884 @@
+{% load static tz %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme_mode }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Wholesale POS - {{ company_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+{% include 'includes/theme_vars.html' %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--text-primary);overflow:hidden;height:100vh}
+.pos-container{display:flex;height:100vh;gap:0}
+.left-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.right-panel{width:420px;min-width:420px;background:var(--bg-card);border-left:1px solid var(--border-color);display:flex;flex-direction:column;height:100vh}
+.top-bar{background:linear-gradient(135deg,#064e3b,var(--bg-body));padding:10px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.top-bar h5{margin:0;font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.top-bar h5 span{color:#10b981}
+.wholesale-badge{display:inline-block;background:rgba(5,150,105,.2);color:#10b981;padding:2px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;border:1px solid rgba(5,150,105,.3)}
+.search-section{padding:12px 20px;background:var(--bg-body);flex-shrink:0}
+.search-row{display:flex;gap:8px;flex-wrap:nowrap}
+.search-row input{flex:1;background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px;min-width:0}
+.search-row input:focus{border-color:#10b981;outline:none}
+.search-row input::placeholder{color:var(--text-muted)}
+.search-row select{background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px}
+.categories-scroll{padding:8px 20px;flex-shrink:0;overflow-x:auto;white-space:nowrap}
+.cat-btn{display:inline-block;padding:5px 14px;margin:2px 4px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border-input);background:transparent;color:var(--text-secondary);transition:.2s}
+.cat-btn:hover,.cat-btn.active{background:#10b981;color:#000;border-color:#10b981}
+.products-grid{flex:1;overflow-y:auto;padding:12px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start}
+.product-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-card);overflow:hidden;transition:.2s;cursor:pointer}
+.product-card:hover{border-color:rgba(16,185,129,.3);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.product-card .p-img{height:100px;background:var(--bg-body);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.product-card .p-img img{width:100%;height:100%;object-fit:cover}
+.product-card .p-img .no-img{color:var(--text-placeholder);font-size:28px}
+.product-card .p-body{padding:8px 10px}
+.product-card .p-name{font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-card .p-price{font-size:15px;font-weight:700;color:#10b981}
+.product-card .p-retail{font-size:9px;color:var(--text-muted);text-decoration:line-through}
+.product-card .p-stock{font-size:10px;color:var(--text-muted);margin-top:2px}
+.product-card .p-discount{font-size:10px;color:#10b981;font-weight:600;margin-top:1px}
+.product-card .p-add{width:100%;margin-top:6px;padding:4px;border-radius:6px;border:none;font-size:11px;font-weight:600;transition:.2s}
+.product-card .p-add.add{background:#10b981;color:#000}
+.product-card .p-add.add:hover{background:#059669}
+.product-card .p-add.oos{background:rgba(239,68,68,.2);color:#ef4444;cursor:not-allowed}
+.cart-header{padding:12px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cart-header h6{margin:0;font-weight:700;font-size:14px}
+.cart-actions{display:flex;gap:4px}
+.cart-actions .btn{font-size:11px;padding:3px 10px;border-radius:6px}
+.cart-items{flex:1;overflow-y:auto;padding:8px 12px}
+.cart-item{background:var(--bg-body);border-radius:10px;padding:8px 10px;margin-bottom:6px;border:1px solid rgba(255,255,255,.04)}
+.cart-item .ci-row1{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.cart-item .ci-name{font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item .ci-price{font-size:12px;color:#10b981;font-weight:600;white-space:nowrap}
+.cart-item .ci-row2{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px}
+.cart-item .ci-qty{display:flex;align-items:center;gap:4px}
+.cart-item .ci-qty button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border-input);background:transparent;color:var(--text-primary);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;padding:0;line-height:1}
+.cart-item .ci-qty button:hover{background:#10b981;color:#000;border-color:#10b981}
+.cart-item .ci-qty span{font-size:13px;font-weight:700;min-width:20px;text-align:center}
+.cart-item .ci-del{background:transparent;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;opacity:.6}
+.cart-item .ci-del:hover{opacity:1}
+.cart-item .ci-discount{font-size:10px;color:#10b981;font-weight:600}
+.cart-summary{padding:12px 16px;border-top:1px solid var(--border-color);flex-shrink:0}
+.cart-summary .cs-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.cart-summary .cs-row.total{font-size:16px;font-weight:700;color:#10b981;padding-top:6px;border-top:1px solid var(--border-color);margin-top:4px}
+.cart-summary .cs-row.disc{color:#10b981}
+.cart-summary .cs-row.tax{color:var(--text-secondary)}
+.customer-section{padding:8px 16px;border-top:1px solid var(--border-color);flex-shrink:0}
+.customer-section .ws-label{font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:4px}
+.customer-section select{background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;margin-bottom:4px}
+.customer-section select:focus{border-color:#10b981;outline:none}
+.customer-section input{background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;margin-bottom:4px}
+.customer-section input:focus{border-color:#10b981;outline:none}
+.customer-section input::placeholder{color:var(--text-muted)}
+.checkout-section{padding:8px 16px 12px;border-top:1px solid var(--border-color);flex-shrink:0}
+.checkout-section .payment-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.checkout-section .payment-row .btn{flex:1;font-size:11px;padding:6px 4px;border-radius:6px;min-width:60px}
+.checkout-section .btn-checkout{width:100%;padding:10px;font-size:14px;font-weight:700;border-radius:10px;border:none;background:linear-gradient(135deg,#10b981,#059669);color:#fff;transition:.2s}
+.checkout-section .btn-checkout:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(16,185,129,.3)}
+.invoice-discount-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.invoice-discount-row input{flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:4px 8px;font-size:12px;width:80px}
+.invoice-discount-row button{font-size:11px;padding:4px 10px;border-radius:6px}
+.ws-result-item:hover{background:rgba(16,185,129,.1)!important}
+.toast-msg{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--bg-card);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:12px 20px;color:var(--text-primary);font-size:13px;font-weight:600;display:none;box-shadow:0 8px 25px rgba(0,0,0,.5)}
+.toast-msg.show{display:block;animation:slideIn .3s}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@media(max-width:900px){.right-panel{width:340px;min-width:340px}.products-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+@media(max-width:700px){.pos-container{flex-direction:column}.right-panel{width:100%;min-width:0;height:50vh;border-left:none;border-top:1px solid var(--border-color)}.left-panel{height:50vh}}
+</style>
+</head>
+<body>
+
+<div class="pos-container">
+    <!-- LEFT: Search + Products -->
+    <div class="left-panel">
+        <div style="padding:6px 20px;background:var(--bg-body);border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:6px;align-items:center;flex-shrink:0;justify-content:space-between">
+            <span class="wholesale-badge"><i class="bi bi-shop me-1"></i>WHOLESALE MODE</span>
+            {% if user.is_staff or user.is_software_owner %}
+            <a href="{% url 'users:admin_dashboard' %}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;transition:.2s;cursor:pointer" onmouseover="this.style.background='rgba(16,185,129,.08)';this.style.color='#10b981'" onmouseout="this.style.background='transparent';this.style.color='#94a3b8'"><i class="bi bi-arrow-left"></i> Back</a>
+            {% endif %}
+        </div>
+        <div class="top-bar">
+            <h5><i class="bi bi-shop text-success"></i> {{ company_name }} <small style="font-size:10px;color:var(--text-muted);font-weight:400">| Wholesale</small></h5>
+            <div class="d-flex gap-3 align-items-center">
+                <span id="clock" style="color:var(--text-secondary);font-size:12px;font-weight:600"></span>
+                <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <div class="search-row">
+                <input type="text" id="productSearch" placeholder="Search by name, barcode, code, SKU..." oninput="doSearch()" autofocus>
+                <select id="categoryFilter" onchange="doSearch()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="categories-scroll" id="catScroll">
+            <button class="cat-btn active" data-cat="" onclick="filterCategory(this,'')">All</button>
+            {% for cat in categories %}
+            <button class="cat-btn" data-cat="{{ cat.id }}" onclick="filterCategory(this,'{{ cat.id }}')">{{ cat.name }}</button>
+            {% endfor %}
+        </div>
+        <div class="products-grid" id="productGrid">
+            <div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Type to search products...</div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart -->
+    <div class="right-panel">
+        <div class="cart-header">
+            <h6><i class="bi bi-cart3 text-success me-1"></i> Wholesale Cart <span id="cartCount" class="badge bg-success" style="font-size:10px">0</span></h6>
+            <div class="cart-actions">
+                <button class="btn btn-outline-danger" onclick="clearCart()" title="Clear Cart"><i class="bi bi-trash3"></i></button>
+            </div>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Cart is empty</div>
+        </div>
+        <div class="customer-section">
+            <div class="ws-label"><i class="bi bi-person-badge me-1"></i>Wholesale Customer *</div>
+            <div style="position:relative">
+                <input type="text" id="wsCustomerSearch" placeholder="Type customer name or email..." autocomplete="off" oninput="onCustomerSearchInput()" onkeydown="onCustomerSearchKeydown(event)" onblur="hideCustomerDropdown()" onfocus="onCustomerSearchFocus()">
+                <input type="hidden" id="wsCustomerId" value="">
+                <div id="wsCustomerDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;background:var(--bg-card);border:1px solid var(--border-input);border-radius:8px;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:260px;overflow-y:auto"></div>
+                <div id="wsSelectedCustomer" style="display:none;background:var(--bg-body);border-radius:8px;padding:8px 10px;margin-top:4px;border:1px solid rgba(16,185,129,.2)">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <div id="wsSelectedName" style="font-size:13px;font-weight:700;color:var(--text-primary)"></div>
+                            <div id="wsSelectedEmail" style="font-size:10px;color:var(--text-secondary)"></div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="clearCustomerSelection()" style="font-size:9px;padding:2px 8px;border-radius:6px" title="Change customer"><i class="bi bi-x"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div id="accountSection" style="display:none;margin-top:8px;padding:8px;background:var(--bg-body);border-radius:8px;border:1px solid rgba(16,185,129,.2)">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-size:11px;color:var(--text-secondary)">Account Balance</span>
+                    <div style="text-align:right">
+                        <span id="accountBalance" style="font-size:14px;font-weight:700;color:#10b981">0</span>
+                        <span id="accountStatus" style="display:none;font-size:9px;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle"></span>
+                    </div>
+                </div>
+                <div style="display:flex;gap:4px;margin-bottom:6px">
+                    <input type="number" id="depositAmount" placeholder="Deposit amount" min="0" step="0.01" style="flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 8px;font-size:11px">
+                    <button class="btn btn-sm btn-success" onclick="doDeposit()" style="font-size:11px;padding:4px 12px;border-radius:6px;white-space:nowrap"><i class="bi bi-plus-circle"></i> Deposit</button>
+                </div>
+                <div style="display:flex;gap:4px;align-items:center">
+                    <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap">Redeem</span>
+                    <input type="number" id="redeemAmount" placeholder="0" min="0" step="0.01" value="0" oninput="updatePayableAfterRedeem()" style="flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 8px;font-size:11px;width:70px">
+                </div>
+                <div style="display:flex;gap:4px;align-items:center;margin-top:6px">
+                    <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap">Credit</span>
+                    <input type="number" id="creditAmount" placeholder="0" min="0" step="0.01" value="0" oninput="updateCreditAmount()" style="flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 8px;font-size:11px;width:70px">
+                    <span id="creditInfo" style="font-size:9px;color:#f59e0b;display:none"></span>
+                </div>
+                <div id="depositMsg" style="font-size:10px;color:#10b981;margin-top:4px;display:none"></div>
+            </div>
+        </div>
+        <div class="cart-summary" id="cartSummary" style="display:none">
+            <div class="cs-row"><span>Subtotal</span><span id="subtotal">0</span></div>
+            <div class="invoice-discount-row">
+                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap">Inv Discount</span>
+                <input type="number" id="invDiscount" value="0" min="0" step="0.01" oninput="applyInvoiceDiscount()" style="width:80px">
+            </div>
+            <div class="cs-row disc" id="invDiscRow" style="display:none"><span>Invoice Discount</span><span id="invDiscAmount">0</span></div>
+            <div class="cs-row tax" id="taxRow" style="display:none"><span>Total Item Tax</span><span id="totalTaxDisplay">0</span></div>
+            <div class="cs-row total"><span>Total</span><span id="grandTotal">0</span></div>
+        </div>
+        <div id="cashPaymentSection" style="display:none;padding:8px 16px;border-top:1px solid var(--border-color);flex-shrink:0">
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px">Total Amount</div>
+            <div style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:8px" id="payTotal">0</div>
+            <label style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;display:block">Amount Received</label>
+            <input type="number" id="cashReceived" style="width:100%;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:8px 12px;font-size:16px;font-weight:700;height:auto" placeholder="Enter amount received" min="0" step="0.01" oninput="calcChange()" onkeydown="if(event.key==='Enter')checkout()">
+            <div style="margin-top:6px">
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px">Change Due</div>
+                <div style="font-size:18px;font-weight:800;color:#10b981" id="payChange">0</div>
+            </div>
+            <div id="payError" style="font-size:12px;color:#ef4444;margin-top:6px;display:none"></div>
+        </div>
+        <div class="checkout-section">
+            <div class="payment-row" id="paymentMethods">
+                <button class="btn btn-outline-light active" data-method="cash" onclick="selectPayment(this)">Cash</button>
+                <button class="btn btn-outline-light" data-method="card" onclick="selectPayment(this)">Card</button>
+                <button class="btn btn-outline-light" data-method="bank" onclick="selectPayment(this)">Bank</button>
+                <button class="btn btn-outline-light" data-method="wallet" onclick="selectPayment(this)">Wallet</button>
+            </div>
+            <button class="btn-checkout" id="checkoutBtn" onclick="checkout()"><i class="bi bi-cash me-1"></i> Checkout</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toastMsg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let selectedPayment = 'cash';
+let searchTimeout = null;
+let currentCategory = '';
+
+window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
+
+function formatNumber(value, decimals) {
+    if (value === null || value === undefined || value === '') return '0';
+    if (typeof value === 'string') value = value.replace(/[^0-9.-]/g, '');
+    value = parseFloat(value);
+    if (isNaN(value)) return '0';
+    decimals = (decimals !== undefined) ? decimals : 2;
+    if (decimals < 0) decimals = 0;
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+}
+
+function formatCurrency(value, decimals) {
+    var sym = window.currencySymbol || 'Rs ';
+    return sym + formatNumber(value, decimals).trim();
+}
+
+function toTitleCase(str) {
+    if (!str || typeof str !== 'string') return str;
+    var exceptions = ['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'by', 'with'];
+    return str.split(/\s+/).map(function(word, i) {
+        if (!word) return word;
+        if (i > 0 && exceptions.indexOf(word.toLowerCase()) !== -1) {
+            return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+}
+
+document.addEventListener('blur', function(e) {
+    var el = e.target;
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    var type = (el.type || '').toLowerCase();
+    if (type === 'email' || type === 'password' || type === 'url' || type === 'number' || type === 'tel' || type === 'search') return;
+    var name = (el.name || el.id || '').toLowerCase().replace(/[_-]/g, '');
+    var titleFields = ['name', 'title', 'companyname', 'contactperson', 'superusername', 'custname', 'kname', 'editname', 'fullname', 'supplier', 'city', 'shop', 'warehouse', 'brand', 'subcategory', 'expensetitle', 'employeename'];
+    if (titleFields.some(function(f) { return name.indexOf(f) !== -1 || name === f; }) && !el.hasAttribute('data-no-title')) {
+        el.value = toTitleCase(el.value);
+    }
+}, true);
+
+function showToast(msg, isError) {
+    const t = document.getElementById('toastMsg');
+    t.textContent = msg;
+    t.style.borderColor = isError ? 'rgba(239,68,68,.5)' : 'rgba(16,185,129,.3)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function updateClock() { document.getElementById("clock").innerText = new Date().toLocaleString(); }
+setInterval(updateClock, 1000); updateClock();
+
+function selectPayment(btn) {
+    document.querySelectorAll('#paymentMethods .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPayment = btn.dataset.method;
+    var cashSection = document.getElementById('cashPaymentSection');
+    if (selectedPayment === 'cash') {
+        cashSection.style.display = 'block';
+        calcChange();
+    } else {
+        cashSection.style.display = 'none';
+    }
+}
+
+function filterCategory(btn, catId) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = catId;
+    document.getElementById('categoryFilter').value = catId;
+    doSearch();
+}
+
+function doSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const q = document.getElementById('productSearch').value.trim();
+        const cat = document.getElementById('categoryFilter').value || currentCategory;
+        fetch("{% url 'users:search_products' %}?q=" + encodeURIComponent(q) + (cat ? "&category=" + cat : ""))
+        .then(r => r.json())
+        .then(data => {
+            const products = data.products || [];
+            const grid = document.getElementById('productGrid');
+            if (products.length === 0) {
+                grid.innerHTML = '<div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>No products found</div>';
+                return;
+            }
+            grid.innerHTML = products.map(p => {
+                const inStock = p.stock > 0;
+                const wsPrice = p.wholesale_price || 0;
+                const discLabel = p.wholesale_discount_type && p.wholesale_discount_value > 0
+                    ? (p.wholesale_discount_type === 'percentage' ? p.wholesale_discount_value + '% WS off' : formatCurrency(p.wholesale_discount_value, 0) + ' WS off')
+                    : '';
+                return `<div class="product-card">
+                    <div class="p-img">${p.image ? '<img src="' + p.image + '">' : '<i class="bi bi-box no-img"></i>'}</div>
+                    <div class="p-body">
+                        <div class="p-name">${p.name}</div>
+                        <div class="p-price">${formatCurrency(wsPrice, 0)}</div>
+                        <div class="p-retail">Retail: ${formatCurrency(p.price, 0)}</div>
+                        <div class="p-stock">Stock: <span style="color:${p.stock > 10 ? '#10b981' : (p.stock > 0 ? '#f59e0b' : '#ef4444')}">${p.stock}</span></div>
+                        ${discLabel ? '<div class="p-discount">' + discLabel + '</div>' : ''}
+                        <button class="p-add ${inStock && wsPrice > 0 ? 'add' : 'oos'}" onclick="${inStock && wsPrice > 0 ? "addToCart(" + p.id + ")" : "showToast('" + (wsPrice <= 0 ? 'No wholesale price' : 'Out of stock') + "',true)"}">${inStock && wsPrice > 0 ? '<i class="bi bi-plus-lg"></i> Add' : (wsPrice <= 0 ? 'No WS Price' : 'Out of Stock')}</button>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+    }, 150);
+}
+
+// =============================================
+// WHOLESALE CUSTOMER AUTOCOMPLETE
+// =============================================
+let wsSearchTimeout = null;
+let wsSelectedIndex = -1;
+let wsResults = [];
+
+function onCustomerSearchInput() {
+    clearTimeout(wsSearchTimeout);
+    const input = document.getElementById('wsCustomerSearch');
+    const q = input.value.trim();
+    if (q.length === 0) {
+        hideCustomerDropdown();
+        return;
+    }
+    wsSearchTimeout = setTimeout(() => doCustomerSearch(q), 200);
+}
+
+function onCustomerSearchFocus() {
+    const q = document.getElementById('wsCustomerSearch').value.trim();
+    if (q.length > 0) doCustomerSearch(q);
+}
+
+function doCustomerSearch(q) {
+    const dropdown = document.getElementById('wsCustomerDropdown');
+    dropdown.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-secondary);font-size:12px"><i class="bi bi-arrow-repeat me-1" style="animation:spin .8s linear infinite"></i>Searching...</div>';
+    dropdown.style.display = 'block';
+
+    fetch("{% url 'users:wholesale_customer_search' %}?q=" + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(data => {
+        wsResults = data.customers || [];
+        wsSelectedIndex = -1;
+        if (wsResults.length === 0) {
+            dropdown.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px"><i class="bi bi-search" style="font-size:20px;display:block;margin-bottom:4px;opacity:.3"></i>No customers found</div>';
+            return;
+        }
+        dropdown.innerHTML = wsResults.map((c, i) =>
+            '<div class="ws-result-item" data-index="' + i + '" onmousedown="selectCustomerResult(' + i + ')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.04);' + (i === wsResults.length - 1 ? 'border-bottom:none' : '') + '">' +
+                '<div style="font-size:13px;font-weight:600;color:var(--text-primary)">' + escHtml(c.company_name) + '</div>' +
+                '<div style="font-size:10px;color:var(--text-secondary);margin-top:1px">' + escHtml(c.email || 'No email') + ' <span style="color:var(--text-muted)">| ID #' + c.id + '</span></div>' +
+                '<div style="font-size:11px;color:#10b981;font-weight:600;margin-top:2px">Balance: ' + formatCurrency(c.balance, 0) + '</div>' +
+            '</div>'
+        ).join('');
+    });
+}
+
+function selectCustomerResult(index) {
+    if (!wsResults[index]) return;
+    const c = wsResults[index];
+    document.getElementById('wsCustomerId').value = c.id;
+    document.getElementById('wsCustomerSearch').value = c.company_name;
+    document.getElementById('wsSelectedName').textContent = c.company_name;
+    document.getElementById('wsSelectedEmail').textContent = c.email || 'No email';
+    document.getElementById('wsSelectedCustomer').style.display = 'block';
+    hideCustomerDropdown();
+    onCustomerChange();
+}
+
+function clearCustomerSelection() {
+    document.getElementById('wsCustomerId').value = '';
+    document.getElementById('wsCustomerSearch').value = '';
+    document.getElementById('wsSelectedCustomer').style.display = 'none';
+    hideCustomerDropdown();
+    onCustomerChange();
+}
+
+function hideCustomerDropdown() {
+    setTimeout(() => {
+        document.getElementById('wsCustomerDropdown').style.display = 'none';
+    }, 200);
+}
+
+function onCustomerSearchKeydown(e) {
+    const dropdown = document.getElementById('wsCustomerDropdown');
+    const items = dropdown.querySelectorAll('.ws-result-item');
+    if (items.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        wsSelectedIndex = Math.min(wsSelectedIndex + 1, items.length - 1);
+        updateSelectedItem(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        wsSelectedIndex = Math.max(wsSelectedIndex - 1, 0);
+        updateSelectedItem(items);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (wsSelectedIndex >= 0 && wsResults[wsSelectedIndex]) {
+            selectCustomerResult(wsSelectedIndex);
+        }
+    } else if (e.key === 'Escape') {
+        hideCustomerDropdown();
+    }
+}
+
+function updateSelectedItem(items) {
+    items.forEach((el, i) => {
+        if (i === wsSelectedIndex) {
+            el.style.background = 'rgba(16,185,129,.15)';
+            el.scrollIntoView({block: 'nearest'});
+        } else {
+            el.style.background = '';
+        }
+    });
+}
+
+function escHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+function addToCart(foodId, cb) {
+    fetch("{% url 'users:wholesale_cart_add' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId, quantity: 1})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        renderCart(data.cart, data.subtotal);
+        showToast('Added to cart');
+        if (cb) cb(data);
+    })
+    .catch(e => showToast('Error adding to cart', true));
+}
+
+function updateCart(foodId, qty) {
+    if (qty <= 0) { removeCart(foodId); return; }
+    fetch("{% url 'users:wholesale_cart_update' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId, quantity: qty})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        renderCart(data.cart, data.subtotal);
+    });
+}
+
+function removeCart(foodId) {
+    fetch("{% url 'users:wholesale_cart_remove' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId})
+    })
+    .then(r => r.json())
+    .then(data => renderCart(data.cart, data.subtotal));
+}
+
+function clearCart() {
+    if (!confirm('Clear cart?')) return;
+    fetch("{% url 'users:wholesale_cart_clear' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"}
+    })
+    .then(r => r.json())
+    .then(data => renderCart([], 0));
+}
+
+function applyInvoiceDiscount() {
+    const disc = parseFloat(document.getElementById('invDiscount').value) || 0;
+    fetch("{% url 'users:wholesale_set_discount' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({discount: disc})
+    })
+    .then(r => r.json())
+    .then(() => refreshTotals());
+}
+
+function refreshTotals() {
+    fetch("{% url 'users:wholesale_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('subtotal').textContent = formatCurrency(data.subtotal);
+        document.getElementById('invDiscAmount').textContent = '-' + formatCurrency(data.invoice_discount);
+        document.getElementById('invDiscRow').style.display = data.invoice_discount > 0 ? 'flex' : 'none';
+        document.getElementById('totalTaxDisplay').textContent = formatCurrency(data.total_tax || 0);
+        document.getElementById('taxRow').style.display = (data.total_tax || 0) > 0 ? 'flex' : 'none';
+        document.getElementById('grandTotal').textContent = formatCurrency(data.grand_total);
+        var payable = data.grand_total;
+        var redeem = parseFloat(document.getElementById('redeemAmount').value) || 0;
+        var balance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.-]/g, '')) || 0;
+        if (redeem > 0 && redeem > balance) {
+            redeem = balance;
+            document.getElementById('redeemAmount').value = balance;
+        }
+        payable = Math.max(0, payable - redeem);
+        var credit = parseFloat(document.getElementById('creditAmount').value) || 0;
+        var creditMax = parseFloat(document.getElementById('creditAmount').max) || 0;
+        if (credit > creditMax) {
+            credit = creditMax;
+            document.getElementById('creditAmount').value = credit;
+        }
+        var cashNeeded = Math.max(0, payable - credit);
+        document.getElementById('payTotal').textContent = formatCurrency(cashNeeded);
+        calcChange();
+    });
+}
+
+function renderCart(cart, subtotal) {
+    const container = document.getElementById('cartItems');
+    const count = document.getElementById('cartCount');
+    const summary = document.getElementById('cartSummary');
+    if (!cart || cart.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Cart is empty</div>';
+        count.textContent = '0';
+        summary.style.display = 'none';
+        return;
+    }
+    summary.style.display = 'block';
+    count.textContent = cart.length;
+    container.innerHTML = cart.map(item => `
+        <div class="cart-item">
+            <div class="ci-row1">
+                <span class="ci-name">${item.name}</span>
+                <span class="ci-price">${formatCurrency(item.line_total_with_tax || item.line_total)}</span>
+                <button class="ci-del" onclick="removeCart(${item.food_id})"><i class="bi bi-x-circle"></i></button>
+            </div>
+            <div class="ci-row2">
+                <div class="ci-qty">
+                    <button onclick="updateCart(${item.food_id}, ${item.quantity - 1})">−</button>
+                    <input type="number" value="${item.quantity}" min="0" style="width:36px;text-align:center;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;font-size:13px;font-weight:700;padding:1px 2px" oninput="updateCart(${item.food_id}, parseInt(this.value) || 0)">
+                    <button onclick="updateCart(${item.food_id}, ${item.quantity + 1})">+</button>
+                </div>
+                <span style="font-size:11px;color:var(--text-secondary)">${formatCurrency(item.price, 0)} × ${item.quantity}</span>
+                <select style="background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;padding:2px 4px;font-size:10px" onchange="updateCartTax(${item.food_id}, parseFloat(this.value))">
+                    <option value="0" ${(item.tax_rate || 0) === 0 ? 'selected' : ''}>0%</option>
+                    <option value="5" ${(item.tax_rate || 0) === 5 ? 'selected' : ''}>5%</option>
+                    <option value="10" ${(item.tax_rate || 0) === 10 ? 'selected' : ''}>10%</option>
+                    <option value="15" ${(item.tax_rate || 0) === 15 ? 'selected' : ''}>15%</option>
+                    <option value="18" ${(item.tax_rate || 0) === 18 ? 'selected' : ''}>18%</option>
+                </select>
+            </div>
+            ${item.tax_amount > 0 ? `<div style="font-size:10px;color:#fbbf24;margin-top:2px">Tax: ${formatCurrency(item.tax_amount)}</div>` : ''}
+            ${item.discount_label ? '<div class="ci-discount">' + item.discount_label + '</div>' : ''}
+        </div>
+    `).join('');
+    refreshTotals();
+}
+
+function updateCartTax(foodId, taxRate) {
+    fetch("{% url 'users:wholesale_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        var item = (data.cart || []).find(function(i) { return i.food_id === foodId; });
+        var qty = item ? item.quantity : 1;
+        fetch("{% url 'users:wholesale_cart_update' %}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+            body: JSON.stringify({food_id: foodId, quantity: qty, tax_rate: taxRate})
+        })
+        .then(r => r.json())
+        .then(function(updateData) {
+            if (updateData.error) { showToast(updateData.error, true); return; }
+            renderCart(updateData.cart, updateData.subtotal);
+        });
+    });
+}
+
+function onCustomerChange() {
+    const customerId = document.getElementById('wsCustomerId').value;
+    const btn = document.getElementById('checkoutBtn');
+    const section = document.getElementById('accountSection');
+
+    if (customerId) {
+        btn.innerHTML = '<i class="bi bi-person-badge me-1"></i> Checkout';
+        section.style.display = 'block';
+        loadAccountInfo(customerId);
+    } else {
+        btn.innerHTML = '<i class="bi bi-cash me-1"></i> Checkout';
+        section.style.display = 'none';
+    }
+}
+
+function loadAccountInfo(customerId) {
+    fetch("{% url 'users:wholesale_account_info' %}?customer_id=" + customerId)
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('accountBalance').textContent = formatCurrency(data.balance);
+            document.getElementById('redeemAmount').max = data.balance;
+            const statusEl = document.getElementById('accountStatus');
+            if (data.account_status && data.account_status !== 'active') {
+                statusEl.textContent = data.account_status.toUpperCase();
+                statusEl.style.display = 'inline-block';
+                if (data.account_status === 'suspended') {
+                    statusEl.style.background = 'rgba(234,179,8,.15)';
+                    statusEl.style.color = '#eab308';
+                } else if (data.account_status === 'frozen') {
+                    statusEl.style.background = 'rgba(239,68,68,.15)';
+                    statusEl.style.color = '#ef4444';
+                }
+            } else {
+                statusEl.style.display = 'none';
+            }
+            // Credit info
+            const creditInfo = document.getElementById('creditInfo');
+            if (data.credit_limit > 0) {
+                var availCredit = Math.max(0, data.credit_limit - (data.used_credit || 0));
+                creditInfo.textContent = 'Limit: ' + formatCurrency(data.credit_limit) + ' | Available: ' + formatCurrency(availCredit);
+                creditInfo.style.display = 'inline';
+                document.getElementById('creditAmount').max = availCredit;
+            } else {
+                creditInfo.style.display = 'none';
+                document.getElementById('creditAmount').max = 0;
+            }
+        }
+    });
+}
+
+function updateCreditAmount() {
+    var credit = parseFloat(document.getElementById('creditAmount').value) || 0;
+    updatePayableAfterRedeem();
+}
+
+function doDeposit() {
+    const customerId = document.getElementById('wsCustomerId').value;
+    const amount = parseFloat(document.getElementById('depositAmount').value) || 0;
+    if (!customerId) { showToast('Select a customer first', true); return; }
+    if (amount <= 0) { showToast('Enter a valid deposit amount', true); return; }
+
+    fetch("{% url 'users:wholesale_account_deposit' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({
+            customer_id: parseInt(customerId),
+            amount: amount,
+            notes: "Deposit via POS",
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        document.getElementById('depositAmount').value = '';
+        document.getElementById('accountBalance').textContent = formatCurrency(data.balance);
+        document.getElementById('redeemAmount').max = data.balance;
+        const msg = document.getElementById('depositMsg');
+        msg.textContent = 'Deposit successful! New balance: ' + formatCurrency(data.balance);
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 3000);
+        showToast('Deposit of ' + formatCurrency(amount) + ' successful');
+    });
+}
+
+function updatePayableAfterRedeem() {
+    const redeem = parseFloat(document.getElementById('redeemAmount').value) || 0;
+    const totalEl = document.getElementById('payTotal');
+    const balance = parseFloat(document.getElementById('accountBalance').textContent.replace(/[^0-9.-]/g, '')) || 0;
+
+    if (redeem > balance) {
+        showToast('Redeem amount exceeds available balance', true);
+        document.getElementById('redeemAmount').value = balance;
+        return;
+    }
+
+    fetch("{% url 'users:wholesale_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        const grandTotal = data.grand_total;
+        const payable = Math.max(0, grandTotal - redeem);
+        var credit = parseFloat(document.getElementById('creditAmount').value) || 0;
+        var creditMax = parseFloat(document.getElementById('creditAmount').max) || 0;
+        if (credit > creditMax) {
+            credit = creditMax;
+            document.getElementById('creditAmount').value = credit;
+        }
+        var cashNeeded = Math.max(0, payable - credit);
+        document.getElementById('payTotal').textContent = formatCurrency(cashNeeded);
+        calcChange();
+    });
+}
+
+function calcChange() {
+    var totalEl = document.getElementById('payTotal');
+    var cashEl = document.getElementById('cashReceived');
+    var changeEl = document.getElementById('payChange');
+    var errorEl = document.getElementById('payError');
+    var total = parseFloat(totalEl.textContent.replace(/[^0-9.-]/g, '')) || 0;
+    var cash = parseFloat(cashEl.value) || 0;
+    if (cash <= 0) {
+        changeEl.textContent = formatCurrency(0);
+        errorEl.style.display = 'none';
+        return;
+    }
+    if (cash < total) {
+        var due = (total - cash).toFixed(0);
+        changeEl.textContent = formatCurrency(0);
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Remaining due: ' + formatCurrency(due, 0);
+        return;
+    }
+    var change = (cash - total).toFixed(0);
+    changeEl.textContent = formatCurrency(change, 0);
+    errorEl.style.display = 'none';
+}
+
+function checkout() {
+    const customerId = document.getElementById('wsCustomerId').value;
+    if (!customerId) {
+        showToast('Please select a wholesale customer', true);
+        return;
+    }
+
+    fetch("{% url 'users:wholesale_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        if (!data.cart || data.cart.length === 0) {
+            showToast('Cart is empty', true);
+            return;
+        }
+        const redeem = parseFloat(document.getElementById('redeemAmount').value) || 0;
+        var total = Math.max(0, data.grand_total - redeem);
+        document.getElementById('payTotal').textContent = formatCurrency(total);
+        calcChange();
+
+        if (selectedPayment === 'cash') {
+            var cashEl = document.getElementById('cashReceived');
+            var cashReceived = parseFloat(cashEl.value) || 0;
+            if (cashReceived <= 0 && total > 0) {
+                showToast('Please enter the amount received', true);
+                cashEl.focus();
+                return;
+            }
+            if (cashReceived < total) {
+                showToast('Insufficient amount. Remaining: ' + formatCurrency(total - cashReceived, 0), true);
+                cashEl.focus();
+                return;
+            }
+            processPayment(customerId, cashReceived);
+        } else {
+            processPayment(customerId, 0);
+        }
+    });
+}
+
+function processPayment(customerId, cashReceived) {
+    const deposit = parseFloat(document.getElementById('depositAmount').value) || 0;
+    const redeem = parseFloat(document.getElementById('redeemAmount').value) || 0;
+    const credit = parseFloat(document.getElementById('creditAmount').value) || 0;
+
+    fetch("{% url 'users:wholesale_checkout' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({
+            wholesale_customer_id: parseInt(customerId),
+            payment_method: selectedPayment,
+            cash_received: cashReceived,
+            deposit_amount: deposit,
+            redeem_amount: redeem,
+            credit_used: credit,
+        })
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.error) { showToast(result.error, true); return; }
+        var msg = 'Invoice ' + result.invoice_no + ' created';
+        if (result.credit_used > 0) {
+            msg += ' | Credit: ' + formatCurrency(result.credit_used);
+        }
+        if (result.remaining_due > 0) {
+            msg += ' | Due: ' + formatCurrency(result.remaining_due);
+        }
+        showToast(msg);
+        resetPos();
+        window.open("/users/wholesale/invoice/" + result.uuid_token + "/", "_blank");
+    });
+}
+
+function resetPos() {
+    renderCart([], 0);
+    document.getElementById('invDiscount').value = 0;
+    document.getElementById('redeemAmount').value = 0;
+    document.getElementById('depositAmount').value = '';
+    document.getElementById('creditAmount').value = 0;
+    document.getElementById('categoryFilter').value = '';
+    currentCategory = '';
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.cat-btn[data-cat=""]').classList.add('active');
+    document.getElementById('cashReceived').value = '';
+    document.getElementById('payChange').textContent = formatCurrency(0);
+    document.getElementById('payError').style.display = 'none';
+    document.getElementById('depositMsg').style.display = 'none';
+    clearCustomerSelection();
+    selectedPayment = 'cash';
+    document.querySelectorAll('#paymentMethods .btn').forEach(b => b.classList.remove('active'));
+    var cashBtn = document.querySelector('#paymentMethods .btn[data-method="cash"]');
+    if (cashBtn) cashBtn.classList.add('active');
+    document.getElementById('cashPaymentSection').style.display = 'block';
+    document.getElementById('checkoutBtn').innerHTML = '<i class="bi bi-cash me-1"></i> Checkout';
+}
+
+// Initialize
+document.getElementById('cashPaymentSection').style.display = 'block';
+fetch("{% url 'users:wholesale_cart_data' %}").then(r => r.json()).then(data => renderCart(data.cart, data.subtotal));
+// Focus customer search on load
+document.getElementById('wsCustomerSearch').focus();
+
+// Barcode Scanner Support
+var barcodeBuffer = '';
+var barcodeTimer = null;
+
+document.addEventListener('keydown', function(e) {
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+        return;
+    }
+    if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 0) {
+            e.preventDefault();
+            processBarcode(barcodeBuffer);
+        }
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+        return;
+    }
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        barcodeBuffer += e.key;
+        if (barcodeTimer) clearTimeout(barcodeTimer);
+        barcodeTimer = setTimeout(function() {
+            barcodeBuffer = '';
+            barcodeTimer = null;
+        }, 200);
+    } else {
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+    }
+});
+
+function processBarcode(barcode) {
+    fetch("{% url 'users:barcode_lookup' %}?barcode=" + encodeURIComponent(barcode))
+    .then(function(r) { return r.json().then(function(d) { return {ok: r.ok, data: d}; }); })
+    .then(function(result) {
+        if (!result.ok) { showToast('Product not found for barcode: ' + barcode, true); return; }
+        addToCart(result.data.id, function() {});
+    })
+    .catch(function() { showToast('Error looking up barcode', true); });
+}
+</script>
+</body>
+</html>

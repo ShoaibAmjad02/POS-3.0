@@ -1,0 +1,181 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Backup Management - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.backup-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:28px;margin-bottom:24px}
+.backup-card h5{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--text-detail-value)}
+.backup-card h5 i{margin-right:10px;color:var(--accent)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-color)}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--text-secondary);font-size:14px}
+.info-value{color:var(--text-primary);font-weight:600;font-size:14px}
+.status-success{color:var(--color-success)}
+.status-failed{color:var(--color-danger)}
+.status-pending{color:var(--color-warning)}
+.backup-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Backup <span>Management</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:14px">Manage database backups and auto-backup settings.</p>
+    </div>
+</div>
+
+{% if messages %}
+<div>
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-custom d-flex align-items-center justify-content-between" role="alert" style="background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px;color:var(--alert-color);padding:14px 20px;margin-bottom:16px">
+        <span><i class="bi bi-info-circle me-2"></i>{{ message }}</span>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="backup-card" data-aos="fade-up">
+            <h5><i class="bi bi-database-gear"></i>Backup Status</h5>
+            <div class="info-row">
+                <span class="info-label">Last Backup</span>
+                <span class="info-value" id="lastBackupTime">{{ metadata.last_backup_time|default:"Never" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Status</span>
+                <span class="info-value" id="backupStatus">
+                    {% if metadata.last_backup_status == "success" %}
+                    <span class="status-success"><i class="bi bi-check-circle-fill me-1"></i>Success</span>
+                    {% elif metadata.last_backup_status == "failed" %}
+                    <span class="status-failed"><i class="bi bi-x-circle-fill me-1"></i>Failed</span>
+                    {% else %}
+                    <span class="status-pending"><i class="bi bi-dash-circle me-1"></i>No backup yet</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">File Size</span>
+                <span class="info-value" id="backupFileSize">{{ file_size }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Backup File</span>
+                <span class="info-value" style="font-family:monospace;font-size:13px;color:var(--text-secondary)">deployment/backups/{{ company_name|slugify }}.sql</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Auto Backup</span>
+                <span class="info-value">
+                    {% if metadata.auto_backup_enabled %}
+                    <span class="status-success"><i class="bi bi-toggle-on me-1"></i>Enabled</span>
+                    {% else %}
+                    <span class="status-failed"><i class="bi bi-toggle-off me-1"></i>Disabled</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-row" id="nextBackupRow" {% if not metadata.auto_backup_enabled %}style="display:none"{% endif %}>
+                <span class="info-label">Next Scheduled Backup</span>
+                <span class="info-value" id="nextBackupTime">{{ next_backup }}</span>
+            </div>
+            {% if metadata.last_backup_error %}
+            <div class="info-row">
+                <span class="info-label">Last Error</span>
+                <span class="info-value" style="color:var(--color-danger);font-size:13px">{{ metadata.last_backup_error }}</span>
+            </div>
+            {% endif %}
+            <div class="backup-actions" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-color)">
+                <button class="btn btn-warning" onclick="runBackup()" id="backupNowBtn">
+                    <i class="bi bi-cloud-arrow-up me-1"></i> Backup Now
+                </button>
+                {% if backup_exists %}
+                <a href="{% url 'users:backup_download' %}" class="btn btn-outline-warning">
+                    <i class="bi bi-download me-1"></i> Download Backup
+                </a>
+                {% endif %}
+                <button class="btn {% if metadata.auto_backup_enabled %}btn-outline-danger{% else %}btn-outline-success{% endif %}" onclick="toggleAutoBackup()" id="toggleAutoBtn">
+                    {% if metadata.auto_backup_enabled %}
+                    <i class="bi bi-toggle-off me-1"></i> Disable Auto Backup
+                    {% else %}
+                    <i class="bi bi-toggle-on me-1"></i> Enable Auto Backup
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="backup-card" data-aos="fade-up" data-aos-delay="100">
+            <h5><i class="bi bi-info-circle"></i>Information</h5>
+            <p style="color:var(--text-secondary);font-size:13px;line-height:1.6">
+                Automatic backups run every 24 hours. The backup file is stored at:<br>
+                <code style="color:var(--accent);font-size:12px">deployment/backups/{{ company_name|slugify }}.sql</code>
+            </p>
+            <p style="color:var(--text-secondary);font-size:13px;line-height:1.6">
+                Each new backup replaces the previous one. No timestamped copies are kept.
+            </p>
+            <p style="color:var(--text-secondary);font-size:13px;line-height:1.6">
+                To schedule automatic backups, run:<br>
+                <code style="color:var(--accent);font-size:12px">python manage.py auto_backup</code><br>
+                via Windows Task Scheduler every hour (the command checks if 24h have passed).
+            </p>
+            <p style="color:var(--text-secondary);font-size:13px;line-height:1.6">
+                To force an immediate backup:<br>
+                <code style="color:var(--accent);font-size:12px">python manage.py auto_backup --force</code>
+            </p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+function runBackup() {
+    const btn = document.getElementById('backupNowBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Backing up...';
+
+    fetch("{% url 'users:backup_run' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Backup failed: ' + (data.error || 'Unknown error'));
+            location.reload();
+        }
+    })
+    .catch(function(err) {
+        alert('Error: ' + err.message);
+        location.reload();
+    });
+}
+
+function toggleAutoBackup() {
+    fetch("{% url 'users:backup_toggle_auto' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin',
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to toggle auto backup');
+        }
+    })
+    .catch(function(err) {
+        alert('Error: ' + err.message);
+    });
+}
+</script>
+{% endblock %}

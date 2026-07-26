@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% load static i18n format_tags %}
+
+{% block html_attributes %}{% endblock html_attributes %}
+
+{% block title %}{{ deal.title }} - Deal Details{% endblock title %}
+
+{% block css %}
+<link href="{% static '/vendor/css/bundle.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/line-awesome.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/revolution-settings.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/jquery.fancybox.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/owl.carousel.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/cubeportfolio.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/LineIcons.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick-theme.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/wow.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/style.css' %}" rel="stylesheet">
+<style>
+body{background:#0f172a;color:#e2e8f0}
+.deal-hero{background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:24px;overflow:hidden;margin-bottom:24px;border:1px solid rgba(255,255,255,.06)}
+.deal-hero img{width:100%;max-height:400px;object-fit:cover}
+.deal-badge{display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700;font-size:13px;padding:6px 18px;border-radius:20px;margin-bottom:12px}
+.deal-title{font-size:28px;font-weight:800;color:#f1f5f9;margin-bottom:8px}
+.deal-desc{color:#94a3b8;line-height:1.7;margin-bottom:20px}
+.price-card{background:#1e293b;border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,.06);margin-bottom:16px}
+.price-card .label{color:#64748b;font-size:13px;font-weight:600}
+.price-card .value{font-size:24px;font-weight:800}
+.price-card .value.original{color:#64748b;text-decoration:line-through}
+.price-card .value.deal{color:#22c55e}
+.price-card .value.savings{color:#f59e0b}
+.product-card{background:#1e293b;border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,.06);margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.product-card img{width:80px;height:80px;border-radius:12px;object-fit:cover}
+.product-card .info{flex:1}
+.product-card .info h5{margin:0;font-size:16px;font-weight:600;color:#f1f5f9}
+.product-card .info p{margin:2px 0 0;font-size:13px;color:#64748b}
+.product-card .info .price-tag{font-weight:700;font-size:16px;color:#f59e0b}
+.product-card.free{border-color:rgba(34,197,94,.2)}
+.product-card.free .free-badge{background:#22c55e;color:#fff;font-size:11px;padding:2px 10px;border-radius:20px;font-weight:600}
+.btn-order-deal{background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-weight:700;font-size:18px;padding:16px 32px;border-radius:16px;width:100%;cursor:pointer;transition:.2s}
+.btn-order-deal:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(34,197,94,.3)}
+.btn-order-deal:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.timer-bar{display:flex;gap:12px;justify-content:center;margin:16px 0}
+.timer-item{background:rgba(255,255,255,.06);border-radius:10px;padding:8px 16px;text-align:center;min-width:60px}
+.timer-item .num{font-size:22px;font-weight:700;color:#f59e0b;display:block}
+.timer-item .lbl{font-size:10px;color:#64748b;text-transform:uppercase}
+</style>
+{% endblock css %}
+
+{% block body_attributes %}data-spy="scroll" data-target=".navbar" data-offset="90"{% endblock body_attributes %}
+
+{% block content %}
+<div class="preloader"><div class="center"><div class="spinner"><div class="blob top"></div><div class="blob bottom"></div><div class="blob left"></div><div class="blob move-blob"></div></div></div></div>
+
+<header id="home" class="cursor-light">
+    <div class="inner-header nav-icon">
+        <div class="main-navigation">
+            <div class="container">
+                <div class="row">
+                    <div class="col-6 col-lg-3">
+                        <a class="navbar-brand link" href="/">
+                            <img src="{% static 'food-delivery/img/logo.png' %}" alt="logo">
+                        </a>
+                    </div>
+                    <div class="col-lg-6 simple-navbar d-none d-lg-flex align-items-center justify-content-center">
+                        <nav class="navbar navbar-expand-lg">
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <div class="navbar-nav ml-auto mr-auto">
+                                    <a class="nav-link link" href="{% url 'users:food_delivery_restaurant_detail' %}">Browse Products</a>
+                                    <a class="nav-link link" href="/#app-sec">Download App</a>
+                                    <a class="nav-link link" href="/#about-sec">About Us</a>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                    <div class="col-6 col-lg-3 d-flex align-items-center justify-content-end">
+                        <ul class="user-links">
+                            <li class="user-menu-cart">
+                                <a href="javascript:void(0);" class="fa-icon link">
+                                    <i class="far fa-user"></i><span><i class="las la-angle-down ml-1"></i></span>
+                                </a>
+                                <div class="menu-links link">
+                                    <ul>
+                                        {% if user.is_authenticated %}
+                                        <li><a href="{% url 'users:loyalty_card_view' %}"><i class="lni lni-star"></i>My Loyalty Card</a></li>
+                                        <li><a href="{% url 'users:logout' %}"><i class="lni lni-lock"></i>Logout</a></li>
+                                        {% else %}
+                                        <li><a href="{% url 'food-delivery:food_delivery_login' %}"><i class="lni lni-key"></i>Login</a></li>
+                                        <li><a href="{% url 'food-delivery:food_delivery_registration' %}"><i class="lni lni-pointer-right"></i>Register</a></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <a href="javascript:void(0)" class="sidemenu_btn link d-lg-none" id="sidemenu_toggle">
+            <span></span><span></span><span></span>
+        </a>
+    </div>
+</header>
+
+{% if deal %}
+<section style="padding:60px 0">
+    <div class="container" style="max-width:800px">
+        <a href="/" class="btn btn-sm" style="background:rgba(255,255,255,.05);color:#94a3b8;border-radius:10px;padding:8px 16px;margin-bottom:20px;text-decoration:none">&larr; Back to Home</a>
+
+        <div class="deal-hero">
+            {% if deal.deal_banner %}
+            <img src="{{ deal.deal_banner.url }}" alt="{{ deal.title }}">
+            {% elif deal.deal_image %}
+            <img src="{{ deal.deal_image.url }}" alt="{{ deal.title }}">
+            {% else %}
+            <div style="padding:60px;text-align:center;font-size:64px;background:linear-gradient(135deg,#3b82f6,#8b5cf6)">&#127860;</div>
+            {% endif %}
+        </div>
+
+        <div style="text-align:center;margin-bottom:32px">
+            <div class="deal-badge">&#9889; Today's Deal</div>
+            <h1 class="deal-title">{{ deal.title }}</h1>
+            <p class="deal-desc">{{ deal.description }}</p>
+        </div>
+
+        <div class="timer-bar" id="dealTimerBar">
+            <div class="timer-item"><span class="num" id="detCdHours">00</span><span class="lbl">Hours</span></div>
+            <div class="timer-item"><span class="num" id="detCdMinutes">00</span><span class="lbl">Minutes</span></div>
+            <div class="timer-item"><span class="num" id="detCdSeconds">00</span><span class="lbl">Seconds</span></div>
+        </div>
+
+        {% if deal.deal_type == 'combo_price' and deal.combo_price %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">Original Price</div>
+                    <div class="value original">{% format_currency original_total 0 %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">Deal Price</div>
+                    <div class="value deal">{% format_currency deal.combo_price %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">You Save</div>
+                    <div class="value savings">{% if savings > 0 %}{% format_currency savings 0 %}{% else %}N/A{% endif %}</div>
+                </div>
+            </div>
+        </div>
+        {% elif deal.deal_type == 'free_product' and deal.free_product %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">Original Price</div>
+                    <div class="value original">{% format_currency original_total 0 %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">You Pay</div>
+                    <div class="value deal">{% format_currency deal_price 0 %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">Free Item</div>
+                    <div class="value savings">{{ deal.free_product.name }}</div>
+                </div>
+            </div>
+        </div>
+        {% elif deal.deal_type == 'percentage' and deal.discount_percentage %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">Original Price</div>
+                    <div class="value original">{% format_currency original_total 0 %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">{{ deal.discount_percentage }}% OFF</div>
+                    <div class="value deal">{% format_currency deal_price 0 %}</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="price-card text-center">
+                    <div class="label">You Save</div>
+                    <div class="value savings">{% if savings > 0 %}{% format_currency savings 0 %}{% else %}N/A{% endif %}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <h4 style="color:#f1f5f9;font-weight:700;margin-bottom:16px">Products Included</h4>
+
+        {% for product in deal_products %}
+        <div class="product-card">
+            {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            {% else %}
+            <div style="width:80px;height:80px;border-radius:12px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:28px;color:#64748b">&#127860;</div>
+            {% endif %}
+            <div class="info">
+                <h5>{{ product.name }}</h5>
+                <p>Delicious and fresh</p>
+                <div class="price-tag">{% format_currency product.price %}</div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% if deal.free_product %}
+        <div class="product-card free">
+            {% if deal.free_product.image %}
+            <img src="{{ deal.free_product.image.url }}" alt="{{ deal.free_product.name }}">
+            {% else %}
+            <div style="width:80px;height:80px;border-radius:12px;background:rgba(34,197,94,.1);display:flex;align-items:center;justify-content:center;font-size:28px;color:#22c55e">&#127860;</div>
+            {% endif %}
+            <div class="info">
+                <h5>{{ deal.free_product.name }} <span class="free-badge">FREE</span></h5>
+                <p>Included at no extra cost</p>
+                <div class="price-tag" style="color:#22c55e">{% format_currency deal.free_product.price %} <span style="font-size:12px;color:#22c55e;font-weight:400">(FREE)</span></div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+        <form method="POST" action="{% url 'users:deal_checkout' deal.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-order-deal mt-4">
+                <i class="fas fa-shopping-cart me-2"></i> Order Deal
+            </button>
+        </form>
+        {% else %}
+        <a href="{% url 'food-delivery:food_delivery_login' %}?next={% url 'users:public_deal_detail' deal.id %}" class="btn-order-deal mt-4" style="display:block;text-align:center;text-decoration:none">
+            <i class="fas fa-sign-in-alt me-2"></i> Login to Order Deal
+        </a>
+        {% endif %}
+    </div>
+</section>
+{% else %}
+<section style="padding:100px 0;text-align:center">
+    <div class="container">
+        <div style="font-size:64px;margin-bottom:20px;color:#64748b">&#9888;</div>
+        <h2 style="color:#f1f5f9;font-weight:700">{{ error|default:"Deal not found" }}</h2>
+        <a href="/" class="btn btn-warning mt-3" style="border-radius:12px;padding:12px 24px">Go Home</a>
+    </div>
+</section>
+{% endif %}
+
+<div class="foot-effect"></div>
+<footer class="footer-style-1 bg-1">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <div class="footer-social text-center">
+                    <ul class="list-unstyled">
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-facebook-f"></i></a></li>
+                        <li><a class="wow fadeInDown" href="javascript:void(0);"><i class="fab fa-twitter"></i></a></li>
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-google-plus-g"></i></a></li>
+                        <li><a class="wow fadeInDown" href="javascript:void(0);"><i class="fab fa-linkedin-in"></i></a></li>
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-instagram"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-12 text-center mt-3">
+                <p class="company-about fadeIn">&copy; 2026 {{ company_name }}. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<span class="scroll-top-arrow"><i class="fas fa-angle-up"></i></span>
+{% endblock content %}
+
+{% block modal %}
+{% include 'food-delivery/offers_popup.html' %}
+{% endblock modal %}
+
+{% block javascript %}
+<script src="{% static '/vendor/js/bundle.min.js' %}"></script>
+<script src="{% static '/vendor/js/jquery.fancybox.min.js' %}"></script>
+<script src="{% static '/vendor/js/owl.carousel.min.js' %}"></script>
+<script src="{% static '/vendor/js/parallaxie.min.js' %}"></script>
+<script src="{% static '/vendor/js/wow.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/slick.min.js' %}"></script>
+<script src="{% static '/vendor/js/contact_us.js' %}"></script>
+<script src="{% static 'food-delivery/js/script.js' %}"></script>
+
+<script>
+(function() {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.cookie = "user_timezone=" + encodeURIComponent(tz) + "; path=/; max-age=" + (365*24*60*60);
+    fetch("{% url 'users:set_timezone' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({timezone: tz})
+    });
+})();
+
+{% if deal %}
+var endTs = {{ deal.end_date|date:'U'|default:0 }} + {{ deal.end_time|time:'H'|default:0 }}*3600 + {{ deal.end_time|time:'i'|default:0 }}*60;
+// Adjust for timezone offset
+var serverDate = new Date({{ deal.end_date|date:'Y' }}, {{ deal.end_date|date:'m' }}-1, {{ deal.end_date|date:'d' }}, {{ deal.end_time|time:'H' }}, {{ deal.end_time|time:'i' }}, 0);
+var endTimestamp = Math.floor(serverDate.getTime() / 1000);
+
+setInterval(function() {
+    var now = Math.floor(Date.now() / 1000);
+    var diff = Math.max(0, endTimestamp - now);
+    var h = Math.floor(diff / 3600);
+    var m = Math.floor((diff % 3600) / 60);
+    var s = diff % 60;
+    var ids = ['detCdHours','detCdMinutes','detCdSeconds'];
+    var vals = [String(h).padStart(2,'0'), String(m).padStart(2,'0'), String(s).padStart(2,'0')];
+    ids.forEach(function(id, i) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = vals[i];
+    });
+    if (diff <= 0) {
+        document.getElementById('dealTimerBar').innerHTML = '<div style="color:#ef4444;font-weight:600">This deal has ended</div>';
+        document.querySelector('.btn-order-deal')?.remove();
+    }
+}, 1000);
+{% endif %}
+</script>
+{% endblock javascript %}

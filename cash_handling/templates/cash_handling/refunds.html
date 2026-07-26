@@ -1,0 +1,46 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Cash Refunds{% endblock %}
+{% block content %}
+<style>.card-dash{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px;margin-bottom:24px}</style>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h4 style="color:var(--text-primary);margin:0;font-weight:700"><i class="bi bi-arrow-return-left" style="color:var(--color-danger)"></i> Cash Refunds</h4>
+</div>
+{% if pending_approvals %}
+<div class="card-dash" style="border-left:4px solid var(--color-warning)">
+    <h5 style="color:var(--text-primary);font-weight:600;margin-bottom:12px"><i class="bi bi-clock"></i> Pending Approval ({{ pending_approvals.count }})</h5>
+    <div style="font-size:13px;color:var(--text-muted)">{% for a in pending_approvals %}
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--table-td-border)">
+            <span>#{{ a.id }} - {{ currency_symbol }}{{ a.amount|floatformat:2 }}</span>
+            <span>{{ a.reason|truncatechars:40 }}</span>
+            <span style="color:var(--color-warning)">{{ a.created_at|timesince }} ago</span>
+        </div>{% endfor %}
+    </div>
+</div>
+{% endif %}
+<div class="card-dash">
+    <h5 style="color:var(--text-primary);font-weight:600;margin-bottom:12px"><i class="bi bi-list-ul"></i> Refund Transactions</h5>
+    {% if refund_txns %}
+    <div class="table-responsive">
+        <table class="table" style="color:var(--text-primary);font-size:13px;margin:0">
+            <thead><tr style="border-bottom:1px solid var(--table-header-border)">
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Time</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Amount</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Reference</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">User</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Session</th>
+            </tr></thead>
+            <tbody>{% for txn in refund_txns %}
+                <tr style="border-bottom:1px solid var(--table-td-border)">
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ txn.created_at|date:"Y-m-d H:i" }}</td>
+                    <td style="padding:10px 12px;font-weight:600;color:var(--color-danger)">{{ currency_symbol }}{{ txn.amount|floatformat:2 }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ txn.reference_number|default:"-" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ txn.user.email }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">#{{ txn.session_id }}</td>
+                </tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<p style="color:var(--text-muted);text-align:center;padding:40px 0;margin:0">No refund transactions.</p>{% endif %}
+</div>
+{% endblock %}

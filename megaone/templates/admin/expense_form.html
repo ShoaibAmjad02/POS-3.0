@@ -1,0 +1,73 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n %}
+{% block title %}{% if expense %}Edit{% else %}Add{% endif %} Expense - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.form-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:32px;max-width:600px}
+.form-card .form-label{font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:6px}
+.form-control,.form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:10px 14px}
+.form-control:focus,.form-select:focus{border-color:#10b981;outline:none;box-shadow:0 0 0 3px rgba(16,185,129,.1)}
+textarea.form-control{min-height:100px}
+.btn-action{border-radius:10px;padding:10px 24px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>{% if expense %}Edit <span>Expense</span>{% else %}Add <span>Expense</span>{% endif %}</h2>
+        <p style="color:#64748b;margin:0;font-size:14px">{% if expense %}Update expense details{% else %}Record a new business expense{% endif %}</p>
+    </div>
+    <div><a href="{% url 'users:expense_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a></div>
+</div>
+<div class="form-card" data-aos="fade-up">
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Expense Category *</label>
+            <select name="category" class="form-select" required>
+                <option value="">— Select Category —</option>
+                {% for c in categories %}
+                <option value="{{ c.id }}" {% if expense.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Expense Title *</label>
+            <input type="text" name="title" class="form-control" value="{{ expense.title|default:'' }}" placeholder="e.g. Office rent for July" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Amount *</label>
+            <input type="number" name="amount" step="0.01" min="0.01" class="form-control" value="{{ expense.amount|default:'' }}" placeholder="0.00" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Payment Method *</label>
+            <select name="payment_method" class="form-select">
+                <option value="cash" {% if expense.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                <option value="bank_transfer" {% if expense.payment_method == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option>
+                <option value="cheque" {% if expense.payment_method == 'cheque' %}selected{% endif %}>Cheque</option>
+                <option value="card" {% if expense.payment_method == 'card' %}selected{% endif %}>Card</option>
+                <option value="mobile_payment" {% if expense.payment_method == 'mobile_payment' %}selected{% endif %}>Mobile Payment</option>
+                <option value="other" {% if expense.payment_method == 'other' %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Expense Date *</label>
+            <input type="datetime-local" name="expense_date" class="form-control" value="{% if expense %}{{ expense.expense_date|date:'Y-m-d\TH:i' }}{% else %}{% now 'Y-m-d\TH:i' %}{% endif %}" required>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description / Notes</label>
+            <textarea name="description" class="form-control" placeholder="Optional description">{{ expense.description|default:'' }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Created By</label>
+            <input type="text" class="form-control" value="{{ request.user.email }}" readonly>
+        </div>
+        <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn btn-success btn-action"><i class="bi bi-check-circle me-1"></i> {% if expense %}Update{% else %}Save Expense{% endif %}</button>
+            <a href="{% url 'users:expense_list' %}" class="btn btn-outline-secondary btn-action">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

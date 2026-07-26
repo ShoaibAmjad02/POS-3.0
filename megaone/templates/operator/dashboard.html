@@ -1,0 +1,1103 @@
+{% load static tz %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme_mode }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>POS - {{ company_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+{% include 'includes/theme_vars.html' %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--text-primary);overflow:hidden;height:100vh}
+.pos-container{display:flex;height:100vh;gap:0}
+.left-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.right-panel{width:420px;min-width:420px;background:var(--bg-card);border-left:1px solid var(--border-color);display:flex;flex-direction:column;height:100vh}
+.top-bar{background:var(--gradient-neutral);padding:10px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.top-bar h5{margin:0;font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.top-bar h5 span{color:var(--accent)}
+.search-section{padding:12px 20px;background:var(--bg-body);flex-shrink:0}
+.search-row{display:flex;gap:8px;flex-wrap:nowrap}
+.search-row input{flex:1;background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px;min-width:0}
+.search-row input:focus{border-color:var(--accent);outline:none}
+.search-row input::placeholder{color:var(--text-muted)}
+.search-row select{background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px}
+.categories-scroll{padding:8px 20px;flex-shrink:0;overflow-x:auto;white-space:nowrap}
+.cat-btn{display:inline-block;padding:5px 14px;margin:2px 4px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border-input);background:transparent;color:var(--text-secondary);transition:.2s}
+.cat-btn:hover,.cat-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
+.products-grid{flex:1;overflow-y:auto;padding:12px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start}
+.product-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-card);overflow:hidden;transition:.2s;cursor:pointer}
+.product-card:hover{border-color:rgba(var(--accent-rgb),.3);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.product-card .p-img{height:100px;background:var(--bg-body);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.product-card .p-img img{width:100%;height:100%;object-fit:cover}
+.product-card .p-img .no-img{color:var(--text-placeholder);font-size:28px}
+.product-card .p-body{padding:8px 10px}
+.product-card .p-name{font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-card .p-price{font-size:15px;font-weight:700;color:var(--color-success)}
+.product-card .p-stock{font-size:10px;color:var(--text-muted);margin-top:2px}
+.product-card .p-discount{font-size:10px;color:var(--accent);font-weight:600;margin-top:1px}
+.product-card .p-add{width:100%;margin-top:6px;padding:4px;border-radius:6px;border:none;font-size:11px;font-weight:600;transition:.2s}
+.product-card .p-add.add{background:var(--accent);color:#000}
+.product-card .p-add.add:hover{background:var(--accent-hover)}
+.product-card .p-add.oos{background:var(--color-danger-bg);color:var(--color-danger);cursor:not-allowed}
+.cart-header{padding:12px 16px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cart-header h6{margin:0;font-weight:700;font-size:14px}
+.cart-actions{display:flex;gap:4px}
+.cart-actions .btn{font-size:11px;padding:3px 10px;border-radius:6px}
+.cart-items{flex:1;overflow-y:auto;padding:8px 12px}
+.cart-item{background:var(--bg-body);border-radius:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--border-color)}
+.cart-item .ci-row1{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.cart-item .ci-name{font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item .ci-price{font-size:12px;color:var(--color-success);font-weight:600;white-space:nowrap}
+.cart-item .ci-row2{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px}
+.cart-item .ci-qty{display:flex;align-items:center;gap:4px}
+.cart-item .ci-qty button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border-input);background:transparent;color:var(--text-primary);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;padding:0;line-height:1}
+.cart-item .ci-qty button:hover{background:var(--accent);color:#000;border-color:var(--accent)}
+.cart-item .ci-qty span{font-size:13px;font-weight:700;min-width:20px;text-align:center}
+.cart-item .ci-del{background:transparent;border:none;color:var(--color-danger);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;opacity:.6}
+.cart-item .ci-del:hover{opacity:1}
+.cart-item .ci-discount{font-size:10px;color:var(--accent);font-weight:600}
+.cart-summary{padding:12px 16px;border-top:1px solid var(--border-color);flex-shrink:0}
+.cart-summary .cs-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.cart-summary .cs-row.total{font-size:16px;font-weight:700;color:var(--accent);padding-top:6px;border-top:1px solid var(--border-color);margin-top:4px}
+.cart-summary .cs-row.disc{color:var(--accent)}
+.cart-summary .cs-row.tax{color:var(--text-secondary)}
+.customer-section{padding:8px 16px;border-top:1px solid var(--border-color);flex-shrink:0}
+.customer-section input{background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:6px 10px;font-size:12px;width:100%;margin-bottom:4px}
+.customer-section input:focus{border-color:var(--accent);outline:none}
+.customer-section input::placeholder{color:var(--text-muted)}
+.cust-dropdown{position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-input);border-radius:8px;max-height:200px;overflow-y:auto;z-index:1000;display:none;margin-top:2px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.cust-dropdown-item{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cust-dropdown-item:hover{background:rgba(var(--accent-rgb),.1)}
+.cust-dropdown-item:last-child{border-bottom:none}
+.cust-dropdown-item .cdi-info{flex:1;min-width:0}
+.cust-dropdown-item .cdi-name{font-size:12px;font-weight:600;color:var(--text-primary)}
+.cust-dropdown-item .cdi-phone{font-size:10px;color:var(--text-secondary)}
+.cust-dropdown-item .cdi-status{font-size:10px;font-weight:600;white-space:nowrap}
+.cust-dropdown-item .cdi-status.has-card{color:var(--color-success)}
+.cust-dropdown-item .cdi-status.no-card{color:var(--text-secondary)}
+.checkout-section{padding:8px 16px 12px;border-top:1px solid var(--border-color);flex-shrink:0}
+.checkout-section .payment-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.checkout-section .payment-row .btn{flex:1;font-size:11px;padding:6px 4px;border-radius:6px;min-width:60px}
+.checkout-section .btn-checkout{width:100%;padding:10px;font-size:14px;font-weight:700;border-radius:10px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#000;transition:.2s}
+.checkout-section .btn-checkout:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(var(--accent-rgb),.3)}
+.checkout-section .btn-checkout:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.invoice-discount-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.invoice-discount-row input{flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:4px 8px;font-size:12px;width:80px}
+.invoice-discount-row button{font-size:11px;padding:4px 10px;border-radius:6px}
+.modal-held{background:var(--bg-card);border:1px solid var(--border-input);border-radius:16px;color:var(--text-primary)}
+.modal-held .modal-header{border-color:rgba(255,255,255,.08)}
+.modal-held .modal-footer{border-color:rgba(255,255,255,.08)}
+.modal-held .btn-close{filter:invert(1)}
+.held-item{background:var(--bg-body);border-radius:10px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.held-item .hi-info{font-size:12px}
+.held-item .hi-actions{display:flex;gap:4px}
+.held-item .hi-actions .btn{font-size:11px;padding:3px 10px;border-radius:6px}
+.toast-msg{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--bg-card);border:1px solid rgba(var(--accent-rgb),.3);border-radius:12px;padding:12px 20px;color:var(--text-primary);font-size:13px;font-weight:600;display:none;box-shadow:0 8px 25px rgba(0,0,0,.5)}
+.toast-msg.show{display:block;animation:slideIn .3s}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(max-width:900px){.right-panel{width:340px;min-width:340px}.products-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+@media(max-width:700px){.pos-container{flex-direction:column}.right-panel{width:100%;min-width:0;height:50vh;border-left:none;border-top:1px solid var(--border-color)}.left-panel{height:50vh}}
+</style>
+</head>
+<body>
+
+<div class="pos-container">
+    <!-- LEFT: Search + Products -->
+    <div class="left-panel">
+        <div style="padding:6px 20px;background:var(--bg-body);border-bottom:1px solid var(--border-color);display:flex;gap:6px;align-items:center;flex-shrink:0">
+            {% if user.is_staff or user.is_software_owner %}
+            <a href="{% url 'users:admin_dashboard' %}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;transition:.2s;cursor:pointer;margin-right:8px" onmouseover="this.style.background='rgba(var(--accent-rgb),.08)';this.style.color='var(--accent)'" onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'"><i class="bi bi-arrow-left"></i> Back</a>
+            {% endif %}
+            <button class="btn btn-outline-info" style="font-size:11px;padding:4px 12px;border-radius:6px" onclick="showInvoiceSearch()"><i class="bi bi-search me-1"></i>Search Invoice</button>
+        </div>
+        <div class="top-bar">
+            <h5><i class="bi bi-shop text-warning"></i> {{ company_name }} <small style="font-size:10px;color:var(--text-muted);font-weight:400">| POS</small></h5>
+            <div class="d-flex gap-3 align-items-center">
+                <span id="clock" style="color:var(--text-secondary);font-size:12px;font-weight:600"></span>
+                <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Session Status Banner -->
+        <div id="sessionBanner" style="display:none;padding:6px 16px;background:var(--bg-body);border-bottom:1px solid var(--border-color);flex-shrink:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span id="sessionIndicator" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px"></span>
+                    <span id="sessionInfo" style="font-size:11px;color:var(--text-secondary)"></span>
+                    <span id="sessionBalance" style="font-size:12px;font-weight:700;color:var(--color-success)"></span>
+                </div>
+                <div style="display:flex;gap:4px">
+                    <button id="openSessionBtn" onclick="openCashSession()" style="display:none;font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--color-success-border);background:var(--color-success-bg);color:var(--color-success);font-weight:600;cursor:pointer"><i class="bi bi-play-fill"></i> Open Session</button>
+                    <button id="closeSessionBtn" onclick="closeCashSession()" style="display:none;font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--color-danger-border);background:var(--color-danger-bg);color:var(--color-danger);font-weight:600;cursor:pointer"><i class="bi bi-stop-fill"></i> Close Session</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-section">
+            <div class="search-row">
+                <input type="text" id="productSearch" placeholder="Search by name, barcode, code, SKU..." oninput="doSearch()" autofocus>
+                <select id="categoryFilter" onchange="doSearch()">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="categories-scroll" id="catScroll">
+            <button class="cat-btn active" data-cat="" onclick="filterCategory(this,'')">All</button>
+            {% for cat in categories %}
+            <button class="cat-btn" data-cat="{{ cat.id }}" onclick="filterCategory(this,'{{ cat.id }}')">{{ cat.name }}</button>
+            {% endfor %}
+        </div>
+        <div class="products-grid" id="productGrid">
+            <div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Type to search products...</div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Cart -->
+    <div class="right-panel">
+        <div class="cart-header">
+            <h6><i class="bi bi-cart3 text-warning me-1"></i> Cart <span id="cartCount" class="badge bg-warning text-dark" style="font-size:10px">0</span></h6>
+            <div class="cart-actions">
+                <button class="btn btn-outline-secondary" onclick="showHeldModal()" title="Held Invoices"><i class="bi bi-clock-history"></i></button>
+                <button class="btn btn-outline-warning" onclick="holdCart()" title="Hold Invoice"><i class="bi bi-pause-circle"></i></button>
+                <button class="btn btn-outline-danger" onclick="clearCart()" title="Clear Cart"><i class="bi bi-trash3"></i></button>
+            </div>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Cart is empty</div>
+        </div>
+        <div class="customer-section">
+            <div style="position:relative">
+                <input type="text" id="custName" placeholder="Customer Name" autocomplete="off" oninput="onCustomerNameInput()">
+                <div id="custNameDropdown" class="cust-dropdown"></div>
+            </div>
+            <input type="tel" id="custPhone" placeholder="Phone Number (required for loyalty)" onblur="checkLoyalty()" oninput="updateCheckoutButton()">
+            <div id="loyaltySection" style="display:none;margin-top:6px;padding:6px 8px;background:var(--bg-body);border-radius:8px;border:1px solid rgba(var(--accent-rgb),.2)">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span id="loyaltyCustomerName" style="font-size:12px;font-weight:600;color:var(--accent)"></span>
+                    <span id="loyaltyPhoneDisplay" style="font-size:11px;color:var(--text-secondary)"></span>
+                    <span id="loyaltyPointsAvailable" style="font-size:11px;color:var(--color-success);font-weight:600">Points: 0</span>
+                </div>
+                <div id="loyaltyNoCard" style="display:none;font-size:11px;color:var(--text-secondary);margin-top:4px">New customer - loyalty will be created on checkout</div>
+                <div id="loyaltyRedeemSection" style="display:none;margin-top:4px">
+                    <div style="display:flex;gap:4px;align-items:center">
+                        <input type="number" id="loyaltyPointsToRedeem" placeholder="Points to redeem" min="0" oninput="onPointsChange()" style="flex:1;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:6px;padding:4px 8px;font-size:11px;width:80px">
+                        <span style="font-size:10px;color:var(--text-secondary)">1 pt = {{ currency_symbol }}1</span>
+                    </div>
+                    <div id="ptsError" style="display:none;font-size:11px;color:var(--color-danger);margin-top:4px"></div>
+                </div>
+            </div>
+        </div>
+        <div class="cart-summary" id="cartSummary" style="display:none">
+            <div class="cs-row"><span>Subtotal</span><span id="subtotal">0</span></div>
+            <div class="invoice-discount-row">
+                <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap">Inv Discount</span>
+                <input type="number" id="invDiscount" value="0" min="0" step="0.01" oninput="applyInvoiceDiscount()" style="width:80px">
+            </div>
+            <div class="cs-row disc" id="invDiscRow" style="display:none"><span>Invoice Discount</span><span id="invDiscAmount">0</span></div>
+            <div class="cs-row tax" id="taxRow" style="display:none"><span>Total Tax</span><span id="totalTaxDisplay">0</span></div>
+            <div class="cs-row total"><span>Total</span><span id="grandTotal">0</span></div>
+        </div>
+        <div id="cashPaymentSection" style="display:none;padding:8px 16px;border-top:1px solid var(--border-color);flex-shrink:0">
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px">Total Amount</div>
+            <div style="font-size:20px;font-weight:800;color:var(--text-primary);margin-bottom:4px" id="payTotal">0</div>
+            <div id="loyaltyPayRow" style="display:none;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12px">
+                <span style="color:var(--accent)">Loyalty</span>
+                <span style="color:var(--accent);font-weight:600" id="loyaltyPayAmount">0</span>
+            </div>
+            <label style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;display:block">Amount Received</label>
+            <input type="number" id="cashReceived" style="width:100%;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:8px 12px;font-size:16px;font-weight:700;height:auto" placeholder="Enter amount received" min="0" step="0.01" oninput="calcChange()" onkeydown="if(event.key==='Enter')checkout()">
+            <div style="margin-top:6px">
+                <div style="font-size:11px;color:var(--text-secondary);margin-bottom:2px">Change Due</div>
+                <div style="font-size:18px;font-weight:800;color:var(--color-success)" id="payChange">0</div>
+            </div>
+            <div id="payError" style="font-size:12px;color:var(--color-danger);margin-top:6px;display:none"></div>
+        </div>
+        <div class="checkout-section">
+            <div class="payment-row" id="paymentMethods">
+                <button class="btn btn-outline-light active" data-method="cash" onclick="selectPayment(this)">Cash</button>
+                <button class="btn btn-outline-light" data-method="card" onclick="selectPayment(this)">Card</button>
+                <button class="btn btn-outline-light" data-method="bank" onclick="selectPayment(this)">Bank</button>
+                <button class="btn btn-outline-light" data-method="wallet" onclick="selectPayment(this)">Wallet</button>
+            </div>
+            {% if not user_perms.sales.create %}
+            <div style="background:rgba(var(--accent-rgb),.1);border-radius:8px;padding:6px 10px;margin-bottom:6px;font-size:11px;color:var(--accent);text-align:center">
+                <i class="bi bi-info-circle me-1"></i>Invoices need admin approval
+            </div>
+            {% endif %}
+            {% if 'returns' in enabled_modules and user_perms.return_invoice %}
+            <a href="{% url 'users:return_invoice_page' %}" class="btn btn-sm" style="width:100%;margin-bottom:6px;padding:6px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid var(--color-danger-border);background:var(--color-danger-bg);color:var(--color-danger);text-decoration:none;text-align:center;transition:.2s;display:block" onmouseover="this.style.background='var(--color-danger-bg)'" onmouseout="this.style.background='var(--color-danger-bg)'"><i class="bi bi-arrow-return-left me-1"></i> Return Invoice</a>
+            {% endif %}
+            {% if 'wholesale' in enabled_modules and user_perms.wholesale.access %}
+            <a href="{% url 'users:wholesale_pos_page' %}" class="btn btn-sm" style="width:100%;margin-bottom:6px;padding:6px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid rgba(5,150,105,.3);background:rgba(5,150,105,.1);color:var(--color-emerald);text-decoration:none;text-align:center;transition:.2s;display:block" onmouseover="this.style.background='rgba(5,150,105,.2)'" onmouseout="this.style.background='rgba(5,150,105,.1)'"><i class="bi bi-shop me-1"></i> Wholesale</a>
+            {% endif %}
+            {% if user_perms.cash_handling.dashboard_view %}
+            <a href="{% url 'cash_handling:dashboard' %}" class="btn btn-sm" style="width:100%;margin-bottom:6px;padding:6px;font-size:12px;font-weight:600;border-radius:8px;border:1px solid rgba(var(--accent-rgb),.3);background:rgba(var(--accent-rgb),.1);color:var(--accent);text-decoration:none;text-align:center;transition:.2s;display:block" onmouseover="this.style.background='rgba(var(--accent-rgb),.2)'" onmouseout="this.style.background='rgba(var(--accent-rgb),.1)'"><i class="bi bi-cash-stack me-1"></i> Cash Handling</a>
+            {% endif %}
+            <button class="btn-checkout" id="checkoutBtn" onclick="checkout()"><i class="bi bi-cash me-1"></i> {% if user_perms.sales.create %}Checkout{% else %}Send to Admin{% endif %}</button>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Held Invoices Modal -->
+<div class="modal fade" id="heldModal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content modal-held">
+<div class="modal-header"><h6 class="m-0"><i class="bi bi-clock-history me-2"></i>Held Invoices</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" id="heldList" style="max-height:400px;overflow-y:auto">Loading...</div>
+<div class="modal-footer"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button></div>
+</div></div></div>
+
+<!-- Invoice Search Modal -->
+<div class="modal fade" id="invoiceSearchModal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal-content modal-held">
+<div class="modal-header"><h6 class="m-0"><i class="bi bi-search me-2"></i>Search Invoice</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<div class="modal-body" style="padding:16px 20px">
+    <input type="text" id="invoiceSearchInput" class="form-control" placeholder="Search by invoice number, customer name, or phone..." style="background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:10px 14px;font-size:14px;height:auto" autocomplete="off">
+    <div id="invoiceSearchResults" style="margin-top:12px;max-height:400px;overflow-y:auto">
+        <div class="text-center text-muted py-4" style="font-size:13px">Type to search invoices</div>
+    </div>
+</div>
+<div class="modal-footer"><button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button></div>
+</div></div></div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toastMsg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
+
+function formatNumber(value, decimals) {
+    if (value === null || value === undefined || value === '') return '0';
+    if (typeof value === 'string') value = value.replace(/[^0-9.-]/g, '');
+    value = parseFloat(value);
+    if (isNaN(value)) return '0';
+    decimals = (decimals !== undefined) ? decimals : 2;
+    if (decimals < 0) decimals = 0;
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+}
+
+function formatCurrency(value, decimals) {
+    var sym = window.currencySymbol || 'Rs ';
+    return sym + formatNumber(value, decimals).trim();
+}
+
+function toTitleCase(str) {
+    if (!str || typeof str !== 'string') return str;
+    var exceptions = ['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'by', 'with'];
+    return str.split(/\s+/).map(function(word, i) {
+        if (!word) return word;
+        if (i > 0 && exceptions.indexOf(word.toLowerCase()) !== -1) {
+            return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+}
+
+document.addEventListener('blur', function(e) {
+    var el = e.target;
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    var type = (el.type || '').toLowerCase();
+    if (type === 'email' || type === 'password' || type === 'url' || type === 'number' || type === 'tel' || type === 'search') return;
+    var name = (el.name || el.id || '').toLowerCase().replace(/[_-]/g, '');
+    var titleFields = ['name', 'title', 'companyname', 'contactperson', 'superusername', 'custname', 'kname', 'editname', 'fullname', 'supplier', 'city', 'shop', 'warehouse', 'brand', 'subcategory', 'expensetitle', 'employeename'];
+    if (titleFields.some(function(f) { return name.indexOf(f) !== -1 || name === f; }) && !el.hasAttribute('data-no-title')) {
+        el.value = toTitleCase(el.value);
+    }
+}, true);
+
+let selectedPayment = 'cash';
+let searchTimeout = null;
+let currentCategory = '';
+
+function showToast(msg, isError) {
+    const t = document.getElementById('toastMsg');
+    t.textContent = msg;
+    t.style.borderColor = isError ? 'rgba(239,68,68,.5)' : 'rgba(245,158,11,.3)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function updateClock() { document.getElementById("clock").innerText = new Date().toLocaleString(); }
+setInterval(updateClock, 1000); updateClock();
+
+function selectPayment(btn) {
+    document.querySelectorAll('#paymentMethods .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedPayment = btn.dataset.method;
+    var cashSection = document.getElementById('cashPaymentSection');
+    if (selectedPayment === 'cash') {
+        cashSection.style.display = 'block';
+        calcChange();
+    } else {
+        cashSection.style.display = 'none';
+    }
+}
+
+function filterCategory(btn, catId) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentCategory = catId;
+    document.getElementById('categoryFilter').value = catId;
+    doSearch();
+}
+
+function doSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const q = document.getElementById('productSearch').value.trim();
+        const cat = document.getElementById('categoryFilter').value || currentCategory;
+        fetch("{% url 'users:search_products' %}?q=" + encodeURIComponent(q) + (cat ? "&category=" + cat : ""))
+        .then(r => r.json())
+        .then(data => {
+            const products = data.products || [];
+            const grid = document.getElementById('productGrid');
+            if (products.length === 0) {
+                grid.innerHTML = '<div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>No products found</div>';
+                return;
+            }
+            grid.innerHTML = products.map(p => {
+                const inStock = p.stock > 0;
+                const discLabel = p.discount_type && p.discount_value > 0
+                    ? (p.discount_type === 'percentage' ? p.discount_value + '% off' : formatCurrency(p.discount_value, 0) + ' off')
+                    : (p.category_discount_type && p.category_discount_value > 0
+                        ? (p.category_discount_type === 'percentage' ? 'Cat ' + p.category_discount_value + '%' : 'Cat ' + formatCurrency(p.category_discount_value, 0))
+                        : '');
+                return `<div class="product-card">
+                    <div class="p-img">${p.image ? '<img src="' + p.image + '">' : '<i class="bi bi-box no-img"></i>'}</div>
+                    <div class="p-body">
+                        <div class="p-name">${p.name}</div>
+                        <div class="p-price">${formatCurrency(p.price, 0)}</div>
+                        <div class="p-stock">Stock: <span style="color:${p.stock > 10 ? '#22c55e' : (p.stock > 0 ? '#f59e0b' : '#ef4444')}">${p.stock}</span></div>
+                        ${discLabel ? '<div class="p-discount">' + discLabel + '</div>' : ''}
+                        <button class="p-add ${inStock ? 'add' : 'oos'}" onclick="${inStock ? "addToCart(" + p.id + ")" : "showToast('Out of stock',true)"}">${inStock ? '<i class="bi bi-plus-lg"></i> Add' : 'Out of Stock'}</button>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+    }, 150);
+}
+
+function addToCart(foodId, cb) {
+    fetch("{% url 'users:operator_cart_add' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId, quantity: 1})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        renderCart(data.cart, data.subtotal);
+        showToast('Added to cart');
+        if (cb) cb(data);
+    })
+    .catch(e => showToast('Error adding to cart', true));
+}
+
+function updateCart(foodId, qty) {
+    if (qty <= 0) { removeCart(foodId); return; }
+    fetch("{% url 'users:operator_cart_update' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId, quantity: qty})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        renderCart(data.cart, data.subtotal);
+    });
+}
+
+function removeCart(foodId) {
+    fetch("{% url 'users:operator_cart_remove' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({food_id: foodId})
+    })
+    .then(r => r.json())
+    .then(data => renderCart(data.cart, data.subtotal));
+}
+
+function clearCart() {
+    if (!confirm('Clear cart?')) return;
+    fetch("{% url 'users:operator_cart_clear' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"}
+    })
+    .then(r => r.json())
+    .then(data => renderCart([], 0));
+}
+
+function updateCartTax(foodId, taxRate) {
+    fetch("{% url 'users:operator_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        var item = (data.cart || []).find(function(i) { return i.food_id === foodId; });
+        var qty = item ? item.quantity : 1;
+        fetch("{% url 'users:operator_cart_update' %}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+            body: JSON.stringify({food_id: foodId, quantity: qty, tax_rate: taxRate})
+        })
+        .then(r => r.json())
+        .then(function(updateData) {
+            if (updateData.error) { showToast(updateData.error, true); return; }
+            renderCart(updateData.cart, updateData.subtotal);
+        });
+    });
+}
+
+function applyInvoiceDiscount() {
+    const disc = parseFloat(document.getElementById('invDiscount').value) || 0;
+    fetch("{% url 'users:operator_set_discount' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({discount: disc})
+    })
+    .then(r => r.json())
+    .then(() => refreshTotals());
+}
+
+function refreshTotals() {
+    fetch("{% url 'users:operator_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('subtotal').textContent = formatCurrency(data.subtotal);
+        document.getElementById('invDiscAmount').textContent = '-' + formatCurrency(data.invoice_discount);
+        document.getElementById('invDiscRow').style.display = data.invoice_discount > 0 ? 'flex' : 'none';
+        document.getElementById('totalTaxDisplay').textContent = formatCurrency(data.total_tax || 0);
+        document.getElementById('taxRow').style.display = (data.total_tax || 0) > 0 ? 'flex' : 'none';
+        document.getElementById('grandTotal').textContent = formatCurrency(data.grand_total);
+        document.getElementById('payTotal').textContent = formatCurrency(data.grand_total);
+        var pts = parseInt(document.getElementById('loyaltyPointsToRedeem').value) || 0;
+        if (pts > 0) {
+            document.getElementById('loyaltyPayRow').style.display = 'flex';
+            document.getElementById('loyaltyPayAmount').textContent = '-' + formatCurrency(pts);
+        } else {
+            document.getElementById('loyaltyPayRow').style.display = 'none';
+        }
+        calcChange();
+    });
+}
+
+function renderCart(cart, subtotal) {
+    const container = document.getElementById('cartItems');
+    const count = document.getElementById('cartCount');
+    const summary = document.getElementById('cartSummary');
+    if (!cart || cart.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Cart is empty</div>';
+        count.textContent = '0';
+        summary.style.display = 'none';
+        return;
+    }
+    summary.style.display = 'block';
+    count.textContent = cart.length;
+    container.innerHTML = cart.map(item => `
+        <div class="cart-item">
+            <div class="ci-row1">
+                <span class="ci-name">${item.name}</span>
+                <span class="ci-price">${formatCurrency(item.line_total_with_tax || item.line_total)}</span>
+                <button class="ci-del" onclick="removeCart(${item.food_id})"><i class="bi bi-x-circle"></i></button>
+            </div>
+            <div class="ci-row2">
+                <div class="ci-qty">
+                    <button onclick="updateCart(${item.food_id}, ${item.quantity - 1})">−</button>
+                    <input type="number" value="${item.quantity}" min="0" style="width:36px;text-align:center;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;font-size:13px;font-weight:700;padding:1px 2px" oninput="updateCart(${item.food_id}, parseInt(this.value) || 0)">
+                    <button onclick="updateCart(${item.food_id}, ${item.quantity + 1})">+</button>
+                </div>
+                <span style="font-size:11px;color:var(--text-secondary)">${formatCurrency(item.price)} × ${item.quantity}</span>
+                <select style="background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;padding:2px 4px;font-size:10px" onchange="updateCartTax(${item.food_id}, parseFloat(this.value))">
+                    <option value="0" ${(item.tax_rate || 0) === 0 ? 'selected' : ''}>0%</option>
+                    <option value="5" ${(item.tax_rate || 0) === 5 ? 'selected' : ''}>5%</option>
+                    <option value="10" ${(item.tax_rate || 0) === 10 ? 'selected' : ''}>10%</option>
+                    <option value="15" ${(item.tax_rate || 0) === 15 ? 'selected' : ''}>15%</option>
+                    <option value="18" ${(item.tax_rate || 0) === 18 ? 'selected' : ''}>18%</option>
+                </select>
+            </div>
+            ${item.tax_amount > 0 ? `<div style="font-size:10px;color:var(--color-warning);margin-top:2px">Tax: ${formatCurrency(item.tax_amount)}</div>` : ''}
+            ${item.discount_label ? '<div class="ci-discount">' + item.discount_label + '</div>' : ''}
+        </div>
+    `).join('');
+    refreshTotals();
+}
+
+function holdCart() {
+    fetch("{% url 'users:operator_hold_invoice' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({
+            customer_name: document.getElementById('custName').value,
+            customer_email: '',
+            customer_phone: document.getElementById('custPhone').value,
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast(data.error, true); return; }
+        showToast('Invoice held');
+        renderCart([], 0);
+        document.getElementById('custName').value = '';
+        document.getElementById('custPhone').value = '';
+        document.getElementById('invDiscount').value = 0;
+    });
+}
+
+function showHeldModal() {
+    const modal = new bootstrap.Modal(document.getElementById('heldModal'));
+    document.getElementById('heldList').innerHTML = 'Loading...';
+    modal.show();
+    fetch("{% url 'users:operator_held_invoices' %}")
+    .then(r => r.json())
+    .then(data => {
+        const held = data.held || [];
+        if (held.length === 0) {
+            document.getElementById('heldList').innerHTML = '<div class="text-center text-muted py-4">No held invoices</div>';
+            return;
+        }
+        document.getElementById('heldList').innerHTML = held.map(h => `
+            <div class="held-item">
+                <div class="hi-info">
+                    <div style="font-weight:600;font-size:13px">${h.customer_name || 'Walk-in Customer'} ${h.customer_phone ? '(' + h.customer_phone + ')' : ''}</div>
+                    <div style="color:var(--text-muted);font-size:11px">${h.items_count} items | ${h.created_at}</div>
+                    ${h.notes ? '<div style="color:var(--text-secondary);font-size:10px">' + h.notes + '</div>' : ''}
+                </div>
+                <div class="hi-actions">
+                    <button class="btn btn-warning btn-sm" onclick="resumeHeld(${h.id})"><i class="bi bi-play-fill"></i></button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="deleteHeld(${h.id})"><i class="bi bi-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    });
+}
+
+function resumeHeld(id) {
+    fetch("{% url 'users:operator_resume_held' 0 %}".replace('/0/', '/' + id + '/'), {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('heldModal')).hide();
+            fetch("{% url 'users:operator_cart_data' %}").then(r => r.json()).then(d => renderCart(d.cart, d.subtotal));
+            showToast('Cart restored');
+        }
+    });
+}
+
+function deleteHeld(id) {
+    if (!confirm('Delete this held invoice?')) return;
+    fetch("{% url 'users:operator_delete_held' 0 %}".replace('/0/', '/' + id + '/'), {
+        method: "POST",
+        headers: {"X-CSRFToken": "{{ csrf_token }}"}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) showHeldModal();
+    });
+}
+
+var invoiceSearchTimeout = null;
+
+function showInvoiceSearch() {
+    var modal = new bootstrap.Modal(document.getElementById('invoiceSearchModal'));
+    document.getElementById('invoiceSearchInput').value = '';
+    document.getElementById('invoiceSearchResults').innerHTML = '<div class="text-center text-muted py-4" style="font-size:13px">Type to search invoices</div>';
+    modal.show();
+    setTimeout(function() { document.getElementById('invoiceSearchInput').focus(); }, 300);
+}
+
+document.getElementById('invoiceSearchInput').addEventListener('input', function() {
+    clearTimeout(invoiceSearchTimeout);
+    var q = this.value.trim();
+    var results = document.getElementById('invoiceSearchResults');
+    if (q.length < 1) {
+        results.innerHTML = '<div class="text-center text-muted py-4" style="font-size:13px">Type to search invoices</div>';
+        return;
+    }
+    results.innerHTML = '<div class="text-center text-muted py-4" style="font-size:13px;color:var(--accent)">Searching...</div>';
+    invoiceSearchTimeout = setTimeout(function() {
+        fetch("{% url 'users:search_invoice' %}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+            body: JSON.stringify({search: q})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var invs = data.invoices || [];
+            if (invs.length === 0) {
+                results.innerHTML = '<div class="text-center text-muted py-4" style="font-size:13px">No invoices found</div>';
+                return;
+            }
+            results.innerHTML = invs.map(function(inv) {
+                return '<div class="inv-search-item" onclick="openSearchedInvoice(\'' + inv.uuid_token + '\')" style="padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border-card);margin-bottom:6px;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,.05)\'" onmouseout="this.style.background=\'transparent\'">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">' +
+                        '<span style="font-weight:700;font-size:13px;color:var(--accent)">' + inv.invoice_number + '</span>' +
+                    '</div>' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                        '<span style="font-size:12px;color:var(--text-secondary)">' + (inv.name || 'Walk-in Customer') + '</span>' +
+                        '<span style="font-size:13px;font-weight:700;color:var(--color-success)">' + formatCurrency(inv.total) + '</span>' +
+                    '</div>' +
+                    '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">' + (inv.created_at || '') + '</div>' +
+                '</div>';
+            }).join('');
+        });
+    }, 200);
+});
+
+function openSearchedInvoice(uuid) {
+    bootstrap.Modal.getInstance(document.getElementById('invoiceSearchModal')).hide();
+    window.open("/users/invoice/" + uuid + "/", "_blank");
+}
+
+function updateCheckoutButton() {
+    const btn = document.getElementById('checkoutBtn');
+    const name = document.getElementById('custName').value.trim();
+    btn.innerHTML = (name ? '<i class="bi bi-person me-1"></i>' : '<i class="bi bi-cash me-1"></i>') + ' Checkout';
+}
+
+let custSearchTimer = null;
+
+function onCustomerNameInput() {
+    clearTimeout(custSearchTimer);
+    custSearchTimer = setTimeout(doCustomerSearch, 300);
+}
+
+function doCustomerSearch() {
+    const input = document.getElementById('custName');
+    const q = input.value.trim();
+    const dropdown = document.getElementById('custNameDropdown');
+
+    if (q.length < 1) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    fetch("{% url 'users:operator_customer_search' %}?q=" + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(data => {
+        dropdown.innerHTML = '';
+        if (!data.results || data.results.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        data.results.forEach(u => {
+            const item = document.createElement('div');
+            item.className = 'cust-dropdown-item';
+            item.innerHTML = '<div class="cdi-info"><div class="cdi-name">' + escapeHtml(u.name) + '</div><div class="cdi-phone">' + (u.phone ? escapeHtml(u.phone) : 'No phone') + '</div></div>' +
+                '<div class="cdi-status ' + (u.has_card ? 'has-card' : 'no-card') + '">' + (u.has_card ? '\u2713 Card' : 'No card') + '</div>';
+            item.onclick = function() {
+                document.getElementById('custName').value = u.name;
+                document.getElementById('custPhone').value = u.phone || '';
+                dropdown.style.display = 'none';
+                updateCheckoutButton();
+                if (u.phone) checkLoyalty();
+            };
+            dropdown.appendChild(item);
+        });
+        dropdown.style.display = 'block';
+    })
+    .catch(() => { dropdown.style.display = 'none'; });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+document.addEventListener('click', function(e) {
+    const dd = document.getElementById('custNameDropdown');
+    if (dd && !e.target.closest('#custName') && !e.target.closest('.cust-dropdown')) {
+        dd.style.display = 'none';
+    }
+});
+
+function checkLoyalty() {
+    const phone = document.getElementById('custPhone').value.trim();
+    const section = document.getElementById('loyaltySection');
+    const nameSpan = document.getElementById('loyaltyCustomerName');
+    const phoneDisplay = document.getElementById('loyaltyPhoneDisplay');
+    const pointsSpan = document.getElementById('loyaltyPointsAvailable');
+    const noCardDiv = document.getElementById('loyaltyNoCard');
+    const redeemSection = document.getElementById('loyaltyRedeemSection');
+    const redeemInput = document.getElementById('loyaltyPointsToRedeem');
+    const ptsError = document.getElementById('ptsError');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+
+    checkoutBtn.disabled = false;
+    ptsError.style.display = 'none';
+
+    if (!phone) {
+        section.style.display = 'none';
+        return;
+    }
+
+    fetch("{% url 'users:operator_loyalty_lookup' %}?phone=" + encodeURIComponent(phone))
+    .then(r => r.json())
+    .then(data => {
+        if (!data.exists || !data.has_card) {
+            section.style.display = 'block';
+            nameSpan.textContent = data.exists ? data.name : 'Customer';
+            phoneDisplay.textContent = phone;
+            pointsSpan.textContent = data.exists ? 'No card' : 'Not found';
+            noCardDiv.style.display = 'block';
+            redeemSection.style.display = 'none';
+            redeemInput.value = 0;
+            return;
+        }
+        section.style.display = 'block';
+        nameSpan.textContent = data.name;
+        phoneDisplay.textContent = phone;
+        pointsSpan.textContent = 'Available: ' + data.points_available + ' pts';
+        noCardDiv.style.display = 'none';
+        redeemSection.style.display = 'block';
+        redeemInput.max = data.points_available;
+        redeemInput.value = 0;
+        onPointsChange();
+    });
+}
+
+function getEffectiveTotal(grandTotal) {
+    var pts = parseInt(document.getElementById('loyaltyPointsToRedeem').value) || 0;
+    return Math.max(0, grandTotal - pts);
+}
+
+function onPointsChange() {
+    var ptsInput = document.getElementById('loyaltyPointsToRedeem');
+    var ptsError = document.getElementById('ptsError');
+    var checkoutBtn = document.getElementById('checkoutBtn');
+    var ptsRedeem = parseInt(ptsInput.value) || 0;
+    var ptsMax = parseInt(ptsInput.getAttribute('max')) || 0;
+
+    if (ptsRedeem > ptsMax && ptsMax > 0) {
+        ptsError.textContent = 'Insufficient loyalty points. Available: ' + ptsMax + ' points.';
+        ptsError.style.display = 'block';
+        checkoutBtn.disabled = true;
+        return;
+    }
+    ptsError.style.display = 'none';
+    checkoutBtn.disabled = false;
+
+    fetch("{% url 'users:operator_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        if (!data.cart || data.cart.length === 0) return;
+        document.getElementById('payTotal').textContent = formatCurrency(data.grand_total);
+        var loyaltyRow = document.getElementById('loyaltyPayRow');
+        var loyaltyAmt = document.getElementById('loyaltyPayAmount');
+        if (ptsRedeem > 0) {
+            loyaltyRow.style.display = 'flex';
+            loyaltyAmt.textContent = '-' + formatCurrency(ptsRedeem);
+        } else {
+            loyaltyRow.style.display = 'none';
+            loyaltyAmt.textContent = '0';
+        }
+        calcChange();
+    })
+    .catch(function(){});
+}
+
+function checkout() {
+    fetch("{% url 'users:operator_cart_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        if (!data.cart || data.cart.length === 0) {
+            showToast('Cart is empty', true);
+            return;
+        }
+        var effective = getEffectiveTotal(data.grand_total);
+
+        if (selectedPayment === 'cash') {
+            var cashEl = document.getElementById('cashReceived');
+            var cashReceived = parseFloat(cashEl.value) || 0;
+            if (cashReceived <= 0 && effective > 0) {
+                showToast('Please enter the amount received', true);
+                cashEl.focus();
+                return;
+            }
+            if (cashReceived < effective) {
+                showToast('Insufficient amount. Remaining: ' + formatCurrency(effective - cashReceived, 0), true);
+                cashEl.focus();
+                return;
+            }
+            processPayment(cashReceived);
+        } else {
+            processPayment(0);
+        }
+    });
+}
+
+function calcChange() {
+    var cashEl = document.getElementById('cashReceived');
+    var changeEl = document.getElementById('payChange');
+    var errorEl = document.getElementById('payError');
+    var totalEl = document.getElementById('payTotal');
+    var grandTotal = parseFloat(totalEl.textContent.replace(window.currencySymbol, '').replace(/[^0-9.-]/g, '')) || 0;
+    var pts = parseInt(document.getElementById('loyaltyPointsToRedeem').value) || 0;
+    var effectiveTotal = Math.max(0, grandTotal - pts);
+    var cash = parseFloat(cashEl.value) || 0;
+    if (cash <= 0 && effectiveTotal > 0) {
+        changeEl.textContent = formatCurrency(0);
+        errorEl.style.display = 'none';
+        return;
+    }
+    if (cash < effectiveTotal) {
+        var due = (effectiveTotal - cash).toFixed(0);
+        changeEl.textContent = formatCurrency(0);
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Remaining due: ' + formatCurrency(due, 0);
+        return;
+    }
+    var change = (cash - effectiveTotal).toFixed(0);
+    changeEl.textContent = formatCurrency(change, 0);
+    errorEl.style.display = 'none';
+}
+
+function processPayment(cashReceived) {
+    var name = document.getElementById('custName').value.trim();
+    var phone = document.getElementById('custPhone').value.trim();
+    var ptsInput = document.getElementById('loyaltyPointsToRedeem');
+    var ptsRedeem = parseInt(ptsInput.value) || 0;
+    var ptsMax = parseInt(ptsInput.getAttribute('max')) || 0;
+    if (ptsRedeem > ptsMax && ptsMax > 0) {
+        showToast('Insufficient loyalty points. Available: ' + ptsMax, true);
+        return;
+    }
+
+    fetch("{% url 'users:operator_checkout' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({
+            customer_name: name,
+            customer_phone: phone,
+            payment_method: selectedPayment,
+            loyalty_points_to_redeem: ptsRedeem,
+            cash_received: cashReceived,
+        })
+    })
+    .then(r => r.json())
+    .then(result => {
+        if (result.error) { showToast(result.error, true); return; }
+        if (result.sent_for_approval) {
+            showToast(result.message || 'Sent to admin for approval');
+            resetPos();
+            return;
+        }
+        showToast('Invoice ' + result.invoice_no + ' created');
+        resetPos();
+        window.open("/users/invoice/" + result.uuid_token + "/", "_blank");
+    });
+}
+
+function resetPos() {
+    renderCart([], 0);
+    document.getElementById('custName').value = '';
+    document.getElementById('custPhone').value = '';
+    document.getElementById('invDiscount').value = 0;
+    document.getElementById('categoryFilter').value = '';
+    currentCategory = '';
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.cat-btn[data-cat=""]').classList.add('active');
+    document.getElementById('cashReceived').value = '';
+    document.getElementById('payChange').textContent = formatCurrency(0);
+    document.getElementById('payError').style.display = 'none';
+    document.getElementById('loyaltySection').style.display = 'none';
+    document.getElementById('loyaltyPointsToRedeem').value = 0;
+    document.getElementById('loyaltyPayRow').style.display = 'none';
+    document.getElementById('loyaltyPayAmount').textContent = '0';
+    selectedPayment = 'cash';
+    document.querySelectorAll('#paymentMethods .btn').forEach(b => b.classList.remove('active'));
+    var cashBtn = document.querySelector('#paymentMethods .btn[data-method="cash"]');
+    if (cashBtn) cashBtn.classList.add('active');
+    document.getElementById('cashPaymentSection').style.display = 'block';
+    document.getElementById('checkoutBtn').innerHTML = '<i class="bi bi-cash me-1"></i> Checkout';
+}
+
+// Initialize: show cash section by default
+document.getElementById('cashPaymentSection').style.display = 'block';
+
+// Load cart on page load
+fetch("{% url 'users:operator_cart_data' %}").then(r => r.json()).then(data => renderCart(data.cart, data.subtotal));
+
+// ─── Cash Session Management ────────────────────────────────────────────
+var sessionOpenPerm = {{ user_perms.cash_handling.session_open|yesno:"true,false" }};
+var sessionClosePerm = {{ user_perms.cash_handling.session_close|yesno:"true,false" }};
+
+function updateSessionBanner() {
+    fetch("{% url 'users:operator_session_status' %}")
+    .then(r => r.json())
+    .then(data => {
+        var banner = document.getElementById('sessionBanner');
+        var indicator = document.getElementById('sessionIndicator');
+        var info = document.getElementById('sessionInfo');
+        var balance = document.getElementById('sessionBalance');
+        var openBtn = document.getElementById('openSessionBtn');
+        var closeBtn = document.getElementById('closeSessionBtn');
+
+        if (data.has_active_session) {
+            banner.style.display = 'block';
+            indicator.innerHTML = '<i class="bi bi-circle-fill" style="color:var(--color-success);font-size:8px"></i> Session #' + data.session_id + ' Open';
+            indicator.style.background = 'rgba(34,197,94,.15)';
+            indicator.style.color = '#22c55e';
+            info.textContent = 'Operator: ' + data.operator_name + ' | Opened: ' + new Date(data.opened_at).toLocaleString();
+            balance.textContent = 'Balance: ' + formatCurrency(data.current_balance, 0);
+            openBtn.style.display = 'none';
+            closeBtn.style.display = data.session_close_perm ? 'inline-flex' : 'none';
+        } else {
+            banner.style.display = 'block';
+            indicator.innerHTML = '<i class="bi bi-circle" style="color:var(--text-muted);font-size:8px"></i> No Active Session';
+            indicator.style.background = 'rgba(100,116,139,.15)';
+            indicator.style.color = '#94a3b8';
+            info.textContent = 'Open a cash session to start tracking';
+            balance.textContent = '';
+            closeBtn.style.display = 'none';
+            openBtn.style.display = data.session_open_perm ? 'inline-flex' : 'none';
+        }
+    })
+    .catch(function(){});
+}
+
+function openCashSession() {
+    var amount = prompt('Enter opening cash amount:', '0');
+    if (amount === null) return;
+    amount = parseFloat(amount) || 0;
+    fetch("{% url 'cash_handling:session_open' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({opening_balance: amount})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Session #' + data.session_id + ' opened');
+            updateSessionBanner();
+        } else {
+            showToast(data.error || 'Error opening session', true);
+        }
+    })
+    .catch(function(e) { showToast('Error: ' + e.message, true); });
+}
+
+function closeCashSession() {
+    var balance = prompt('Enter actual cash count:', '');
+    if (balance === null) return;
+    balance = parseFloat(balance) || 0;
+    fetch("{% url 'cash_handling:session_close' %}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({closing_balance: balance})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            var msg = 'Session closed';
+            if (data.variance) msg += '. Variance: ' + formatCurrency(data.variance, 0);
+            showToast(msg);
+            updateSessionBanner();
+        } else {
+            showToast(data.error || 'Error closing session', true);
+        }
+    })
+    .catch(function(e) { showToast('Error: ' + e.message, true); });
+}
+
+updateSessionBanner();
+// ─── Barcode Scanner Support ─────────────────────────────────────────
+var barcodeBuffer = '';
+var barcodeTimer = null;
+
+function playBeep() {
+    try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 1200;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.1);
+    } catch(e) {}
+}
+
+function highlightCart() {
+    var items = document.querySelectorAll('#cartItems .cart-item');
+    if (items.length > 0) {
+        var last = items[items.length - 1];
+        last.style.transition = 'background 0.3s, border-color 0.3s';
+        last.style.background = 'rgba(34,197,94,0.2)';
+        last.style.borderColor = 'rgba(34,197,94,0.5)';
+        last.style.boxShadow = '0 0 8px rgba(34,197,94,0.3)';
+        setTimeout(function() {
+            last.style.background = '';
+            last.style.borderColor = '';
+            last.style.boxShadow = '';
+        }, 900);
+    }
+}
+
+function processBarcode(barcode) {
+    fetch("{% url 'users:barcode_lookup' %}?barcode=" + encodeURIComponent(barcode))
+    .then(function(r) {
+        return r.json().then(function(d) { return {ok: r.ok, data: d}; });
+    })
+    .then(function(result) {
+        if (!result.ok) {
+            showToast('Product not found for barcode: ' + barcode, true);
+            return;
+        }
+        addToCart(result.data.id, function() {
+            playBeep();
+            highlightCart();
+        });
+    })
+    .catch(function() {
+        showToast('Error looking up barcode', true);
+    });
+}
+
+document.addEventListener('keydown', function(e) {
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+        return;
+    }
+    if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 0) {
+            e.preventDefault();
+            processBarcode(barcodeBuffer);
+        }
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+        return;
+    }
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        barcodeBuffer += e.key;
+        if (barcodeTimer) clearTimeout(barcodeTimer);
+        barcodeTimer = setTimeout(function() {
+            barcodeBuffer = '';
+            barcodeTimer = null;
+        }, 200);
+    } else {
+        barcodeBuffer = '';
+        if (barcodeTimer) { clearTimeout(barcodeTimer); barcodeTimer = null; }
+    }
+});
+
+</script>
+</body>
+</html>

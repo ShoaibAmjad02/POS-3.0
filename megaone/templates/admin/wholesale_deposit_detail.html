@@ -1,0 +1,131 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Deposit #{{ deposit.id }} Details - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.detail-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:32px;max-width:700px}
+.detail-card .row-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.detail-card .row-item:last-child{border-bottom:none}
+.detail-card .label{font-size:13px;color:#94a3b8;font-weight:600}
+.detail-card .value{font-size:14px;color:#e2e8f0;text-align:right;max-width:60%}
+.btn-action{border-radius:10px;padding:8px 20px;font-weight:600}
+.badge-reversed{background:rgba(239,68,68,.15);color:#ef4444;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-active{background:rgba(34,197,94,.15);color:#22c55e;padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Deposit #{{ deposit.id }} <span>Details</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">View deposit transaction details</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'users:wholesale_deposit_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a>
+        {% if not deposit.is_reversed and user.is_staff %}
+        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#reverseModal"><i class="bi bi-arrow-counterclockwise me-1"></i> Reverse</button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="detail-card" data-aos="fade-up">
+    <div class="row-item">
+        <span class="label">Deposit ID</span>
+        <span class="value">#{{ deposit.id }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Customer</span>
+        <span class="value fw-semibold">{{ deposit.customer.company_name }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Amount</span>
+        <span class="value fw-bold" style="color:#10b981">{% format_currency deposit.amount %}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Payment Method</span>
+        <span class="value"><span class="badge bg-info text-dark">{{ deposit.payment_method|upper }}</span></span>
+    </div>
+    <div class="row-item">
+        <span class="label">Reference Number</span>
+        <span class="value">{{ deposit.reference_number|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Balance Before</span>
+        <span class="value">{% format_currency deposit.balance_before %}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Balance After</span>
+        <span class="value">{% format_currency deposit.balance_after %}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Deposit Date</span>
+        <span class="value">{{ deposit.deposit_date|date:"d-m-Y H:i" }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Created By</span>
+        <span class="value">{{ deposit.created_by.email|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Created At</span>
+        <span class="value">{{ deposit.created_at|date:"d-m-Y H:i:s" }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">IP Address</span>
+        <span class="value">{{ deposit.ip_address|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">User Agent</span>
+        <span class="value" style="font-size:11px;word-break:break-all">{{ deposit.user_agent|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Notes</span>
+        <span class="value">{{ deposit.notes|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Status</span>
+        <span class="value">{% if deposit.is_reversed %}<span class="badge-reversed">Reversed</span>{% else %}<span class="badge-active">Active</span>{% endif %}</span>
+    </div>
+    {% if deposit.is_reversed %}
+    <div class="row-item">
+        <span class="label">Reversed At</span>
+        <span class="value">{{ deposit.reversed_at|date:"d-m-Y H:i:s" }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Reversed By</span>
+        <span class="value">{{ deposit.reversed_by.email|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Reverse Reason</span>
+        <span class="value">{{ deposit.reverse_reason|default:'—' }}</span>
+    </div>
+    {% endif %}
+</div>
+
+{% if not deposit.is_reversed and user.is_staff %}
+<div class="modal fade" id="reverseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);border-radius:16px">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,.05)">
+                <h5 class="modal-title" style="color:#ef4444"><i class="bi bi-exclamation-triangle me-2"></i>Reverse Deposit #{{ deposit.id }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'users:wholesale_deposit_reverse' deposit.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p style="color:#94a3b8;font-size:14px">This will subtract <strong style="color:#ef4444">{% format_currency deposit.amount %}</strong> from <strong>{{ deposit.customer.company_name }}</strong>'s account balance.</p>
+                    <div class="mb-3">
+                        <label class="form-label" style="color:#94a3b8;font-weight:600">Reason for Reversal *</label>
+                        <textarea name="reason" class="form-control" rows="3" required placeholder="Explain why this deposit is being reversed" style="background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:10px 14px"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,.05)">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-arrow-counterclockwise me-1"></i> Confirm Reversal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

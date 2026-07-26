@@ -1,0 +1,61 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Settlement #{{ settlement.id }} - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.detail-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:32px;max-width:700px}
+.detail-card .row-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.detail-card .row-item:last-child{border-bottom:none}
+.detail-card .label{font-size:13px;color:#94a3b8;font-weight:600}
+.detail-card .value{font-size:14px;color:#e2e8f0;text-align:right;max-width:60%}
+.btn-action{border-radius:10px;padding:8px 20px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Credit Settlement #{{ settlement.id }} <span>Details</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">View settlement transaction details</p>
+    </div>
+    <div>
+        <a href="{% url 'users:wholesale_credit_settlement_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="detail-card" data-aos="fade-up">
+    <div class="row-item">
+        <span class="label">Settlement ID</span>
+        <span class="value">#{{ settlement.id }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Customer</span>
+        <span class="value fw-semibold">{{ settlement.customer.company_name }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Amount Received</span>
+        <span class="value fw-bold" style="color:#10b981">{% format_currency settlement.amount %}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Applied to Invoice</span>
+        <span class="value">{% if settlement.invoice %}{{ settlement.invoice.invoice_number }}{% else %}All Outstanding{% endif %}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Settlement Date</span>
+        <span class="value">{{ settlement.settlement_date|date:"d-m-Y H:i" }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Recorded By</span>
+        <span class="value">{{ settlement.created_by.email|default:'—' }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Created At</span>
+        <span class="value">{{ settlement.created_at|date:"d-m-Y H:i:s" }}</span>
+    </div>
+    <div class="row-item">
+        <span class="label">Notes</span>
+        <span class="value">{{ settlement.notes|default:'—' }}</span>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

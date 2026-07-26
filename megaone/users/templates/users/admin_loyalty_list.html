@@ -1,0 +1,78 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Loyalty Cards - Admin{% endblock %}
+{% block extra_css %}
+<style>
+.card{background:#1e293b;border:1px solid rgba(255,255,255,.08);border-radius:16px}
+.table{color:#e2e8f0;font-size:14px}
+.table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.08);padding:14px 16px}
+.table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.status-active{color:#22c55e;font-weight:600}
+.status-blocked{color:#ef4444;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="bi bi-star me-2" style="color:#f59e0b"></i>Loyalty Cards</h4>
+    <div>
+    </div>
+</div>
+
+<form method="GET" class="row g-2 mb-4">
+    <div class="col-md-6">
+        <input type="text" name="search" class="form-control" placeholder="Search by name, phone, or card number..." value="{{ search }}" style="background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:12px">
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select" style="background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:12px">
+            <option value="">All Status</option>
+            <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
+            <option value="BLOCKED" {% if status_filter == 'BLOCKED' %}selected{% endif %}>Blocked</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-warning w-100" style="border-radius:12px"><i class="bi bi-search me-1"></i>Search</button>
+    </div>
+    {% if search or status_filter %}
+    <div class="col-12">
+        <a href="{% url 'users:admin_loyalty_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius:10px"><i class="bi bi-x-circle me-1"></i>Clear Filters</a>
+    </div>
+    {% endif %}
+</form>
+
+<div class="card p-0">
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Card #</th>
+                    <th>Customer</th>
+                    <th>Phone</th>
+                    <th>Total</th>
+                    <th>Used</th>
+                    <th>Remaining</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cards %}
+                <tr>
+                    <td style="font-family:monospace;font-weight:600">{{ c.card_number }}</td>
+                    <td>{{ c.user.name|default:"N/A" }}</td>
+                    <td style="color:#94a3b8">{{ c.user.phone|default:"N/A" }}</td>
+                    <td>{{ c.total_points }}</td>
+                    <td>{{ c.used_points }}</td>
+                    <td>{{ c.remaining_points }}</td>
+                    <td><span class="status-{{ c.status|lower }}">{{ c.get_status_display }}</span></td>
+                    <td style="color:#64748b;font-size:13px">{{ c.created_at|date:"d-m-Y" }}</td>
+                    <td><a href="{% url 'users:admin_loyalty_detail' c.card_number %}" class="btn btn-sm btn-outline-warning" style="border-radius:8px">View</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center py-4" style="color:#64748b">No loyalty cards found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

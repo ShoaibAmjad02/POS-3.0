@@ -1,0 +1,375 @@
+{% extends "admin/base_admin.html" %}
+{% load static i18n user_extras %}
+{% block title %}Operator Permissions - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+/* ── Page header ── */
+.top-bar{margin-bottom:18px}
+
+/* ── Card ── */
+.perm-card{background:#1e293b;border-radius:14px;border:1px solid rgba(255,255,255,.06);box-shadow:0 4px 24px rgba(0,0,0,.25);overflow:hidden}
+.perm-card .card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+.perm-card .card-header h5{margin:0;font-size:14px;font-weight:700;color:#f1f5f9;display:flex;align-items:center;gap:8px}
+.perm-card .card-header .badge-ops{background:rgba(245,158,11,.12);color:#f59e0b;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px}
+
+/* ── Toolbar ── */
+.perm-toolbar{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.05);flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:340px}
+.search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:13px;pointer-events:none}
+.search-wrap input{width:100%;background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:7px 12px 7px 32px;color:#e2e8f0;font-size:13px;outline:none;transition:.2s}
+.search-wrap input:focus{border-color:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,.1)}
+.search-wrap input::placeholder{color:#475569}
+
+/* ── Table wrapper ── */
+.perm-wrap{overflow:auto;max-height:calc(100vh - 310px);position:relative}
+.perm-wrap::-webkit-scrollbar{height:6px;width:6px}
+.perm-wrap::-webkit-scrollbar-track{background:#0f172a}
+.perm-wrap::-webkit-scrollbar-thumb{background:#334155;border-radius:3px}
+.perm-wrap::-webkit-scrollbar-thumb:hover{background:#475569}
+
+/* ── Table ── */
+.perm-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;table-layout:fixed}
+.perm-table th,.perm-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;text-align:center}
+.perm-table th:first-child,.perm-table td:first-child{width:175px;min-width:175px;text-align:left}
+
+/* ── Header ── */
+.perm-table thead th{background:#0f172a;border-bottom:1px solid rgba(255,255,255,.08);font-weight:600;color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.4px;padding:10px 8px 8px;position:sticky;top:0;z-index:10}
+.perm-table thead th:first-child{z-index:12}
+.perm-table thead th .op-info{display:flex;flex-direction:column;align-items:center;gap:1px;margin-bottom:4px}
+.perm-table thead th .op-name{color:#e2e8f0;font-size:12px;text-transform:none;letter-spacing:0;font-weight:700;line-height:1.3}
+.perm-table thead th .op-email{color:#64748b;font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.perm-table thead th .col-sel-all{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:#64748b;font-weight:400;text-transform:none;letter-spacing:0;padding:2px 6px;border-radius:4px;transition:.15s}
+.perm-table thead th .col-sel-all:hover{background:rgba(245,158,11,.08);color:#f59e0b}
+.perm-table thead th .col-sel-all input{width:13px;height:13px;cursor:pointer;accent-color:#f59e0b;margin:0}
+
+/* ── Group rows ── */
+.perm-table tbody tr.group-row td{background:rgba(245,158,11,.05);border-bottom:1px solid rgba(245,158,11,.08);padding:5px 8px}
+.perm-table tbody tr.group-row td:first-child{background:rgba(245,158,11,.07)}
+.perm-table tbody tr.group-row .group-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;color:#f59e0b;font-weight:700;font-size:12px}
+.perm-table tbody tr.group-row .group-toggle .collapse-icon{font-size:12px;transition:transform .25s ease;flex-shrink:0}
+.perm-table tbody tr.group-row .group-toggle.collapsed .collapse-icon{transform:rotate(-90deg)}
+.perm-table tbody tr.group-row .group-toggle .group-name{flex:1}
+.perm-table tbody tr.group-row .grp-sel-all{display:inline-flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:#94a3b8;font-weight:400;padding:2px 6px;border-radius:4px;transition:.15s}
+.perm-table tbody tr.group-row .grp-sel-all:hover{background:rgba(255,255,255,.06);color:#e2e8f0}
+.perm-table tbody tr.group-row .grp-sel-all input{width:13px;height:13px;cursor:pointer;accent-color:#f59e0b;margin:0}
+.perm-table tbody tr.group-row td:empty{padding:0}
+
+/* ── Permission rows ── */
+.perm-table tbody tr.perm-row td{color:#e2e8f0;padding:5px 8px}
+.perm-table tbody tr.perm-row td:first-child{color:#cbd5e1;font-size:12px;font-weight:500;padding-left:28px}
+.perm-table tbody tr.perm-row:nth-child(even of :not(.group-row)) td{background:rgba(255,255,255,.015)}
+.perm-table tbody tr.perm-row:nth-child(even of :not(.group-row)) td:first-child{background:rgba(255,255,255,.02)}
+
+/* ── Row/column hover highlighting ── */
+.perm-table tbody tr.perm-row.hl-row td{background:rgba(245,158,11,.06)!important}
+.perm-table tbody tr.perm-row td.hl-col{background:rgba(245,158,11,.04)!important}
+.perm-table tbody tr.perm-row.hl-row td.hl-col{background:rgba(245,158,11,.1)!important}
+.perm-table tbody tr.perm-row td.hl-col:first-child{background:rgba(245,158,11,.08)!important}
+
+/* ── Sticky first column ── */
+.perm-table thead th:first-child,.perm-table tbody td:first-child{position:sticky;left:0;z-index:5}
+.perm-table thead th:first-child{z-index:12}
+.perm-table tbody tr.group-row td:first-child{z-index:6}
+.perm-table tbody tr.perm-row td:first-child{z-index:5;background:#0f172a}
+.perm-table tbody tr.perm-row:nth-child(even of :not(.group-row)) td:first-child{background:rgba(15,23,42,.97)}
+.perm-table tbody tr.perm-row.hl-row td:first-child{background:rgba(245,158,11,.08)!important}
+.perm-table tbody td:first-child::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1px;background:rgba(255,255,255,.06)}
+.perm-table th,.perm-table td{position:relative}
+
+/* ── Toggle switches ── */
+.toggle-switch{position:relative;display:inline-block;width:30px;height:18px;vertical-align:middle}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#475569;transition:.2s;border-radius:18px;box-shadow:inset 0 1px 3px rgba(0,0,0,.3)}
+.toggle-slider:before{position:absolute;content:"";height:12px;width:12px;left:3px;bottom:3px;background-color:#e2e8f0;transition:.2s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked+.toggle-slider{background-color:#22c55e;box-shadow:inset 0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(12px);background-color:#fff}
+.toggle-switch input:focus-visible+.toggle-slider{outline:2px solid rgba(245,158,11,.5);outline-offset:2px}
+
+/* ── Floating Save button ── */
+.save-float{position:fixed;bottom:24px;right:24px;z-index:9999;opacity:0;transform:translateY(20px) scale(.9);pointer-events:none;transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.save-float.visible{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.save-float .btn-save{display:flex;align-items:center;gap:8px;padding:12px 24px;border-radius:12px;border:none;background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 8px 32px rgba(245,158,11,.35);transition:.2s}
+.save-float .btn-save:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(245,158,11,.45)}
+.save-float .btn-save:active{transform:translateY(0)}
+.save-float .btn-save .badge-count{background:rgba(0,0,0,.2);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.save-float .btn-save:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ── Empty state ── */
+.empty-state{padding:60px 20px;text-align:center;color:#64748b}
+.empty-state i{font-size:44px;margin-bottom:14px;display:block;color:#475569}
+.empty-state p{font-size:14px;margin:0}
+
+/* ── Responsive ── */
+@media(max-width:768px){.perm-wrap{max-height:none}.perm-table th:first-child,.perm-table td:first-child{width:140px;min-width:140px}.perm-table thead th{min-width:80px}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2 style="font-size:22px">Operator <span>Permissions</span></h2>
+        <p style="color:#64748b;margin:0;font-size:13px">Manage granular permissions for each operator.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-warning" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+</div>
+
+<div class="perm-card" data-aos="fade-up">
+    <div class="card-header">
+        <h5><i class="bi bi-shield-check" style="color:#f59e0b"></i> Permission Matrix</h5>
+        <span class="badge-ops"><i class="bi bi-people me-1"></i>{{ operators|length }} operator{{ operators|length|pluralize }}</span>
+    </div>
+
+    <div class="perm-toolbar">
+        <div class="search-wrap">
+            <i class="bi bi-search"></i>
+            <input type="text" id="permSearch" placeholder="Search permissions..." autocomplete="off">
+        </div>
+        <div style="font-size:11px;color:#64748b">
+            <span id="visibleCount">{{ permission_groups|length }} modules</span>
+        </div>
+    </div>
+
+    {% if operators %}
+    <div class="perm-wrap">
+        <table class="perm-table" id="permTable">
+            <thead>
+                <tr>
+                    <th style="padding-left:28px">Permission</th>
+                    {% for op in operators %}
+                    <th>
+                        <div class="op-info">
+                            <span class="op-name">{{ op.name }}</span>
+                            {% if op.email %}<span class="op-email">{{ op.email }}</span>{% endif %}
+                        </div>
+                        <label class="col-sel-all">
+                            <input type="checkbox" class="col-toggle-all" data-user="{{ op.id }}">
+                            <span>Select All</span>
+                        </label>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in permission_groups %}
+                <tr class="group-row" data-group="{{ group.module_key }}">
+                    <td>
+                        <div class="group-toggle" data-group="{{ group.module_key }}" role="button" tabindex="0" aria-label="Toggle {{ group.module }} section">
+                            <i class="bi bi-chevron-down collapse-icon"></i>
+                            <span class="group-name">{{ group.module }}</span>
+                            <label class="grp-sel-all" onclick="event.stopPropagation()" title="Toggle all in {{ group.module }}">
+                                <input type="checkbox" class="grp-toggle-all" data-group="{{ group.module_key }}">
+                                <span>All</span>
+                            </label>
+                        </div>
+                    </td>
+                    {% for op in operators %}
+                    <td></td>
+                    {% endfor %}
+                </tr>
+                {% for perm in group.permissions %}
+                <tr class="perm-row" data-group="{{ group.module_key }}">
+                    <td>{{ perm.label }}</td>
+                    {% for op in operators %}
+                    <td data-col="{{ forloop.counter0 }}">
+                        {% with perm_obj=op.operator_permissions %}
+                        <label class="toggle-switch" title="{{ perm.label }}">
+                            <input type="checkbox" class="perm-check"
+                                   data-user="{{ op.id }}"
+                                   data-field="{{ perm.field }}"
+                                   {% if perm_obj|get_attr:perm.field %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        {% endwith %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <p>No operators found. Create an operator user first.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="save-float" id="saveFloat">
+    <button class="btn-save" id="saveBtn" disabled>
+        <i class="bi bi-check2-circle"></i> Save Changes
+        <span class="badge-count" id="changeCount">0</span>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var csrf = '{{ csrf_token }}';
+var permUrl = '{% url "users:admin_operator_permissions" %}';
+
+// ── Toast ──
+function showToast(msg, isError) {
+    var t = document.getElementById('toastMsg');
+    if (!t) {
+        var div = document.createElement('div');
+        div.id = 'toastMsg';
+        div.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:99999;background:#1e293b;border:1px solid ' + (isError ? 'rgba(239,68,68,.4)' : 'rgba(34,197,94,.4)') + ';border-radius:12px;padding:12px 20px;color:#e2e8f0;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:8px;max-width:360px';
+        div.innerHTML = (isError ? '<i class="bi bi-exclamation-circle" style="color:#ef4444"></i>' : '<i class="bi bi-check-circle" style="color:#22c55e"></i>') + '<span>' + msg + '</span>';
+        document.body.appendChild(div);
+        setTimeout(function() { div.style.opacity = '0'; div.style.transition = 'opacity .3s'; setTimeout(function() { div.remove(); }, 300); }, 3000);
+    }
+}
+
+// ── Pending changes tracking ──
+var pending = {};
+var saveBtn = document.getElementById('saveBtn');
+var saveFloat = document.getElementById('saveFloat');
+var changeCount = document.getElementById('changeCount');
+
+function markChanged(userId, field, checked) {
+    var key = userId + '|' + field;
+    pending[key] = { user_id: userId, perm_name: field, value: checked };
+    updateSaveButton();
+}
+
+function updateSaveButton() {
+    var count = Object.keys(pending).length;
+    changeCount.textContent = count;
+    saveBtn.disabled = count === 0;
+    saveFloat.classList.toggle('visible', count > 0);
+}
+
+// ── Individual toggle → mark changed ──
+document.querySelectorAll('.perm-check').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        markChanged(this.dataset.user, this.dataset.field, this.checked);
+    });
+});
+
+// ── Column Select All ──
+document.querySelectorAll('.col-toggle-all').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var uid = this.dataset.user;
+        var checked = this.checked;
+        document.querySelectorAll('.perm-check[data-user="' + uid + '"]').forEach(function(pcb) {
+            if (pcb.checked !== checked) {
+                pcb.checked = checked;
+                markChanged(uid, pcb.dataset.field, checked);
+            }
+        });
+    });
+});
+
+// ── Group Select All (per group, all operators) ──
+document.querySelectorAll('.grp-toggle-all').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        var group = this.dataset.group;
+        var checked = this.checked;
+        document.querySelectorAll('.perm-row[data-group="' + group + '"] .perm-check').forEach(function(pcb) {
+            if (pcb.checked !== checked) {
+                pcb.checked = checked;
+                markChanged(pcb.dataset.user, pcb.dataset.field, checked);
+            }
+        });
+    });
+});
+
+// ── Save button ──
+saveBtn.addEventListener('click', function() {
+    var changes = Object.values(pending);
+    if (changes.length === 0) return;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Saving...';
+
+    fetch(permUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf
+        },
+        body: JSON.stringify({ changes: changes })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            pending = {};
+            updateSaveButton();
+            showToast('Permissions updated successfully.', false);
+        } else {
+            showToast(data.errors ? data.errors.join(', ') : 'Error saving permissions', true);
+        }
+        saveBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Save Changes<span class="badge-count" id="changeCount">' + Object.keys(pending).length + '</span>';
+        saveBtn.disabled = Object.keys(pending).length === 0;
+    })
+    .catch(function() {
+        showToast('Error saving permissions', true);
+        saveBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Save Changes<span class="badge-count" id="changeCount">' + Object.keys(pending).length + '</span>';
+        saveBtn.disabled = false;
+    });
+});
+
+// ── Collapsible sections ──
+document.querySelectorAll('.group-toggle').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+        if (e.target.closest('.grp-sel-all')) return;
+        var group = this.dataset.group;
+        var isCollapsed = this.classList.toggle('collapsed');
+        var rows = document.querySelectorAll('.perm-row[data-group="' + group + '"]');
+        rows.forEach(function(r) { r.style.display = isCollapsed ? 'none' : ''; });
+    });
+    // Keyboard support
+    el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            this.click();
+        }
+    });
+});
+
+// ── Search filter ──
+document.getElementById('permSearch').addEventListener('input', function() {
+    var q = this.value.toLowerCase().trim();
+    var totalVisible = 0;
+
+    document.querySelectorAll('.group-row').forEach(function(gr) {
+        var group = gr.dataset.group;
+        var rows = document.querySelectorAll('.perm-row[data-group="' + group + '"]');
+        var hasVisible = false;
+        rows.forEach(function(r) {
+            var label = r.querySelector('td:first-child').textContent.toLowerCase();
+            var match = !q || label.includes(q);
+            r.style.display = match ? '' : 'none';
+            if (match) hasVisible = true;
+        });
+        gr.style.display = hasVisible ? '' : 'none';
+        if (hasVisible) totalVisible++;
+    });
+
+    document.getElementById('visibleCount').textContent = totalVisible + ' module' + (totalVisible !== 1 ? 's' : '');
+});
+
+// ── Row/column cross-highlighting ──
+document.querySelectorAll('.perm-row td[data-col]').forEach(function(td) {
+    td.addEventListener('mouseenter', function() {
+        var colIdx = this.dataset.col;
+        var row = this.closest('tr');
+        row.classList.add('hl-row');
+        document.querySelectorAll('.perm-row td[data-col="' + colIdx + '"]').forEach(function(c) {
+            c.classList.add('hl-col');
+        });
+    });
+    td.addEventListener('mouseleave', function() {
+        var colIdx = this.dataset.col;
+        var row = this.closest('tr');
+        row.classList.remove('hl-row');
+        document.querySelectorAll('.perm-row td[data-col="' + colIdx + '"]').forEach(function(c) {
+            c.classList.remove('hl-col');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Cash Reports{% endblock %}
+{% block content %}
+<style>.card-dash{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px;height:100%}.num{font-size:24px;font-weight:700;margin:6px 0 2px}.lbl{font-size:11px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.5px;font-weight:600}</style>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h4 style="color:var(--text-primary);margin:0;font-weight:700"><i class="bi bi-bar-chart" style="color:var(--accent)"></i> Cash Reports</h4>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6"><div class="card-dash" style="border-left:4px solid var(--color-success)"><div class="lbl">Total Cash Sales</div><div class="num" style="color:var(--color-success)">{{ currency_symbol }}{{ total_sales|floatformat:0 }}</div></div></div>
+    <div class="col-xl-3 col-md-6"><div class="card-dash" style="border-left:4px solid var(--color-danger)"><div class="lbl">Total Refunds</div><div class="num" style="color:var(--color-danger)">{{ currency_symbol }}{{ total_refunds|floatformat:0 }}</div></div></div>
+    <div class="col-xl-3 col-md-6"><div class="card-dash" style="border-left:4px solid var(--color-warning)"><div class="lbl">Total Drops</div><div class="num" style="color:var(--color-warning)">{{ currency_symbol }}{{ total_drops|floatformat:0 }}</div></div></div>
+    <div class="col-xl-3 col-md-6"><div class="card-dash" style="border-left:4px solid var(--color-info)"><div class="lbl">Total Sessions</div><div class="num" style="color:var(--color-info)">{{ sessions_count }} ({{ open_sessions }} open)</div></div></div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-6"><div class="card-dash"><h5 style="color:var(--text-primary);font-weight:600;margin-bottom:16px;font-size:14px">Today</h5>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--table-td-border)"><span style="color:var(--text-secondary)">Sales</span><span style="font-weight:600;color:var(--color-success)">{{ currency_symbol }}{{ today_sales|floatformat:2 }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--text-secondary)">Refunds</span><span style="font-weight:600;color:var(--color-danger)">{{ currency_symbol }}{{ today_refunds|floatformat:2 }}</span></div>
+    </div></div>
+    <div class="col-md-6"><div class="card-dash"><h5 style="color:var(--text-primary);font-weight:600;margin-bottom:16px;font-size:14px">This Month</h5>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--table-td-border)"><span style="color:var(--text-secondary)">Sales</span><span style="font-weight:600;color:var(--color-success)">{{ currency_symbol }}{{ monthly_sales|floatformat:2 }}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0"><span style="color:var(--text-secondary)">Refunds</span><span style="font-weight:600;color:var(--color-danger)">{{ currency_symbol }}{{ monthly_refunds|floatformat:2 }}</span></div>
+    </div></div>
+</div>
+<div class="card-dash"><h5 style="color:var(--text-primary);font-weight:600;margin-bottom:16px;font-size:14px"><i class="bi bi-download"></i> Export</h5>
+    <p style="color:var(--text-muted);font-size:13px">Export cash handling reports using the existing reporting module.</p>
+    <a href="{% url 'users:profit_loss_statement' %}" style="color:var(--accent);font-size:13px;font-weight:600"><i class="bi bi-box-arrow-up-right"></i> Go to Reports</a>
+</div>
+{% endblock %}

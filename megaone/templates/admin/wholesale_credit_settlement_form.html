@@ -1,0 +1,122 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}New Credit Settlement - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.form-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:32px;max-width:700px}
+.form-card .form-label{font-size:13px;font-weight:600;color:#94a3b8;margin-bottom:6px}
+.form-control,.form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:10px 14px}
+.form-control:focus,.form-select:focus{border-color:#8b5cf6;outline:none;box-shadow:0 0 0 3px rgba(139,92,246,.1)}
+.form-control::placeholder{color:#64748b}
+.btn-action{border-radius:10px;padding:10px 24px;font-weight:600}
+.credit-info{background:#0f172a;border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:14px 18px;margin-bottom:20px}
+.credit-info .row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.credit-info .label{color:#94a3b8}
+.credit-info .value{font-weight:700;color:#e2e8f0}
+.outstanding-table{width:100%;font-size:12px;margin-top:10px}
+.outstanding-table th{color:#94a3b8;font-weight:600;text-align:left;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05)}
+.outstanding-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>New <span>Credit Settlement</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Record a payment against outstanding credit</p>
+    </div>
+    <div>
+        <a href="{% url 'users:wholesale_credit_settlement_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="form-card" data-aos="fade-up">
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Wholesale Customer *</label>
+            <select name="customer_id" id="customerSelect" class="form-select" required onchange="loadCustomerCreditInfo()">
+                <option value="">— Select Customer —</option>
+                {% for c in customers %}
+                <option value="{{ c.id }}">{{ c.company_name }} ({{ c.email|default:'no email' }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="creditInfoBox" class="credit-info" style="display:none">
+            <div class="row"><span class="label">Credit Limit</span><span class="value" id="dispCreditLimit">{% format_currency 0 %}</span></div>
+            <div class="row"><span class="label">Used Credit</span><span class="value" id="dispUsedCredit" style="color:#f59e0b">{% format_currency 0 %}</span></div>
+            <div class="row"><span class="label">Available Credit</span><span class="value" id="dispAvailableCredit" style="color:#10b981">{% format_currency 0 %}</span></div>
+            <div id="outstandingInvoicesSection" style="display:none;margin-top:12px;border-top:1px solid rgba(255,255,255,.05);padding-top:10px">
+                <div style="font-size:13px;font-weight:600;color:#f59e0b;margin-bottom:6px"><i class="bi bi-exclamation-triangle me-1"></i>Outstanding Invoices</div>
+                <table class="outstanding-table" id="outstandingTable">
+                    <thead><tr><th>Invoice</th><th>Status</th><th>Total</th><th>Due</th></tr></thead>
+                    <tbody id="outstandingBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Amount *</label>
+            <input type="number" name="amount" step="0.01" min="0.01" class="form-control" placeholder="0.00" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Apply to Specific Invoice (optional)</label>
+            <select name="invoice_id" id="invoiceSelect" class="form-select">
+                <option value="">— All Outstanding —</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Settlement Date & Time</label>
+            <input type="datetime-local" name="settlement_date" class="form-control" value="{% now 'Y-m-d H:i' %}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="Optional notes about this settlement"></textarea>
+        </div>
+
+        <div class="d-flex gap-3 mt-4">
+            <button type="submit" class="btn btn-success btn-action"><i class="bi bi-check-circle me-1"></i> Record Settlement</button>
+            <a href="{% url 'users:wholesale_credit_settlement_list' %}" class="btn btn-outline-secondary btn-action">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+
+function loadCustomerCreditInfo() {
+    var cid = document.getElementById('customerSelect').value;
+    var box = document.getElementById('creditInfoBox');
+    if (!cid) { box.style.display = 'none'; return; }
+    fetch("{% url 'users:wholesale_account_info' %}?customer_id=" + cid)
+    .then(r => r.json())
+    .then(d => {
+        if (!d.success) return;
+        box.style.display = 'block';
+        document.getElementById('dispCreditLimit').textContent = formatCurrency(d.credit_limit || 0, 0);
+        document.getElementById('dispUsedCredit').textContent = formatCurrency(d.used_credit || 0, 0);
+        document.getElementById('dispAvailableCredit').textContent = formatCurrency(d.available_credit || 0, 0);
+    });
+    fetch("{% url 'users:wholesale_customer_outstanding_invoices' %}?customer_id=" + cid)
+    .then(r => r.json())
+    .then(d => {
+        var section = document.getElementById('outstandingInvoicesSection');
+        var tbody = document.getElementById('outstandingBody');
+        var sel = document.getElementById('invoiceSelect');
+        sel.innerHTML = '<option value="">— All Outstanding —</option>';
+        if (!d.success || !d.invoices || d.invoices.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        tbody.innerHTML = d.invoices.map(function(inv) {
+            sel.innerHTML += '<option value="' + inv.id + '">' + inv.invoice_number + ' (Due: ' + formatCurrency(inv.remaining_due, 0) + ')</option>';
+            return '<tr><td>' + inv.invoice_number + '</td><td>' + inv.payment_status + '</td><td>' + formatCurrency(inv.total_amount, 0) + '</td><td style="color:#ef4444;font-weight:600">' + formatCurrency(inv.remaining_due, 0) + '</td></tr>';
+        }).join('');
+    });
+}
+</script>
+{% endblock %}

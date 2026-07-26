@@ -1,0 +1,375 @@
+{% load static i18n format_tags %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme_mode }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Admin - {{ company_name }} Management{% endblock %}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<style>
+{% include 'includes/theme_vars.html' %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--text-primary);overflow-x:hidden}
+.sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;background:var(--bg-sidebar);z-index:1000;border-right:1px solid var(--sidebar-border);transition:.3s;overflow-y:auto}
+.sidebar-brand{padding:20px;text-align:center;border-bottom:1px solid var(--border-color)}
+.sidebar-brand h4{color:var(--accent);font-weight:700;margin:0}
+.sidebar-brand small{color:var(--text-muted);font-size:11px}
+.sidebar-menu{padding:10px 0}
+.sidebar-menu a{display:flex;align-items:center;gap:12px;padding:12px 20px;color:var(--sidebar-menu-color);text-decoration:none;transition:.2s;border-left:3px solid transparent;font-size:14px}
+.sidebar-menu a i{width:20px;font-size:16px}
+.sidebar-menu a:hover,.sidebar-menu a.active{background:var(--sidebar-hover-bg);color:var(--accent);border-left-color:var(--accent)}
+.sidebar-menu .menu-label{padding:15px 20px 5px;font-size:11px;text-transform:uppercase;color:var(--sidebar-menu-label);letter-spacing:1px;font-weight:600}
+.main-content{margin-left:var(--sidebar-w);padding:20px 30px;min-height:100vh}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;flex-wrap:wrap;gap:15px}
+.top-bar h2{font-weight:700;font-size:24px}
+.top-bar h2 span{color:var(--accent)}
+.stat-card{border:none;border-radius:16px;padding:24px;transition:.3s;position:relative;overflow:hidden;height:100%}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,.3)}
+.stat-card .stat-icon{font-size:38px;opacity:.2;position:absolute;right:15px;bottom:10px}
+.stat-card .stat-value{font-size:28px;font-weight:700;margin:8px 0 4px}
+.stat-card .stat-label{font-size:13px;opacity:.85;font-weight:500}
+.gradient-revenue{background:linear-gradient(135deg,#059669,#10b981)}
+.gradient-orders{background:linear-gradient(135deg,#3b82f6,#6366f1)}
+.gradient-active{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.gradient-delivered{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.gradient-kitchen{background:linear-gradient(135deg,#8b5cf6,#a855f7)}
+.gradient-tables{background:linear-gradient(135deg,#ec4899,#f43f5e)}
+.gradient-foods{background:linear-gradient(135deg,#14b8a6,#06b6d4)}
+.gradient-customers{background:linear-gradient(135deg,#64748b,#475569)}
+.table-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);overflow:hidden;margin-bottom:24px}
+.table-card .card-header{background:rgba(var(--accent-rgb),.03);padding:16px 20px;border-bottom:1px solid var(--border-color)}
+.table-card .card-header h5{margin:0;font-size:15px;font-weight:600}
+.table-card .table{margin:0;color:var(--text-primary)}
+.table-card .table thead th{background:var(--table-header-bg);color:var(--table-header-color);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--table-header-border);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:var(--table-td-border)}
+.form-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:28px;margin-bottom:24px}
+.form-card label{color:var(--text-label);font-size:13px;font-weight:600;margin-bottom:6px}
+.form-card .form-control,.form-card .form-select{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px}
+.form-card .form-control:focus,.form-card .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.15)}
+.form-card .form-control::placeholder{color:var(--text-placeholder)}
+.form-card textarea.form-control{min-height:100px}
+.status-badge{padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600;display:inline-block}
+.status-active,.status-true{background:var(--color-success-bg);color:var(--color-success)}
+.status-inactive,.status-false{background:var(--color-danger-bg);color:var(--color-danger)}
+.detail-label{color:var(--text-label);font-size:13px;font-weight:600;margin-bottom:4px}
+.detail-value{color:var(--text-detail-value);font-size:15px;font-weight:500;margin-bottom:16px}
+.breadcrumb-nav{display:flex;align-items:center;gap:8px;margin-bottom:20px;font-size:13px;color:var(--breadcrumb-color)}
+.breadcrumb-nav a{color:var(--accent);text-decoration:none}
+.breadcrumb-nav a:hover{text-decoration:underline}
+.breadcrumb-nav .sep{color:var(--breadcrumb-sep)}
+.dataTables_wrapper .dataTables_filter input{background:var(--data-bg);border:1px solid var(--border-input);color:var(--data-color);border-radius:8px;padding:6px 12px}
+.dataTables_wrapper .dataTables_filter input:focus{border-color:var(--accent);outline:none}
+.dataTables_wrapper .dataTables_length select{background:var(--data-bg);border:1px solid var(--border-input);color:var(--data-color);border-radius:8px}
+.dataTables_wrapper .dataTables_info{color:var(--data-info);font-size:13px}
+.dataTables_wrapper .dataTables_paginate .paginate_button{color:var(--data-paginate-color)!important;border-radius:8px!important;border:1px solid var(--data-paginate-border)!important;margin:2px}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current{background:var(--accent)!important;border-color:var(--accent)!important;color:#000!important}
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover{background:rgba(var(--accent-rgb),.15)!important;border-color:var(--accent)!important}
+.alert-custom{background:var(--alert-bg);border:1px solid var(--alert-border);border-radius:12px;color:var(--alert-color)}
+.btn-warning-custom{background:var(--accent);border:none;color:#000;font-weight:600;border-radius:10px;padding:10px 24px}
+.btn-warning-custom:hover{background:var(--accent-hover);color:#000}
+.btn-outline-warning-custom{border:1px solid rgba(var(--accent-rgb),.3);color:var(--accent);border-radius:10px;padding:10px 24px}
+.btn-outline-warning-custom:hover{background:rgba(var(--accent-rgb),.1);border-color:var(--accent);color:var(--accent)}
+.btn-danger-custom{background:#dc2626;border:none;border-radius:10px;padding:10px 24px}
+.btn-danger-custom:hover{background:#b91c1c}
+.btn-secondary-custom{background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-color);border-radius:10px;padding:10px 24px}
+.btn-secondary-custom:hover{background:var(--btn-secondary-hover-bg);color:var(--btn-secondary-hover-color)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--scrollbar-track)}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--scrollbar-thumb-hover)}
+.back-nav{margin-bottom:8px}
+.back-nav a{display:inline-flex;align-items:center;gap:8px;color:var(--back-nav-color);text-decoration:none;font-size:13px;font-weight:500;padding:6px 12px;border-radius:8px;transition:.2s;cursor:pointer}
+.back-nav a:hover{background:var(--back-nav-hover-bg);color:var(--back-nav-hover-color)}
+.badge-success{background:var(--color-success-bg);color:var(--color-success)}
+.badge-danger{background:var(--color-danger-bg);color:var(--color-danger)}
+.badge-warning{background:var(--color-warning-bg);color:var(--color-warning)}
+.badge-info{background:var(--color-info-bg);color:var(--color-info)}
+.badge-emerald{background:var(--color-emerald-bg);color:var(--color-emerald)}
+.badge-purple{background:var(--color-purple-bg);color:var(--color-purple)}
+.color-success{color:var(--color-success)}
+.color-danger{color:var(--color-danger)}
+.color-warning{color:var(--color-warning)}
+.color-info{color:var(--color-info)}
+.color-emerald{color:var(--color-emerald)}
+.color-purple{color:var(--color-purple)}
+.color-muted{color:var(--text-muted)}
+.color-secondary{color:var(--text-secondary)}
+.bg-card{background:var(--bg-card)}
+.border-card{border:1px solid var(--border-card)}
+.gradient-neutral{background:var(--gradient-neutral)}
+.theme-switcher{padding:10px 20px;border-top:1px solid var(--border-color);margin-top:10px;display:flex;align-items:center;gap:12px}
+.theme-switcher .theme-label{font-size:11px;text-transform:uppercase;color:var(--sidebar-menu-label);letter-spacing:1px;font-weight:600}
+.theme-toggle{position:relative;width:44px;height:24px;background:var(--bg-input);border:1px solid var(--border-input);border-radius:12px;cursor:pointer;transition:.3s;flex-shrink:0}
+.theme-toggle .thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--accent);border-radius:50%;transition:.3s}
+.theme-toggle.dark .thumb{left:22px}
+.theme-toggle .icon{position:absolute;top:4px;font-size:11px;pointer-events:none}
+.theme-toggle .icon-sun{left:5px;color:#000;opacity:0;transition:.3s}
+.theme-toggle .icon-moon{right:5px;color:#fff;opacity:1;transition:.3s}
+.theme-toggle.dark .icon-sun{opacity:1}
+.theme-toggle.dark .icon-moon{opacity:0}
+@media(max-width:768px){.sidebar{width:60px}.sidebar .sidebar-brand h4,.sidebar .sidebar-brand small,.sidebar .sidebar-menu a span,.sidebar .sidebar-menu .menu-label,.sidebar .theme-switcher .theme-label,.sidebar .menu-toggle-text{display:none}.sidebar .sidebar-menu a{padding:12px;justify-content:center}.sidebar .sidebar-menu a i{margin:0}.sidebar .theme-switcher{padding:10px;justify-content:center}.sidebar .sub-menu{display:none!important}.main-content{margin-left:60px;padding:15px}}
+.sidebar-menu .has-sub > .menu-link{cursor:pointer;display:flex;align-items:center;gap:12px;padding:12px 20px;color:var(--sidebar-menu-color);text-decoration:none;transition:.2s;border-left:3px solid transparent;font-size:14px;background:none;border-right:none;border-top:none;border-bottom:none;width:100%;text-align:left}
+.sidebar-menu .has-sub > .menu-link:hover,.sidebar-menu .has-sub > .menu-link.active{background:var(--sidebar-hover-bg);color:var(--accent);border-left-color:var(--accent)}
+.sidebar-menu .has-sub > .menu-link i{width:20px;font-size:16px;flex-shrink:0}
+.sidebar-menu .has-sub > .menu-link .menu-toggle-icon{margin-left:auto;transition:transform .25s;font-size:12px}
+.sidebar-menu .has-sub.open > .menu-link .menu-toggle-icon{transform:rotate(90deg)}
+.sub-menu{overflow:hidden;max-height:0;transition:max-height .3s ease}
+.has-sub.open > .sub-menu{max-height:800px}
+.sub-menu a{padding-left:52px!important;font-size:13px!important}
+
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-brand">
+        {% if company_logo %}
+        <img src="{{ company_logo.url }}" alt="{{ company_name }}" style="max-height:40px;max-width:160px;margin-bottom:4px">
+        {% endif %}
+        <h4>{{ company_name }}</h4>
+        <small>Management System</small>
+    </div>
+    <div class="sidebar-menu">
+        {% if user.is_software_owner %}
+        <div class="menu-label">Power User</div>
+        <a href="{% url 'users:system_settings' %}" class="{% if active_page == 'settings' %}active{% endif %}"><i class="bi bi-sliders"></i><span>System Settings</span></a>
+        {% endif %}
+        {% if user.is_staff and not user.is_software_owner %}
+        {% if 'pos' in enabled_modules and user_perms.sales.create %}<a href="{% url 'users:admin_pos' %}"><i class="bi bi-cart"></i><span>POS</span></a>{% endif %}
+        <a href="{% url 'users:admin_dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+        <a href="{% url 'users:invoice_search_page' %}" class="{% if active_page == 'invoices' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Invoices</span></a>
+        {% if 'products' in enabled_modules and user_perms.products.create %}
+        <div class="has-sub" id="sub-products">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-box-seam"></i><span>Products</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:product_list' %}" class="{% if active_page == 'products' %}active{% endif %}"><span>Products</span></a>
+            <a href="{% url 'users:category_list' %}" class="{% if active_page == 'categories' %}active{% endif %}"><span>Categories</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% if 'inventory' in enabled_modules and user_perms.inventory.stock_position %}
+        <div class="has-sub" id="sub-inventory">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-bar-chart"></i><span>Inventory</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:stock_position' %}" class="{% if active_page == 'stock' %}active{% endif %}"><span>Stock Position</span></a>
+            <a href="{% url 'users:stock_history' %}" class="{% if active_page == 'stock_history' %}active{% endif %}"><span>Stock History</span></a>
+            <a href="{% url 'users:stock_movement_report' %}" class="{% if active_page == 'stock_movement' %}active{% endif %}"><span>Stock Report</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% if 'returns' in enabled_modules and user_perms.return_invoice %}
+        <div class="has-sub" id="sub-returns">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-arrow-return-left"></i><span>Returns</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:return_invoice_page' %}" class="{% if active_page == 'return_invoice' %}active{% endif %}"><span>Return Invoice</span></a>
+            <a href="{% url 'users:return_invoice_history' %}" class="{% if active_page == 'return_history' %}active{% endif %}"><span>Return History</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% if 'customers' in enabled_modules and user_perms.customers.manage %}
+        <a href="{% url 'users:admin_loyalty_list' %}" class="{% if active_page == 'loyalty' %}active{% endif %}"><i class="bi bi-star"></i><span>Loyalty Cards</span></a>
+        {% endif %}
+        {% if 'offers' in enabled_modules and user_perms.products.create %}
+        <div class="has-sub" id="sub-offers">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-megaphone"></i><span>Offers</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:offer_list' %}" class="{% if active_page == 'offers' %}active{% endif %}"><span>Time-Based Offers</span></a>
+            <a href="{% url 'users:deal_list' %}" class="{% if active_page == 'deals' %}active{% endif %}"><span>Today's Deals</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% if 'expenses' in enabled_modules and user_perms.expenses.view %}
+        <div class="has-sub" id="sub-expenses">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-cash-stack"></i><span>Expenses</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:expense_list' %}" class="{% if active_page == 'expenses' %}active{% endif %}"><span>Business Expenses</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% include "cash_handling/menu.html" %}
+        {% if 'wholesale' in enabled_modules and user_perms.wholesale.access %}
+        <div class="has-sub" id="sub-wholesale">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-shop"></i><span>Wholesale</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:wholesale_pos_page' %}" class="{% if active_page == 'wholesale_pos' %}active{% endif %}"><span>Wholesale POS</span></a>
+            <a href="{% url 'users:wholesale_customer_list' %}" class="{% if active_page == 'wholesale_customers' %}active{% endif %}"><span>Wholesale Customers</span></a>
+            <a href="{% url 'users:wholesale_deposit_list' %}" class="{% if active_page == 'wholesale_deposits' %}active{% endif %}"><span>Wholesale Deposits</span></a>
+            {% if 'credit_management' in enabled_modules and user_perms.wholesale.credit.manage %}
+            <a href="{% url 'users:wholesale_credit_settlement_list' %}" class="{% if active_page == 'wholesale_credit' %}active{% endif %}"><span>Credit Settlements</span></a>
+            <a href="{% url 'users:wholesale_credit_report' %}" class="{% if active_page == 'wholesale_credit_report' %}active{% endif %}"><span>Credit Report</span></a>
+            {% endif %}
+            {% if 'reports' in enabled_modules and user_perms.reports.view %}
+            <a href="{% url 'users:wholesale_sales_report' %}" class="{% if active_page == 'wholesale_reports' %}active{% endif %}"><span>Wholesale Reports</span></a>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if 'profit_loss' in enabled_modules and user_perms.reports.view %}
+        <a href="{% url 'users:profit_loss_statement' %}" class="{% if active_page == 'profit_loss' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Profit & Loss</span></a>
+        {% endif %}
+        {% if user_perms.users.manage %}
+        <div class="has-sub" id="sub-operations">
+          <div class="menu-link" onclick="toggleSubmenu(this)">
+            <i class="bi bi-gear"></i><span>Operations</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+          </div>
+          <div class="sub-menu">
+            <a href="{% url 'users:operator_users_page' %}"><span>Operators</span></a>
+            <a href="{% url 'users:admin_operator_permissions' %}"><span>Permissions</span></a>
+          </div>
+        </div>
+        {% endif %}
+        {% if user_perms.sales.create %}
+        <a href="{% url 'users:admin_pending_approvals' %}"><i class="bi bi-clock-history"></i><span>Pending Approvals{% if pending_approvals_count > 0 %} <span class="badge bg-warning text-dark ms-1" style="font-size:10px">{{ pending_approvals_count }}</span>{% endif %}</span></a>
+        <a href="{% url 'users:mysql_backup' %}" class="{% if active_page == 'backup' %}active{% endif %}"><i class="bi bi-database"></i><span>Backup</span></a>
+        {% endif %}
+        {% elif user.is_operator %}
+        <a href="{% url 'users:operator_dashboard' %}"><i class="bi bi-cart"></i><span>POS</span></a>
+        {% with cash_submenu_id="sub-cash-handling-operator" %}{% include "cash_handling/menu.html" %}{% endwith %}
+        {% endif %}
+        {% if theme_allow_switch and theme_dark_enabled %}
+        <div class="theme-switcher">
+            <span class="theme-label">Theme</span>
+            <div class="theme-toggle{% if theme_mode == 'dark' %} dark{% endif %}" id="themeToggle" role="button" aria-label="Toggle theme">
+                <span class="icon icon-sun">&#x2600;</span>
+                <span class="thumb"></span>
+                <span class="icon icon-moon">&#x263E;</span>
+            </div>
+        </div>
+        {% endif %}
+        <div class="menu-label" style="margin-top:10px">Account</div>
+        <a href="{% url 'users:logout' %}"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+    </div>
+</div>
+
+<div class="main-content">
+    {% if messages %}
+    <div style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px">
+        {% for message in messages %}
+        <div class="alert-custom" style="padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;
+        {% if message.tags == 'success' %}background:var(--toast-success-bg);border-color:var(--toast-success-border);color:var(--toast-success-color);
+        {% elif message.tags == 'error' %}background:var(--toast-error-bg);border-color:var(--toast-error-border);color:var(--toast-error-color);
+        {% else %}background:var(--toast-info-bg);border-color:var(--toast-info-border);color:var(--toast-info-color);{% endif %}">
+            <i class="bi bi-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}x-circle{% else %}info-circle{% endif %}"></i>
+            <span>{{ message }}</span>
+            <button type="button" style="background:none;border:none;color:inherit;font-size:16px;cursor:pointer;padding:0;line-height:1;opacity:.6" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if user.is_staff and not user.is_software_owner %}
+    <div class="back-nav">
+        <a onclick="event.preventDefault();(window.history.length>1)?history.back():window.location.href='{% url 'users:admin_dashboard' %}'">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script>AOS.init({duration:800,once:true});</script>
+
+<script>
+window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
+
+function formatNumber(value, decimals) {
+    if (value === null || value === undefined || value === '') return '0';
+    if (typeof value === 'string') value = value.replace(/[^0-9.-]/g, '');
+    value = parseFloat(value);
+    if (isNaN(value)) return '0';
+    decimals = (decimals !== undefined) ? decimals : 2;
+    if (decimals < 0) decimals = 0;
+    return value.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+    });
+}
+
+function formatCurrency(value, decimals) {
+    var sym = window.currencySymbol || 'Rs ';
+    return sym + formatNumber(value, decimals).trim();
+}
+
+function toTitleCase(str) {
+    if (!str || typeof str !== 'string') return str;
+    var exceptions = ['a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'by', 'with'];
+    return str.split(/\s+/).map(function(word, i) {
+        if (!word) return word;
+        if (i > 0 && exceptions.indexOf(word.toLowerCase()) !== -1) {
+            return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+}
+
+document.addEventListener('blur', function(e) {
+    var el = e.target;
+    if (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA') return;
+    var type = (el.type || '').toLowerCase();
+    if (type === 'email' || type === 'password' || type === 'url' || type === 'number' || type === 'tel' || type === 'search') return;
+    var name = (el.name || el.id || '').toLowerCase().replace(/[_-]/g, '');
+    var titleFields = ['name', 'title', 'companyname', 'contactperson', 'superusername', 'custname', 'kname', 'editname', 'fullname', 'supplier', 'city', 'shop', 'warehouse', 'brand', 'subcategory', 'expensetitle', 'employeename'];
+    if (titleFields.some(function(f) { return name.indexOf(f) !== -1 || name === f; }) && !el.hasAttribute('data-no-title')) {
+        el.value = toTitleCase(el.value);
+    }
+}, true);
+
+(function() {
+    var toggle = document.getElementById('themeToggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', function() {
+        var html = document.documentElement;
+        var current = html.getAttribute('data-theme');
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        toggle.classList.toggle('dark', next === 'dark');
+        $.ajax({
+            type: 'POST',
+            url: '{% url "users:save_theme" %}',
+            contentType: 'application/json',
+            data: JSON.stringify({theme: next}),
+            headers: {'X-CSRFToken': '{{ csrf_token }}'},
+            error: function() { html.setAttribute('data-theme', current); toggle.classList.toggle('dark', current === 'dark'); }
+        });
+    });
+})();
+
+function toggleSubmenu(el) {
+    var parent = el.closest('.has-sub');
+    if (parent) {
+        parent.classList.toggle('open');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.has-sub').forEach(function(group) {
+        var active = group.querySelector('.sub-menu a.active');
+        if (active) {
+            group.classList.add('open');
+        }
+    });
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

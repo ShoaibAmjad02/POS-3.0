@@ -1,0 +1,195 @@
+{% extends "admin/base_admin.html" %}
+{% load static i18n format_tags %}
+{% block title %}Pending Approvals - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.approval-card {
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: .2s;
+}
+.approval-card:hover {
+    border-color: rgba(245,158,11,.2);
+}
+.approval-card .ac-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.approval-card .ac-operator {
+    font-weight: 600;
+    font-size: 15px;
+}
+.approval-card .ac-operator small {
+    color: #64748b;
+    font-weight: 400;
+    font-size: 12px;
+}
+.approval-card .ac-meta {
+    color: #94a3b8;
+    font-size: 12px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+.approval-card .ac-items {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+}
+.approval-card .ac-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+}
+.approval-card .ac-item:last-child { border-bottom: none; }
+.approval-card .ac-item .ai-name { color: #e2e8f0; }
+.approval-card .ac-item .ai-qty { color: #94a3b8; }
+.approval-card .ac-item .ai-price { color: #22c55e; font-weight: 600; }
+.approval-card .ac-total { font-size: 15px; font-weight: 700; color: #f59e0b; text-align: right; margin-bottom: 12px; }
+.approval-card .ac-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.approval-card .ac-actions textarea {
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,.1);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 12px;
+    flex: 1;
+    min-width: 150px;
+    resize: vertical;
+}
+.approval-card .ac-actions textarea:focus { border-color: #f59e0b; outline: none; }
+.badge-pending { background: rgba(245,158,11,.15); color: #f59e0b; }
+.badge-approved { background: rgba(34,197,94,.15); color: #22c55e; }
+.badge-rejected { background: rgba(239,68,68,.15); color: #ef4444; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Pending <span>Approvals</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Review and approve invoice requests from operators.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'users:admin_pending_approvals' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-clockwise"></i> Refresh</a>
+    </div>
+</div>
+
+<div class="mb-3">
+    <ul class="nav nav-pills gap-2" style="flex-wrap:wrap">
+        <li class="nav-item">
+            <a class="nav-link {% if not request.GET.status %}active{% endif %}" style="background:{% if not request.GET.status %}#f59e0b;color:#000{% else %}rgba(255,255,255,.05);color:#94a3b8{% endif %};border-radius:10px;font-size:13px;padding:6px 16px;border:none" href="?">All</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'pending' %}active{% endif %}" style="background:{% if request.GET.status == 'pending' %}#f59e0b;color:#000{% else %}rgba(255,255,255,.05);color:#94a3b8{% endif %};border-radius:10px;font-size:13px;padding:6px 16px;border:none" href="?status=pending">Pending</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'approved' %}active{% endif %}" style="background:{% if request.GET.status == 'approved' %}#22c55e;color:#000{% else %}rgba(255,255,255,.05);color:#94a3b8{% endif %};border-radius:10px;font-size:13px;padding:6px 16px;border:none" href="?status=approved">Approved</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if request.GET.status == 'rejected' %}active{% endif %}" style="background:{% if request.GET.status == 'rejected' %}#ef4444;color:#fff{% else %}rgba(255,255,255,.05);color:#94a3b8{% endif %};border-radius:10px;font-size:13px;padding:6px 16px;border:none" href="?status=rejected">Rejected</a>
+        </li>
+    </ul>
+</div>
+
+{% for item in pending_list %}
+<div class="approval-card" data-aos="fade-up">
+    <div class="ac-header">
+        <div>
+            <div class="ac-operator">
+                <i class="bi bi-person-circle me-1 text-warning"></i>
+                {{ item.operator.name }}
+                <small>{{ item.operator.email }}</small>
+            </div>
+            <div style="margin-top:4px">
+                {% if item.is_approved %}
+                <span class="badge badge-approved"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                {% elif item.is_rejected %}
+                <span class="badge badge-rejected"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                {% else %}
+                <span class="badge badge-pending"><i class="bi bi-hourglass me-1"></i>Pending</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-end">
+            <div style="font-size:11px;color:#64748b">#{{ item.id }}</div>
+            <div style="font-size:11px;color:#94a3b8">{{ item.created_at|date:"d-m-Y h:i A" }}</div>
+        </div>
+    </div>
+
+    <div class="ac-meta">
+        <span><i class="bi bi-person me-1"></i>{{ item.customer_name|default:"Walk-in Customer" }}</span>
+        {% if item.customer_email %}<span><i class="bi bi-envelope me-1"></i>{{ item.customer_email }}</span>{% endif %}
+        <span><i class="bi bi-credit-card me-1"></i>{{ item.payment_method|title }}</span>
+        <span><i class="bi bi-percent me-1"></i>Tax: {{ item.tax_percentage }}%</span>
+        {% if item.invoice_discount > 0 %}<span><i class="bi bi-tag me-1"></i>Disc: {% format_currency item.invoice_discount 2 %}</span>{% endif %}
+        {% if item.loyalty_points_to_redeem > 0 %}<span><i class="bi bi-star me-1"></i>Loyalty: {{ item.loyalty_points_to_redeem }} pts</span>{% endif %}
+    </div>
+    {% if item.notes %}
+    <div style="background:rgba(59,130,246,.08);border-radius:8px;padding:6px 10px;margin-bottom:10px;font-size:12px;color:#3b82f6">
+        <i class="bi bi-chat-dots me-1"></i> {{ item.notes }}
+    </div>
+    {% endif %}
+
+    <div class="ac-items">
+        {% for citem in item.normalized_cart %}
+        <div class="ac-item">
+            <span class="ai-name">{{ citem.name|default:"" }}</span>
+            <span class="ai-qty">× {{ citem.quantity|default:0 }}</span>
+            <span class="ai-price">{% format_currency citem.price|multiply:citem.quantity|default:0 0 %}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="ac-total">
+        Subtotal: {% format_currency item.subtotal 2 %}
+        {% if item.loyalty_points_to_redeem > 0 %}
+        <div style="font-size:13px;font-weight:400;color:#f59e0b;margin-top:2px">
+            Loyalty: -{% format_currency item.loyalty_points_to_redeem 0 %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if item.admin_notes %}
+    <div style="background:rgba(245,158,11,.08);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#f59e0b">
+        <i class="bi bi-chat-dots me-1"></i> {{ item.admin_notes }}
+    </div>
+    {% endif %}
+
+    {% if not item.is_approved and not item.is_rejected %}
+    <div class="ac-actions">
+        <form method="POST" action="{% url 'users:admin_approve_request' item.id %}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1">
+            {% csrf_token %}
+            <textarea name="admin_notes" placeholder="Admin notes (optional)" rows="1" style="flex:1;min-width:120px">{{ item.admin_notes }}</textarea>
+            <div style="display:flex;gap:8px;flex-shrink:0">
+                <button type="submit" name="action" value="approve" class="btn btn-success btn-sm" style="border-radius:8px;padding:6px 16px;font-weight:600"><i class="bi bi-check-lg me-1"></i>Approve</button>
+                <button type="submit" name="action" value="reject" class="btn btn-outline-danger btn-sm" style="border-radius:8px;padding:6px 16px"><i class="bi bi-x-lg me-1"></i>Reject</button>
+            </div>
+        </form>
+    </div>
+    {% elif item.is_approved and item.invoice %}
+    <div class="ac-actions" style="justify-content:flex-end">
+        <a href="{% url 'users:invoice_pdf' item.invoice.uuid_token %}" target="_blank" class="btn btn-outline-info btn-sm" style="border-radius:8px;padding:6px 16px">
+            <i class="bi bi-printer me-1"></i>Print Invoice
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% empty %}
+<div class="text-center text-muted py-5" data-aos="fade-up">
+    <i class="bi bi-inbox" style="font-size:48px;opacity:.2;display:block;margin-bottom:12px"></i>
+    <p style="font-size:15px">No pending approval requests</p>
+</div>
+{% endfor %}
+{% endblock %}

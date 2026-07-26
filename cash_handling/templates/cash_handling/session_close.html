@@ -1,0 +1,44 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Close Session{% endblock %}
+{% block content %}
+<style>.form-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:24px;max-width:480px}.stat-mini{padding:12px;border-radius:8px;background:rgba(255,255,255,.03);display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}</style>
+<div style="max-width:600px;margin:0 auto">
+    <h4 style="color:var(--text-primary);margin:0 0 24px;font-weight:700"><i class="bi bi-lock" style="color:var(--color-danger)"></i> Close Session #{{ session.id }}</h4>
+    <div class="form-card">
+        <div class="stat-mini"><span style="color:var(--text-muted)">Opening Balance</span><span style="font-weight:600">{{ currency_symbol }}{{ session_data.opening_balance|floatformat:2 }}</span></div>
+        <div class="stat-mini"><span style="color:var(--text-muted)">Cash Sales</span><span style="font-weight:600;color:var(--color-success)">{{ currency_symbol }}{{ session_data.cash_sales|floatformat:2 }}</span></div>
+        <div class="stat-mini"><span style="color:var(--text-muted)">Refunds</span><span style="font-weight:600;color:var(--color-danger)">{{ currency_symbol }}{{ session_data.cash_refunds|floatformat:2 }}</span></div>
+        <div class="stat-mini"><span style="color:var(--text-muted)">Drops</span><span style="font-weight:600;color:var(--color-warning)">{{ currency_symbol }}{{ session_data.cash_drops|floatformat:2 }}</span></div>
+        <div class="stat-mini" style="border-top:1px solid var(--border-card);padding-top:12px;margin-top:8px"><span style="font-weight:600">Expected Balance</span><span style="font-weight:700;color:var(--accent)">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</span></div>
+        <hr style="border-color:var(--border-card);margin:16px 0">
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Actual Cash Count</label>
+            <input type="number" id="closeBalance" class="form-control" step="0.01" min="0" value="{{ session_data.current_balance }}" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:12px 16px;font-size:16px;font-weight:600">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Notes</label>
+            <textarea id="closeNotes" class="form-control" rows="3" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px;resize:vertical"></textarea>
+        </div>
+        <button class="btn" style="width:100%;background:var(--color-danger);color:#fff;border:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer" onclick="closeSession()"><i class="bi bi-check-lg"></i> Close Session</button>
+    </div>
+</div>
+<script>
+function getCSRFToken(){return '{{ csrf_token }}'}
+function closeSession(){
+    var bal=document.getElementById('closeBalance').value;
+    var notes=document.getElementById('closeNotes').value;
+    fetch('{% url "cash_handling:session_close" %}',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({closing_balance:bal,notes:notes})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){
+            var msg=d.variance!=0?' Variance: '+d.variance:'';
+            alert('Session closed!'+msg);
+            window.location.href='{% url "cash_handling:dashboard" %}';
+        }else{alert(d.error||'Error');}
+    }).catch(e=>alert('Error:'+e.message));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,271 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Operators - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.content-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:24px;margin-bottom:24px}
+.content-card h5{font-size:14px;color:var(--text-secondary);font-weight:600;margin-bottom:15px;text-transform:uppercase;letter-spacing:.5px}
+.form-control{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px}
+.form-control:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1)}
+.form-control::placeholder{color:var(--text-muted)}
+.btn-action{border-radius:10px;padding:8px 16px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Operator <span>Management</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Manage operator accounts</p>
+    </div>
+    <div>
+        <a href="{% url 'users:admin_dashboard' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    </div>
+</div>
+
+<!-- Add Operator Form -->
+<div class="content-card" data-aos="fade-up">
+    <h5><i class="bi bi-person-plus me-2"></i>Add New Operator</h5>
+    <form id="operatorForm" class="row g-3">
+        <div class="col-md-4">
+            <input type="text" id="kName" class="form-control" placeholder="Full Name" required>
+        </div>
+        <div class="col-md-4">
+            <input type="email" id="kEmail" class="form-control" placeholder="Email Address" required>
+        </div>
+        <div class="col-md-4">
+            <input type="password" id="kPassword" class="form-control" placeholder="Password" required>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-warning btn-action px-4"><i class="bi bi-plus-lg me-1"></i>Create Operator</button>
+        </div>
+    </form>
+</div>
+
+<!-- Operators Table -->
+<div class="table-card" data-aos="fade-up">
+    <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.05)">
+        <h5 style="margin:0;font-size:14px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-people me-2"></i>All Operators</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="operatorTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th width="220">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="operatorTableBody">
+                <tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);color:#e2e8f0">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Operator</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Name</label>
+                    <input type="text" id="editName" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Email</label>
+                    <input type="email" id="editEmail" class="form-control" readonly style="opacity:.6">
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-warning" onclick="updateOperator()"><i class="bi bi-check-lg me-1"></i>Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);color:#e2e8f0">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-key me-2"></i>Reset Password</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="resetId">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">New Password</label>
+                    <input type="text" id="resetPassword" class="form-control" value="changeme123">
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-warning" onclick="resetOperatorPassword()"><i class="bi bi-check-lg me-1"></i>Reset</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+AOS.init({duration:800,once:true});
+let operatorTable;
+
+function getCSRF() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
+function loadOperators() {
+    fetch("{% url 'users:operator_list' %}")
+    .then(r => r.json())
+    .then(data => {
+        const tbody = document.getElementById('operatorTableBody');
+        if (!data.operators || data.operators.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">No operators found</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = data.operators.map(k => `
+            <tr>
+                <td><strong>${k.name}</strong></td>
+                <td>${k.email}</td>
+                <td><span class="badge bg-success">Active</span></td>
+                <td>N/A</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editOperator(${k.id},'${k.name.replace(/'/g,"\\'")}','${k.email}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-outline-info me-1" onclick="resetPassword(${k.id})" title="Reset Password"><i class="bi bi-key"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteOperator(${k.id},'${k.name.replace(/'/g,"\\'")}')" title="Delete"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `).join('');
+
+        if (operatorTable) { operatorTable.destroy(); }
+        operatorTable = $('#operatorTable').DataTable({
+            pageLength: 10,
+            language: {
+                search: '', searchPlaceholder: 'Search operators...',
+                emptyTable: 'No operators found',
+                info: 'Showing _START_ to _END_ of _TOTAL_ operators',
+            },
+            dom: '<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+        });
+    });
+}
+
+document.getElementById('operatorForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const name = document.getElementById('kName').value.trim();
+    const email = document.getElementById('kEmail').value.trim();
+    const password = document.getElementById('kPassword').value;
+
+    if (!name || !email || !password) {
+        Swal.fire({icon:'warning',title:'Validation Error',text:'All fields are required',background:'#1e293b',color:'#e2e8f0'});
+        return;
+    }
+
+    fetch("{% url 'users:create_operator' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({name, email, password})
+    })
+    .then(r => r.json().then(d => ({status: r.status, data: d})))
+    .then(({status, data}) => {
+        if (status === 200) {
+            Swal.fire({icon:'success',title:'Created!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
+            document.getElementById('operatorForm').reset();
+            loadOperators();
+        } else {
+            Swal.fire({icon:'error',title:'Error',text:data.message,background:'#1e293b',color:'#e2e8f0'});
+        }
+    });
+});
+
+function editOperator(id, name, email) {
+    document.getElementById('editId').value = id;
+    document.getElementById('editName').value = name;
+    document.getElementById('editEmail').value = email;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+function updateOperator() {
+    const id = document.getElementById('editId').value;
+    const name = document.getElementById('editName').value.trim();
+
+    if (!name) {
+        Swal.fire({icon:'warning',title:'Validation Error',text:'Name is required',background:'#1e293b',color:'#e2e8f0'});
+        return;
+    }
+
+    fetch(`/users/edit-operator/${id}/`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({name})
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({icon:'success',title:'Updated!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
+        const mEl = document.getElementById('editModal');
+        if (mEl) { const m = new bootstrap.Modal(mEl); m.hide(); }
+        loadOperators();
+    });
+}
+
+function resetPassword(id) {
+    document.getElementById('resetId').value = id;
+    new bootstrap.Modal(document.getElementById('resetPasswordModal')).show();
+}
+
+function resetOperatorPassword() {
+    const id = document.getElementById('resetId').value;
+    const password = document.getElementById('resetPassword').value.trim();
+
+    fetch(`/users/reset-operator-password/${id}/`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({password})
+    })
+    .then(r => r.json())
+    .then(data => {
+        Swal.fire({icon:'success',title:'Password Reset!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
+        const mEl = document.getElementById('resetPasswordModal');
+        if (mEl) { const m = new bootstrap.Modal(mEl); m.hide(); }
+    });
+}
+
+function deleteOperator(id, name) {
+    Swal.fire({
+        title: 'Delete Operator?',
+        text: `${name} will be permanently deleted.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Yes, delete',
+        background: '#1e293b',
+        color: '#e2e8f0',
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch(`/users/delete-operator/${id}/`, {
+                method: "POST",
+                headers: {"X-CSRFToken": "{{ csrf_token }}"},
+            })
+            .then(r => r.json())
+            .then(data => {
+                Swal.fire({icon:'success',title:'Deleted!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
+                loadOperators();
+            });
+        }
+    });
+}
+
+loadOperators();
+</script>
+{% endblock %}

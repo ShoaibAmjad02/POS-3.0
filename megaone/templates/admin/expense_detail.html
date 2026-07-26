@@ -1,0 +1,46 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Expense #{{ expense.id }} - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.detail-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:32px;max-width:700px}
+.detail-card .row-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.detail-card .row-item:last-child{border-bottom:none}
+.detail-card .label{font-size:13px;color:#94a3b8;font-weight:600}
+.detail-card .value{font-size:14px;color:#e2e8f0;text-align:right;max-width:60%}
+.btn-action{border-radius:10px;padding:8px 20px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Expense <span>Details</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">View expense transaction details</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'users:expense_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a>
+        <a href="{% url 'users:expense_edit' expense.id %}" class="btn btn-sm btn-outline-info"><i class="bi bi-pencil me-1"></i> Edit</a>
+    </div>
+</div>
+<div class="detail-card" data-aos="fade-up">
+    <div class="row-item"><span class="label">Expense ID</span><span class="value">#{{ expense.id }}</span></div>
+    <div class="row-item"><span class="label">Title</span><span class="value fw-semibold">{{ expense.title }}</span></div>
+    <div class="row-item"><span class="label">Category</span><span class="value"><span class="badge bg-secondary text-light">{{ expense.category.name }}</span></span></div>
+    <div class="row-item"><span class="label">Amount</span><span class="value fw-bold" style="color:#ef4444">{% format_currency expense.amount %}</span></div>
+    <div class="row-item"><span class="label">Payment Method</span><span class="value"><span class="badge bg-info text-dark">{{ expense.payment_method|upper }}</span></span></div>
+    <div class="row-item"><span class="label">Expense Date</span><span class="value">{{ expense.expense_date|date:"d-m-Y H:i" }}</span></div>
+    <div class="row-item"><span class="label">Description</span><span class="value">{{ expense.description|default:'—' }}</span></div>
+    <div class="row-item"><span class="label">Created By</span><span class="value">{{ expense.created_by.email|default:'—' }}</span></div>
+    <div class="row-item"><span class="label">Created At</span><span class="value">{{ expense.created_at|date:"d-m-Y H:i:s" }}</span></div>
+    <div class="row-item"><span class="label">Updated At</span><span class="value">{{ expense.updated_at|date:"d-m-Y H:i:s" }}</span></div>
+    {% if expense.is_deleted %}
+    <div class="row-item"><span class="label">Status</span><span class="value"><span class="badge bg-danger">Deleted</span></span></div>
+    <div class="row-item"><span class="label">Deleted At</span><span class="value">{{ expense.deleted_at|date:"d-m-Y H:i:s" }}</span></div>
+    <div class="row-item"><span class="label">Deleted By</span><span class="value">{{ expense.deleted_by.email|default:'—' }}</span></div>
+    {% else %}
+    <div class="row-item"><span class="label">Status</span><span class="value"><span class="badge bg-success">Active</span></span></div>
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

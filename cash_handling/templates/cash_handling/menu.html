@@ -1,0 +1,24 @@
+{% if user_perms.cash_handling.dashboard_view %}
+<div class="has-sub" id="{{ cash_submenu_id|default:'sub-cash-handling' }}">
+  <div class="menu-link" onclick="toggleSubmenu(this)">
+    <i class="bi bi-cash"></i><span>Cash Handling</span><i class="bi bi-chevron-right menu-toggle-icon"></i>
+  </div>
+  <div class="sub-menu">
+    <a href="{% url 'cash_handling:dashboard' %}" class="{% if active_page == 'cash_dashboard' %}active{% endif %}"><span>Dashboard</span></a>
+    <a href="{% url 'cash_handling:cash_drawers' %}" class="{% if active_page == 'cash_drawers' %}active{% endif %}"><span>Cash Drawers</span></a>
+    <a href="{% url 'cash_handling:session_open_page' %}" class="{% if active_page == 'cash_sessions' %}active{% endif %}"><span>Cash Sessions</span></a>
+    {% if user_perms.cash_handling.transaction_view %}<a href="{% url 'cash_handling:transaction_list' %}" class="{% if active_page == 'cash_transactions' %}active{% endif %}"><span>Cash Transactions</span></a>{% endif %}
+    <a href="{% url 'cash_handling:cash_in_page' %}" class="{% if active_page == 'cash_in' %}active{% endif %}"><span>Cash In</span></a>
+    <a href="{% url 'cash_handling:cash_out_page' %}" class="{% if active_page == 'cash_out' %}active{% endif %}"><span>Cash Out</span></a>
+    <a href="{% url 'cash_handling:cash_drop_page' %}" class="{% if active_page == 'cash_drop' %}active{% endif %}"><span>Cash Drop</span></a>
+    <a href="{% url 'cash_handling:refunds' %}" class="{% if active_page == 'cash_refunds' %}active{% endif %}"><span>Refunds</span></a>
+    <a href="{% url 'cash_handling:void_sales' %}" class="{% if active_page == 'cash_voids' %}active{% endif %}"><span>Void Sales</span></a>
+    <a href="{% url 'cash_handling:no_sale_page' %}" class="{% if active_page == 'cash_no_sale' %}active{% endif %}"><span>No Sale</span></a>
+    <a href="{% url 'cash_handling:denomination_count' %}" class="{% if active_page == 'cash_denomination' %}active{% endif %}"><span>Denomination Count</span></a>
+    <a href="{% url 'cash_handling:closing_reconciliation' %}" class="{% if active_page == 'cash_reconciliation' %}active{% endif %}"><span>Closing Reconciliation</span></a>
+    <a href="{% url 'cash_handling:approvals' %}" class="{% if active_page == 'cash_approvals' %}active{% endif %}"><span>Approvals</span></a>
+    <a href="{% url 'cash_handling:reports' %}" class="{% if active_page == 'cash_reports' %}active{% endif %}"><span>Reports</span></a>
+    <a href="{% url 'cash_handling:audit_logs' %}" class="{% if active_page == 'cash_audit' %}active{% endif %}"><span>Audit Logs</span></a>
+  </div>
+</div>
+{% endif %}

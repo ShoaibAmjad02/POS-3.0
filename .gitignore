@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+*.pyo
+
+# Environment
+.env
+venv/
+.virtualenvs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project artifacts
+Installer/*.exe
+deployment/logs/
+deployment/runtime/
+deployment/backups/
+deployment/temp/
+deployment/installer/
+
+# OS
+Thumbs.db
+.DS_Store

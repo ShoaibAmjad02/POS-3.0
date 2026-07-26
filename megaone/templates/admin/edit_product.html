@@ -1,0 +1,297 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Edit Product - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.form-card{max-width:100%;padding:18px 22px}
+.section-title{font-size:13px;font-weight:700;color:var(--text-detail-value);padding-bottom:4px;margin-bottom:8px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:6px;margin-top:14px}
+.section-title:first-of-type{margin-top:0}
+.section-title i{color:var(--accent);font-size:13px}
+.form-card .row{gap:0}
+.form-check-wrapper{display:flex;align-items:center;height:36px;margin-top:20px}
+.form-check-wrapper .form-check{margin-bottom:0}
+.form-footer{position:fixed;bottom:0;left:260px;right:0;background:var(--bg-card);padding:8px 24px;border-top:1px solid var(--alert-border);display:flex;justify-content:flex-end;align-items:center;gap:10px;z-index:999;box-shadow:0 -4px 20px rgba(0,0,0,.3)}
+.form-footer .btn{padding:8px 22px;font-weight:600;border-radius:10px;font-size:13px}
+.help-text{display:block;color:var(--text-muted);font-size:11px;margin-top:2px;line-height:1.3}
+.help-text strong{color:var(--text-secondary)}
+body{padding-bottom:58px}
+
+.drop-zone{border:2px dashed var(--border-input);border-radius:12px;padding:24px 20px;text-align:center;cursor:pointer;transition:all .25s ease;background:rgba(15,23,42,.4);position:relative;outline:none}
+.drop-zone:hover,.drop-zone.dragover,.drop-zone:focus-visible{border-color:var(--accent);background:rgba(var(--accent-rgb),.06)}
+.drop-zone:focus-visible{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.2)}
+.drop-zone .dz-icon{font-size:34px;color:var(--text-muted);margin-bottom:8px;transition:.25s}
+.drop-zone:hover .dz-icon,.drop-zone.dragover .dz-icon{color:var(--accent)}
+.drop-zone .dz-text{font-size:13px;color:var(--text-secondary);font-weight:500;line-height:1.5}
+.drop-zone .dz-text span{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.drop-zone .dz-hint{font-size:11px;color:var(--text-muted);margin-top:5px}
+.drop-zone.has-file .dz-icon,.drop-zone.has-file .dz-text,.drop-zone.has-file .dz-hint{display:none}
+.drop-zone .preview-wrap{display:none;position:relative;max-width:280px;margin:0 auto}
+.drop-zone.has-file .preview-wrap{display:block}
+.drop-zone .preview-wrap img{max-height:150px;max-width:100%;border-radius:8px;display:block;margin:0 auto;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.drop-zone .btn-remove{position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;border:none;background:var(--color-danger);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;box-shadow:0 2px 8px rgba(0,0,0,.5);line-height:1}
+.drop-zone .btn-remove:hover{background:var(--color-danger);transform:scale(1.1)}
+.drop-zone .btn-remove:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.progress-wrap{height:4px;background:var(--alert-border);border-radius:4px;overflow:hidden;margin-top:10px;display:none}
+.progress-wrap.active{display:block}
+.progress-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#f97316);border-radius:4px;width:0%;transition:width .3s ease}
+.upload-error{color:var(--color-danger);font-size:12px;margin-top:6px;display:none;align-items:center;gap:5px}
+.upload-error.active{display:flex}
+.upload-error i{font-size:13px}
+.upload-success{color:var(--color-success);font-size:12px;margin-top:6px;display:none;align-items:center;gap:5px}
+.upload-success.active{display:flex}
+
+@media(max-width:768px){.form-footer{left:60px;padding:8px 15px}.form-footer .btn{padding:8px 16px;font-size:12px}.form-check-wrapper{height:auto;margin-top:0}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down" style="margin-bottom:18px">
+    <div>
+        <h2 style="font-size:22px">Edit <span>Product</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:13px">Update product details</p>
+    </div>
+    <div>
+        <a href="{% url 'users:product_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="form-card" data-aos="fade-up">
+
+        <div class="section-title"><i class="bi bi-info-circle"></i> Basic Information</div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label">Product Name</label>
+                <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Category</label>
+                <select name="category_id" class="form-select">
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if product.category.id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control" rows="2">{{ product.description }}</textarea>
+            </div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-currency-rupee"></i> Pricing &amp; Discounts</div>
+        <div class="row g-2">
+            <div class="col-md-4">
+                <label class="form-label">Default Purchase Cost (Rs)</label>
+                <input type="number" step="0.01" name="cost_price" value="{{ product.default_purchase_cost }}" class="form-control" min="0" required>
+                {% if product.stock > 0 %}
+                <small class="help-text">Stock exists ({{ product.stock }} units). Cost applies to <strong>future purchases</strong>.</small>
+                {% else %}
+                <small class="help-text">No stock. Cost will be updated for all purposes.</small>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Selling Price (Rs)</label>
+                <input type="number" step="0.01" name="price" value="{{ product.price }}" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Wholesale Price (Rs)</label>
+                <input type="number" step="0.01" name="wholesale_price" value="{{ product.wholesale_price|default:'' }}" class="form-control" placeholder="0.00">
+                <small class="help-text">For bulk customers</small>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Wholesale Discount Type</label>
+                <select name="wholesale_discount_type" class="form-select">
+                    <option value="" {% if not product.wholesale_discount_type %}selected{% endif %}>No Discount</option>
+                    <option value="percentage" {% if product.wholesale_discount_type == 'percentage' %}selected{% endif %}>Percentage (%)</option>
+                    <option value="fixed" {% if product.wholesale_discount_type == 'fixed' %}selected{% endif %}>Fixed Amount (Rs)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Wholesale Discount Value</label>
+                <input type="number" step="0.01" name="wholesale_discount_value" value="{{ product.wholesale_discount_value }}" class="form-control" min="0">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Discount Type</label>
+                <select name="discount_type" class="form-select">
+                    <option value="" {% if not product.discount_type %}selected{% endif %}>No Discount</option>
+                    <option value="percentage" {% if product.discount_type == 'percentage' %}selected{% endif %}>Percentage (%)</option>
+                    <option value="fixed" {% if product.discount_type == 'fixed' %}selected{% endif %}>Fixed Amount (Rs)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Discount Value</label>
+                <input type="number" step="0.01" name="discount_value" value="{{ product.discount_value }}" class="form-control" min="0">
+            </div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-box-seam"></i> Inventory</div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label">Stock</label>
+                <input type="number" name="stock" value="{{ product.stock }}" class="form-control" min="0" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">SKU</label>
+                <input type="text" name="sku" value="{{ product.sku|default:'' }}" class="form-control" placeholder="Supplier SKU">
+            </div>
+            <div class="col-12">
+                <label class="form-label">Stock Change Reason</label>
+                <input type="text" name="stock_reason" class="form-control" placeholder="Optional: why stock is being adjusted">
+            </div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-upc-scan"></i> Tax &amp; Barcode</div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label">Barcode</label>
+                <input type="text" class="form-control" value="{{ product.barcode|default:'Auto-generated' }}" readonly>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Product Code</label>
+                <input type="text" class="form-control" value="{{ product.product_code|default:'Auto-generated' }}" readonly>
+            </div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-image"></i> Media &amp; Settings</div>
+        <div class="row g-2">
+            <div class="col-12">
+                <label class="form-label">Product Image</label>
+                <div class="drop-zone{% if product.image and product.image.url %} has-file{% endif %}" id="productDropZone" role="button" tabindex="0" aria-label="Upload product image. Drag and drop or click to browse.">
+                    <div class="dz-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                    <div class="dz-text">Drag & Drop your product image here<br>or <span>Click to Browse</span></div>
+                    <div class="dz-hint">Supported: JPG, JPEG, PNG, WEBP &middot; Max 5MB</div>
+                    <div class="preview-wrap" id="imagePreviewWrap"{% if not product.image %} style="display:none"{% endif %}>
+                        <img id="imagePreview" src="{% if product.image %}{{ product.image.url }}{% endif %}" alt="Product image preview">
+                        <button type="button" class="btn-remove" id="removeImageBtn" aria-label="Remove image">&times;</button>
+                    </div>
+                </div>
+                <div class="progress-wrap" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+                <div class="upload-error" id="uploadError" role="alert"></div>
+                <div class="upload-success" id="uploadSuccess"><i class="bi bi-check-circle-fill"></i> Image ready</div>
+                <input type="file" id="fileInput" name="image" accept="image/jpeg,image/png,image/webp" style="display:none">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Reward Points</label>
+                <input type="number" name="reward_points" value="{{ product.reward_points|default:0 }}" class="form-control" min="0">
+                <small class="help-text">Points customer earns when delivered</small>
+            </div>
+            <div class="col-md-6">
+                <div class="form-check-wrapper">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="available" {% if product.available %}checked{% endif %} id="availCheck">
+                        <label class="form-check-label" for="availCheck" style="font-weight:500">Available for purchase</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-footer">
+        <a href="{% url 'users:product_list' %}" class="btn btn-secondary-custom"><i class="bi bi-x-lg me-1"></i> Cancel</a>
+        <button type="submit" class="btn btn-warning btn-action"><i class="bi bi-check-lg me-1"></i> Update Product</button>
+    </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+
+(function(){
+    var zone = document.getElementById('productDropZone');
+    var input = document.getElementById('fileInput');
+    var previewWrap = document.getElementById('imagePreviewWrap');
+    var previewImg = document.getElementById('imagePreview');
+    var removeBtn = document.getElementById('removeImageBtn');
+    var progressWrap = document.getElementById('progressWrap');
+    var progressFill = document.getElementById('progressFill');
+    var errorEl = document.getElementById('uploadError');
+    var successEl = document.getElementById('uploadSuccess');
+    var MAX_SIZE = 5 * 1024 * 1024;
+    var ALLOWED = ['image/jpeg','image/png','image/webp'];
+    var existingImage = '{% if product.image %}{{ product.image.url }}{% endif %}';
+
+    function handleFile(file) {
+        if (!file) return;
+        errorEl.classList.remove('active');
+        successEl.classList.remove('active');
+        if (ALLOWED.indexOf(file.type) === -1) {
+            showError('Invalid file type. Supported: JPG, JPEG, PNG, WEBP');
+            return;
+        }
+        if (file.size > MAX_SIZE) {
+            showError('File too large. Maximum size is 5MB');
+            return;
+        }
+        showProgress();
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            zone.classList.add('has-file');
+            simulateProgress(function() {
+                hideProgress();
+                successEl.classList.add('active');
+            });
+        };
+        reader.readAsDataURL(file);
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+    }
+
+    function showError(msg) {
+        errorEl.innerHTML = '<i class="bi bi-exclamation-circle"></i> ' + msg;
+        errorEl.classList.add('active');
+        successEl.classList.remove('active');
+    }
+
+    function showProgress() {
+        progressWrap.classList.add('active');
+        progressFill.style.width = '0%';
+    }
+
+    function hideProgress() {
+        progressWrap.classList.remove('active');
+        progressFill.style.width = '0%';
+    }
+
+    function simulateProgress(cb) {
+        var pct = 0;
+        var interval = setInterval(function() {
+            pct += Math.random() * 28;
+            if (pct > 92) pct = 92;
+            progressFill.style.width = pct + '%';
+            if (pct >= 92) {
+                clearInterval(interval);
+                setTimeout(function() {
+                    progressFill.style.width = '100%';
+                    setTimeout(cb, 250);
+                }, 150);
+            }
+        }, 120);
+    }
+
+    function resetUpload() {
+        input.value = '';
+        zone.classList.remove('has-file');
+        previewImg.src = existingImage || '';
+        errorEl.classList.remove('active');
+        successEl.classList.remove('active');
+        hideProgress();
+        if (existingImage) zone.classList.add('has-file');
+    }
+
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', function(e) { e.preventDefault(); zone.classList.remove('dragover'); });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        handleFile(e.dataTransfer.files[0]);
+    });
+    zone.addEventListener('click', function(e) { if (!e.target.closest('.btn-remove')) input.click(); });
+    zone.addEventListener('keydown', function(e) { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); input.click(); } });
+    input.addEventListener('change', function(e) { handleFile(this.files[0]); });
+    removeBtn.addEventListener('click', function(e) { e.stopPropagation(); resetUpload(); });
+})();
+</script>
+{% endblock %}

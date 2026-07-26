@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Barcode Labels</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#fff;padding:20px;font-family:Arial,sans-serif}
+.label-page{display:flex;flex-wrap:wrap;gap:12px}
+.label{width:220px;height:120px;border:1px solid #ccc;border-radius:6px;padding:8px 10px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;page-break-inside:avoid}
+.single-label{width:300px;height:150px;border:1px solid #ccc;border-radius:8px;padding:12px;text-align:center;margin:20px auto}
+.store-name{font-size:9px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.prod-name{font-size:11px;font-weight:700;margin:2px 0}
+.prod-price{font-size:13px;color:#22c55e;font-weight:700}
+.barcode-wrap{display:flex;justify-content:center;margin:2px 0}
+.barcode-wrap svg{max-width:180px}
+.barcode-number{font-size:9px;font-family:monospace;color:#333;letter-spacing:1px}
+@media print{@page{margin:0}body{padding:10px}.label,.single-label{border:1px solid #999}.no-print{display:none!important}}
+.qty-wrap{display:inline-flex;align-items:center;gap:8px}
+.qty-label{font-size:13px;font-weight:600;color:#334155;white-space:nowrap}
+.qty-btn-sm{width:30px;height:30px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;font-size:16px;font-weight:700;color:#334155;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s ease;user-select:none;line-height:1}
+.qty-btn-sm:hover{background:#e2e8f0;border-color:#cbd5e1}
+.qty-btn-sm:active{transform:scale(0.9)}
+.qty-input-sm{width:50px;height:30px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:14px;font-weight:600;color:#1a1a2e;outline:none;transition:border-color 0.15s ease;padding:0;-moz-appearance:textfield}
+.qty-input-sm::-webkit-inner-spin-button,.qty-input-sm::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.qty-input-sm:focus{border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}
+</style>
+</head>
+<body>
+<div class="no-print" style="margin-bottom:16px">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button onclick="handlePrint()" style="padding:8px 20px;background:#f59e0b;border:none;border-radius:6px;font-weight:600;cursor:pointer">Print Barcode</button>
+        <div class="qty-wrap">
+            <span class="qty-label">Number of Barcode Tags</span>
+            <button class="qty-btn-sm" onclick="adjustQty(-1)" aria-label="Decrease quantity">&minus;</button>
+            <input class="qty-input-sm" id="qtyInput" type="number" value="1" min="1" oninput="validateQty()" onkeydown="if(event.key==='Enter')handlePrint()">
+            <button class="qty-btn-sm" onclick="adjustQty(1)" aria-label="Increase quantity">+</button>
+        </div>
+        <button onclick="window.close()" style="padding:8px 20px;background:#1e293b;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer">Close</button>
+        <span style="color:#666;font-size:13px;margin-left:auto">Page will print without header/footer</span>
+    </div>
+</div>
+
+{% if multiple %}
+<div class="label-page">
+{% for product in products %}
+<div class="label">
+    <div class="store-name">{{ company_name }}</div>
+    <div class="prod-name">{{ product.name }}</div>
+    <div class="prod-price">{{ currency_symbol }}{{ product.price|floatformat:0 }}</div>
+    <div class="barcode-wrap">
+        <svg class="barcode" data-barcode="{{ product.barcode }}"></svg>
+    </div>
+    <div class="barcode-number">{{ product.barcode }}</div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div id="labels-container"></div>
+{% endif %}
+
+<script>
+{% if multiple %}
+document.querySelectorAll('.barcode').forEach(function(el) {
+    try {
+        JsBarcode(el, el.dataset.barcode, {
+            format: "CODE39",
+            width: 1.2,
+            height: 28,
+            displayValue: false,
+            fontSize: 10,
+            margin: 0,
+            background: "#ffffff",
+            lineColor: "#000000",
+        });
+    } catch(e) {
+        el.outerHTML = '<div style="color:red;font-size:10px">Invalid barcode</div>';
+    }
+});
+
+function handlePrint() {
+    window.print();
+}
+{% else %}
+var productInfo = {
+    name: "{{ product.name|escapejs }}",
+    price: "{{ product.price|floatformat:0 }}",
+    barcode: "{{ product.barcode }}"
+};
+
+function doPrint(num) {
+    var container = document.getElementById("labels-container");
+    container.replaceChildren();
+    void container.offsetHeight;
+    for (var i = 0; i < num; i++) {
+        var el = document.createElement("div");
+        el.className = "single-label";
+        el.innerHTML =
+            '<div class="store-name">{{ company_name }}</div>' +
+            '<div class="prod-name">' + productInfo.name + '</div>' +
+            '<div class="prod-price">{{ currency_symbol }}' + productInfo.price + '</div>' +
+            '<div class="barcode-wrap"><svg class="barcode" data-barcode="' + productInfo.barcode + '"></svg></div>' +
+            '<div class="barcode-number">' + productInfo.barcode + '</div>';
+        container.appendChild(el);
+    }
+    container.querySelectorAll('.barcode').forEach(function(el) {
+        try {
+            JsBarcode(el, el.dataset.barcode, {
+                format: "CODE39",
+                width: 1.2,
+                height: 28,
+                displayValue: false,
+                fontSize: 10,
+                margin: 0,
+                background: "#ffffff",
+                lineColor: "#000000",
+            });
+        } catch(e) {
+            el.outerHTML = '<div style="color:red;font-size:10px">Invalid barcode</div>';
+        }
+    });
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            window.print();
+        });
+    });
+}
+
+function handlePrint() {
+    var input = document.getElementById("qtyInput");
+    var val = input.value.trim();
+    var num = parseInt(val, 10);
+    if (isNaN(num) || num <= 0) return;
+    doPrint(num);
+}
+
+function adjustQty(delta) {
+    var input = document.getElementById("qtyInput");
+    var val = parseInt(input.value, 10) || 1;
+    val = Math.max(1, val + delta);
+    input.value = val;
+    validateQty();
+}
+
+function validateQty() {
+    var input = document.getElementById("qtyInput");
+    var val = input.value.trim();
+    var num = Number(val);
+    if (val === "" || !Number.isInteger(num) || num <= 0) {
+        input.style.borderColor = "#ef4444";
+    } else {
+        input.style.borderColor = "#e2e8f0";
+    }
+}
+
+window.onafterprint = function() {
+    var c = document.getElementById("labels-container");
+    if (c) c.replaceChildren();
+};
+{% endif %}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Closing Reconciliation{% endblock %}
+{% block content %}
+<style>.card-dash{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:24px;max-width:600px}</style>
+<div style="max-width:700px;margin:0 auto">
+    <h4 style="color:var(--text-primary);margin:0 0 24px;font-weight:700"><i class="bi bi-clipboard-check" style="color:var(--accent)"></i> Closing Reconciliation</h4>
+    {% if not session %}
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:20px;color:var(--color-warning)">No active session.</div>
+    {% else %}
+    <div class="card-dash">
+        <div style="padding:12px;border-radius:8px;background:rgba(34,197,94,.08);display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">Expected Balance</span><span style="font-weight:700;font-size:18px;color:var(--color-success)">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</span></div>
+        <div style="padding:12px;border-radius:8px;background:rgba(59,130,246,.08);display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:var(--text-muted)">Counted Total</span><span style="font-weight:700;font-size:18px;color:var(--color-info)">{{ currency_symbol }}{{ counted_total|floatformat:2 }}</span></div>
+        <div style="padding:12px;border-radius:8px;background:rgba(245,158,11,.08);display:flex;justify-content:space-between;margin-bottom:16px"><span style="color:var(--text-muted)">Variance</span><span style="font-weight:700;font-size:18px;color:{% if counted_total == session_data.current_balance %}.color-success{% elif counted_total > session_data.current_balance %}.color-success{% else %}.color-danger{% endif %}">
+            {% if counted_total >= session_data.current_balance %}+{% endif %}{{ currency_symbol }}{{ counted_total|add:"-"|add:session_data.current_balance|floatformat:2 }}
+        </span></div>
+        <hr style="border-color:var(--border-card);margin:16px 0">
+        <h5 style="color:var(--text-primary);font-weight:600;margin-bottom:12px">Counted Denominations</h5>
+        {% if denomination_counts %}
+        <div style="font-size:13px">{% for d in denomination_counts %}
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--table-td-border)">
+                <span style="color:var(--text-secondary)">{{ currency_symbol }}{{ d.denomination_value|floatformat:2 }} x {{ d.count }}</span>
+                <span style="font-weight:600">{{ currency_symbol }}{{ d.subtotal|floatformat:2 }}</span>
+            </div>{% endfor %}
+        </div>{% else %}
+        <p style="color:var(--text-muted);text-align:center;padding:20px 0">No denominations counted. <a href="{% url 'cash_handling:denomination_count' %}" style="color:var(--accent)">Count now</a>.</p>
+        {% endif %}
+        <div style="margin-top:20px;display:flex;gap:12px">
+            <a href="{% url 'cash_handling:denomination_count' %}" class="btn" style="flex:1;background:var(--btn-secondary-bg);color:var(--btn-secondary-color);border:1px solid var(--btn-secondary-border);padding:12px;border-radius:8px;font-weight:600;text-decoration:none;text-align:center"><i class="bi bi-calculator"></i> Recount</a>
+            <a href="{% url 'cash_handling:session_close_page' %}" class="btn" style="flex:1;background:var(--color-danger);color:#fff;border:none;padding:12px;border-radius:8px;font-weight:600;text-decoration:none;text-align:center"><i class="bi bi-lock"></i> Close Session</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

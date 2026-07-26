@@ -1,0 +1,119 @@
+{% extends 'admin/base_admin.html' %}
+{% load static format_tags %}
+{% block title %}{{ deal.title }} - Deal Details{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Deal <span>Details</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">{{ deal.title }}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:deal_edit' deal.id %}" class="btn btn-warning fw-bold" style="border-radius:10px;padding:10px 20px"><i class="bi bi-pencil me-1"></i> Edit</a>
+        <a href="{% url 'users:deal_list' %}" class="btn btn-secondary-custom"><i class="bi bi-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="breadcrumb-nav" data-aos="fade-up">
+    <a href="{% url 'users:admin_dashboard' %}">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{% url 'users:deal_list' %}">Deals</a>
+    <span class="sep">/</span>
+    <span>{{ deal.title }}</span>
+</div>
+
+<div class="row g-4" data-aos="fade-up">
+    <div class="col-lg-8">
+        <div class="form-card">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="detail-label">Deal Title</div>
+                    <div class="detail-value">{{ deal.title }}</div>
+                </div>
+                <div class="col-md-6">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">
+                        {% if deal.is_active %}
+                        <span class="status-badge status-active">Active</span>
+                        {% else %}
+                        <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="detail-label">Description</div>
+                    <div class="detail-value">{{ deal.description|default:'No description' }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Combo Price</div>
+                    <div class="detail-value">{% if deal.combo_price %}{% format_currency deal.combo_price %}{% else %}N/A{% endif %}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Discount %</div>
+                    <div class="detail-value">{% if deal.discount_percentage %}{{ deal.discount_percentage }}%{% else %}N/A{% endif %}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Original Total</div>
+                    <div class="detail-value" style="color:#94a3b8;text-decoration:line-through">{% format_currency original_total 0 %}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Savings</div>
+                    <div class="detail-value" style="color:#22c55e">{% if savings > 0 %}{% format_currency savings 0 %}{% else %}N/A{% endif %}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Start Date</div>
+                    <div class="detail-value">{{ deal.start_date|date:"d-m-Y" }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">Start Time</div>
+                    <div class="detail-value">{{ deal.start_time|time:"g:i A" }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">End Date</div>
+                    <div class="detail-value">{{ deal.end_date|date:"d-m-Y" }}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="detail-label">End Time</div>
+                    <div class="detail-value">{{ deal.end_time|time:"g:i A" }}</div>
+                </div>
+                <div class="col-12">
+                    <div class="detail-label">Products Included</div>
+                    <div class="detail-value">
+                        <ul style="padding-left:20px;margin:0">
+                            {% for p in deal_products %}
+                            <li>{{ p.name }} - <span style="color:#94a3b8">{% format_currency p.price %}</span></li>
+                            {% empty %}
+                            <li style="color:#64748b">No products selected</li>
+                            {% endfor %}
+                            {% if deal.free_product %}
+                            <li style="color:#22c55e">{{ deal.free_product.name }} <span class="badge bg-success">FREE</span> - <span style="color:#94a3b8">{% format_currency deal.free_product.price %}</span></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="detail-label">Created</div>
+                    <div class="detail-value">{{ deal.created_at|date:"d-m-Y g:i A" }}</div>
+                </div>
+                <div class="col-12">
+                    <div class="detail-label">Last Updated</div>
+                    <div class="detail-value">{{ deal.updated_at|date:"d-m-Y g:i A" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        {% if deal.deal_image %}
+        <div class="form-card">
+            <div class="detail-label mb-2">Deal Image</div>
+            <img src="{{ deal.deal_image.url }}" class="img-fluid" style="border-radius:12px">
+        </div>
+        {% endif %}
+        {% if deal.deal_banner %}
+        <div class="form-card">
+            <div class="detail-label mb-2">Deal Banner</div>
+            <img src="{{ deal.deal_banner.url }}" class="img-fluid" style="border-radius:12px">
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

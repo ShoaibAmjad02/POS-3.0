@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Denomination Count{% endblock %}
+{% block content %}
+<style>.form-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:24px;max-width:600px}.den-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;padding:8px 12px;background:var(--bg-input);border-radius:8px}</style>
+<div style="max-width:700px;margin:0 auto">
+    <h4 style="color:var(--text-primary);margin:0 0 24px;font-weight:700"><i class="bi bi-calculator" style="color:var(--accent)"></i> Denomination Count</h4>
+    {% if not session %}
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:20px;color:var(--color-warning)">No active session.</div>
+    {% else %}
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Session #{{ session.id }} | Expected: <strong style="color:var(--accent)">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</strong></div>
+    <div class="form-card">
+        <div id="denominations">
+            {% for val in "1000 500 200 100 50 20 10 5 2 1 0.50 0.25"|split:" " %}
+            {% with count=existing_counts|get_count:val %}
+            <div class="den-row">
+                <span style="font-weight:600;min-width:80px;color:var(--text-primary)">{{ currency_symbol }}{{ val }}</span>
+                <span style="color:var(--text-muted)">&times;</span>
+                <input type="number" class="den-count" data-value="{{ val }}" min="0" value="{{ count }}" style="width:80px;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:6px;padding:6px 10px;font-size:14px;font-weight:600;text-align:center">
+                <span style="color:var(--text-muted)">=</span>
+                <span class="den-subtotal" style="font-weight:600;min-width:100px;color:var(--color-success)">{{ currency_symbol }}0.00</span>
+            </div>
+            {% endwith %}{% endfor %}
+        </div>
+        <hr style="border-color:var(--border-card);margin:16px 0">
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--text-primary)">
+            <span>Total Counted</span>
+            <span id="totalCounted">{{ currency_symbol }}0.00</span>
+        </div>
+        <button class="btn" style="width:100%;margin-top:20px;background:var(--color-info);color:#fff;border:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer" onclick="saveCounts()"><i class="bi bi-save"></i> Save Counts</button>
+    </div>
+    <div style="margin-top:16px;text-align:center">
+        <a href="{% url 'cash_handling:closing_reconciliation' %}" style="color:var(--accent);font-size:13px;font-weight:600">Proceed to Reconciliation</a>
+    </div>
+    {% endif %}
+</div>
+<script>
+function getCSRFToken(){return '{{ csrf_token }}'}
+function recalc(){
+    var total=0;
+    document.querySelectorAll('.den-row').forEach(function(row){
+        var count=parseInt(row.querySelector('.den-count').value)||0;
+        var val=parseFloat(row.querySelector('.den-count').dataset.value);
+        var st=count*val;
+        row.querySelector('.den-subtotal').textContent='{{ currency_symbol }}'+st.toFixed(2);
+        total+=st;
+    });
+    document.getElementById('totalCounted').textContent='{{ currency_symbol }}'+total.toFixed(2);
+}
+document.querySelectorAll('.den-count').forEach(function(el){el.addEventListener('input',recalc);});
+recalc();
+function saveCounts(){
+    var denoms=[];
+    document.querySelectorAll('.den-row').forEach(function(row){
+        var count=parseInt(row.querySelector('.den-count').value)||0;
+        if(count>0){
+            denoms.push({value:parseFloat(row.querySelector('.den-count').dataset.value),count:count});
+        }
+    });
+    fetch('{% url "cash_handling:denomination_count_save" %}',{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({denominations:denoms})
+    }).then(r=>r.json()).then(function(d){
+        if(d.success){alert('Denominations saved! Counted: {{ currency_symbol }}'+d.total_counted.toFixed(2));window.location.href='{% url "cash_handling:closing_reconciliation" %}';}
+        else{alert(d.error||'Error');}
+    }).catch(function(e){alert('Error:'+e.message);});
+}
+</script>
+{% endblock %}

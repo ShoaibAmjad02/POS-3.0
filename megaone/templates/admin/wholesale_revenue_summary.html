@@ -1,0 +1,74 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}Wholesale Revenue Summary - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.stat-card{border:none;border-radius:16px;padding:24px;transition:.3s;position:relative;overflow:hidden;height:100%}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,.3)}
+.stat-card .stat-icon{font-size:38px;opacity:.2;position:absolute;right:15px;bottom:10px}
+.stat-card .stat-value{font-size:28px;font-weight:700;margin:8px 0 4px}
+.stat-card .stat-label{font-size:13px;opacity:.85;font-weight:500}
+.gradient-ws-revenue{background:linear-gradient(135deg,#059669,#10b981)}
+.gradient-ws-monthly{background:linear-gradient(135deg,#3b82f6,#6366f1)}
+.gradient-ws-yearly{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.gradient-ws-total{background:linear-gradient(135deg,#8b5cf6,#a855f7)}
+.gradient-ws-invoices{background:linear-gradient(135deg,#14b8a6,#06b6d4)}
+.gradient-ws-customers{background:linear-gradient(135deg,#ec4899,#f43f5e)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Wholesale <span>Revenue Summary</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Overview of wholesale revenue and performance</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-revenue">
+            <div class="stat-value">{% format_currency today_revenue 0 %}</div>
+            <div class="stat-label">Today's Revenue</div>
+            <i class="bi bi-cash-stack stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-monthly">
+            <div class="stat-value">{% format_currency monthly_revenue 0 %}</div>
+            <div class="stat-label">Monthly Revenue</div>
+            <i class="bi bi-calendar-month stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-yearly">
+            <div class="stat-value">{% format_currency yearly_revenue 0 %}</div>
+            <div class="stat-label">Yearly Revenue</div>
+            <i class="bi bi-calendar-year stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-total">
+            <div class="stat-value">{% format_currency total_revenue 0 %}</div>
+            <div class="stat-label">Total Wholesale Revenue</div>
+            <i class="bi bi-graph-up-arrow stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-invoices">
+            <div class="stat-value">{{ invoice_count }}</div>
+            <div class="stat-label">Total Wholesale Invoices</div>
+            <i class="bi bi-receipt stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-4 col-md-6">
+        <div class="stat-card gradient-ws-customers">
+            <div class="stat-value">{{ active_customer_count }} / {{ customer_count }}</div>
+            <div class="stat-label">Active / Total Customers</div>
+            <i class="bi bi-people stat-icon"></i>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

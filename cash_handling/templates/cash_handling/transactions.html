@@ -1,0 +1,299 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Cash Transactions{% endblock %}
+{% block content %}
+<style>
+    .ch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+    .ch-stat{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px}
+    .ch-stat .label{font-size:12px;text-transform:uppercase;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px}
+    .ch-stat .value{font-size:24px;font-weight:700;color:var(--text-primary)}
+    .ch-stat .value.positive{color:var(--color-success)}
+    .ch-stat .value.negative{color:var(--color-danger)}
+    .ch-stat .value.warning{color:var(--color-warning)}
+    .ch-section{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px;margin-bottom:24px}
+    .ch-section h5{color:var(--text-primary);margin-bottom:16px;font-size:15px;font-weight:600}
+    .ch-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+    .ch-actions .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid transparent;transition:.2s;cursor:pointer}
+    .badge-open{background:rgba(34,197,94,.15);color:var(--color-success);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+    .badge-closed{background:rgba(100,116,139,.15);color:var(--text-muted);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h4 style="color:var(--text-primary);margin:0;font-weight:700"><i class="bi bi-cash-stack"></i> Cash Drawer</h4>
+    {% if sessions %}
+    <select id="sessionSelect" class="form-select" style="width:auto;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:8px 16px;font-size:13px" onchange="location.href='?session_id='+this.value">
+        {% for s in sessions %}
+        <option value="{{ s.id }}" {% if selected_session and selected_session.id == s.id %}selected{% endif %}>
+            Session #{{ s.id }}{% if can_view_all %} - {{ s.user.email }}{% endif %} - {{ s.opened_at|date:"Y-m-d H:i" }} ({{ s.status }})
+        </option>
+        {% endfor %}
+    </select>
+    {% endif %}
+</div>
+
+{% if selected_session %}
+<div class="ch-grid">
+    <div class="ch-stat">
+        <div class="label">Status</div>
+        <div><span class="{% if selected_session.status == 'open' %}badge-open{% else %}badge-closed{% endif %}">{{ selected_session.status|title }}</span></div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Opening Balance</div>
+        <div class="value">{{ currency_symbol }}{{ session_data.opening_balance|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Current Balance</div>
+        <div class="value {% if session_data.current_balance >= 0 %}positive{% else %}negative{% endif %}">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</div>
+    </div>
+    {% if selected_session.status == 'closed' %}
+    <div class="ch-stat">
+        <div class="label">Expected Closing</div>
+        <div class="value">{{ currency_symbol }}{{ session_data.expected_closing|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Actual Closing</div>
+        <div class="value">{{ currency_symbol }}{{ session_data.closing_balance|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Variance</div>
+        <div class="value {% if session_data.closing_balance >= session_data.expected_closing %}positive{% else %}negative{% endif %}">
+            {{ currency_symbol }}{{ session_data.closing_balance|add:"-"|add:session_data.expected_closing|floatformat:2 }}
+        </div>
+    </div>
+    {% endif %}
+    <div class="ch-stat">
+        <div class="label">Cash Sales</div>
+        <div class="value positive">{{ currency_symbol }}{{ session_data.cash_sales|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Refunds</div>
+        <div class="value negative">{{ currency_symbol }}{{ session_data.cash_refunds|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Drops</div>
+        <div class="value warning">{{ currency_symbol }}{{ session_data.cash_drops|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Cash In</div>
+        <div class="value positive">{{ currency_symbol }}{{ session_data.cash_in|floatformat:2 }}</div>
+    </div>
+    <div class="ch-stat">
+        <div class="label">Cash Out</div>
+        <div class="value negative">{{ currency_symbol }}{{ session_data.cash_out|floatformat:2 }}</div>
+    </div>
+</div>
+
+{% if selected_session.status == 'open' %}
+<div class="ch-actions">
+    <button class="btn" style="background:var(--color-success);color:#fff;border-color:var(--color-success)" onclick="showCashInModal()">
+        <i class="bi bi-plus-circle"></i> Cash In
+    </button>
+    <button class="btn" style="background:var(--color-danger);color:#fff;border-color:var(--color-danger)" onclick="showCashOutModal()">
+        <i class="bi bi-dash-circle"></i> Cash Out
+    </button>
+    <button class="btn" style="background:var(--color-warning);color:#1e293b;border-color:var(--color-warning)" onclick="showDropModal()">
+        <i class="bi bi-safe"></i> Cash Drop
+    </button>
+    <button class="btn" style="background:var(--color-info);color:#fff;border-color:var(--color-info)" onclick="showCloseModal()">
+        <i class="bi bi-lock"></i> Close Session
+    </button>
+</div>
+{% endif %}
+
+<div class="ch-section">
+    <h5><i class="bi bi-list-ul"></i> Transaction History</h5>
+    {% if transactions %}
+    <div class="table-responsive">
+        <table class="table" style="color:var(--text-primary);font-size:13px;margin:0">
+            <thead>
+                <tr style="border-bottom:1px solid var(--table-header-border)">
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Time</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Type</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Amount</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Before</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">After</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Reference</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr style="border-bottom:1px solid var(--table-td-border)">
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ txn.created_at|date:"Y-m-d H:i" }}</td>
+                    <td style="padding:10px 12px">
+                        <span style="padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;
+                        {% if txn.transaction_type == 'sale' or txn.transaction_type == 'cash_in' or txn.transaction_type == 'opening_balance' %}background:rgba(34,197,94,.15);color:var(--color-success)
+                        {% elif txn.transaction_type == 'refund' or txn.transaction_type == 'cash_out' %}background:rgba(239,68,68,.15);color:var(--color-danger)
+                        {% elif txn.transaction_type == 'drop' %}background:rgba(245,158,11,.15);color:var(--color-warning)
+                        {% else %}background:rgba(100,116,139,.15);color:var(--text-muted){% endif %}">
+                            {{ txn.get_transaction_type_display }}
+                        </span>
+                    </td>
+                    <td style="padding:10px 12px;font-weight:600;{% if txn.amount >= 0 %}color:var(--color-success){% else %}color:var(--color-danger){% endif %}">
+                        {{ currency_symbol }}{{ txn.amount|floatformat:2 }}
+                    </td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ txn.balance_before|floatformat:2 }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ txn.balance_after|floatformat:2 }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ txn.reference_number|default:"-" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ txn.notes|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);text-align:center;padding:40px 0;margin:0">No transactions found for this session.</p>
+    {% endif %}
+</div>
+{% else %}
+<div style="background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:60px 20px;text-align:center;color:var(--text-muted)">
+    <i class="bi bi-cash-stack" style="font-size:48px;display:block;margin-bottom:16px;opacity:.3"></i>
+    <h5 style="color:var(--text-secondary);margin-bottom:8px">No Session Selected</h5>
+    <p style="font-size:13px;margin:0">Select a session from the dropdown to view its transactions.</p>
+</div>
+{% endif %}
+
+<!-- Cash In Modal -->
+<div id="cashInModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;padding:24px;width:400px;max-width:90%">
+        <h5 style="color:var(--text-primary);margin:0 0 16px;font-weight:700"><i class="bi bi-plus-circle" style="color:var(--color-success)"></i> Cash In</h5>
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Amount</label>
+            <input type="number" id="cashInAmount" class="form-control" step="0.01" min="0.01" placeholder="Enter amount" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Reason</label>
+            <input type="text" id="cashInReason" class="form-control" placeholder="e.g. Additional cash" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button class="btn" style="background:var(--btn-secondary-bg);color:var(--btn-secondary-color);border:1px solid var(--btn-secondary-border);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="document.getElementById('cashInModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background:var(--color-success);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="submitCashIn()">Add Cash</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cash Out Modal -->
+<div id="cashOutModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;padding:24px;width:400px;max-width:90%">
+        <h5 style="color:var(--text-primary);margin:0 0 16px;font-weight:700"><i class="bi bi-dash-circle" style="color:var(--color-danger)"></i> Cash Out</h5>
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Amount</label>
+            <input type="number" id="cashOutAmount" class="form-control" step="0.01" min="0.01" placeholder="Enter amount" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Reason</label>
+            <input type="text" id="cashOutReason" class="form-control" placeholder="e.g. Petty cash" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button class="btn" style="background:var(--btn-secondary-bg);color:var(--btn-secondary-color);border:1px solid var(--btn-secondary-border);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="document.getElementById('cashOutModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background:var(--color-danger);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="submitCashOut()">Remove Cash</button>
+        </div>
+    </div>
+</div>
+
+<!-- Drop Modal -->
+<div id="dropModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;padding:24px;width:400px;max-width:90%">
+        <h5 style="color:var(--text-primary);margin:0 0 16px;font-weight:700"><i class="bi bi-safe" style="color:var(--color-warning)"></i> Cash Drop</h5>
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Amount</label>
+            <input type="number" id="dropAmount" class="form-control" step="0.01" min="0.01" placeholder="Enter amount" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Reason</label>
+            <input type="text" id="dropReason" class="form-control" placeholder="e.g. Bank deposit" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button class="btn" style="background:var(--btn-secondary-bg);color:var(--btn-secondary-color);border:1px solid var(--btn-secondary-border);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="document.getElementById('dropModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background:var(--color-warning);color:#1e293b;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="submitDrop()">Record Drop</button>
+        </div>
+    </div>
+</div>
+
+<!-- Close Session Modal -->
+<div id="closeModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;padding:24px;width:400px;max-width:90%">
+        <h5 style="color:var(--text-primary);margin:0 0 16px;font-weight:700"><i class="bi bi-lock" style="color:var(--color-info)"></i> Close Session</h5>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Current balance: <strong style="color:var(--color-success)">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</strong></p>
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Actual Cash Count</label>
+            <input type="number" id="closeBalance" class="form-control" step="0.01" min="0" value="{{ session_data.current_balance }}" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Notes</label>
+            <textarea id="closeNotes" class="form-control" rows="2" placeholder="Optional notes" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px;resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+            <button class="btn" style="background:var(--btn-secondary-bg);color:var(--btn-secondary-color);border:1px solid var(--btn-secondary-border);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="document.getElementById('closeModal').style.display='none'">Cancel</button>
+            <button class="btn" style="background:var(--color-info);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" onclick="submitClose()">Close Session</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %}
+{{ block.super }}
+<script>
+function getCSRFToken() { return '{{ csrf_token }}'; }
+
+function submitCashIn() {
+    var amount = document.getElementById('cashInAmount').value;
+    var reason = document.getElementById('cashInReason').value;
+    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount'); return; }
+    fetch('{% url "cash_handling:cash_in" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({amount: amount, reason: reason})
+    }).then(r => r.json()).then(d => {
+        if (d.success) { location.reload(); }
+        else { alert(d.error || 'Error processing request'); }
+    }).catch(e => alert('Error: ' + e.message));
+}
+
+function submitCashOut() {
+    var amount = document.getElementById('cashOutAmount').value;
+    var reason = document.getElementById('cashOutReason').value;
+    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount'); return; }
+    fetch('{% url "cash_handling:cash_out" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({amount: amount, reason: reason})
+    }).then(r => r.json()).then(d => {
+        if (d.success) { location.reload(); }
+        else { alert(d.error || 'Error processing request'); }
+    }).catch(e => alert('Error: ' + e.message));
+}
+
+function submitDrop() {
+    var amount = document.getElementById('dropAmount').value;
+    var reason = document.getElementById('dropReason').value;
+    if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount'); return; }
+    fetch('{% url "cash_handling:cash_drop" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({amount: amount, reason: reason})
+    }).then(r => r.json()).then(d => {
+        if (d.success) { location.reload(); }
+        else { alert(d.error || 'Error processing request'); }
+    }).catch(e => alert('Error: ' + e.message));
+}
+
+function submitClose() {
+    var balance = document.getElementById('closeBalance').value;
+    var notes = document.getElementById('closeNotes').value;
+    fetch('{% url "cash_handling:session_close" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
+        body: JSON.stringify({closing_balance: balance, notes: notes})
+    }).then(r => r.json()).then(d => {
+        if (d.success) { location.reload(); }
+        else { alert(d.error || 'Error processing request'); }
+    }).catch(e => alert('Error: ' + e.message));
+}
+
+function showCashInModal() { document.getElementById('cashInModal').style.display = 'flex'; }
+function showCashOutModal() { document.getElementById('cashOutModal').style.display = 'flex'; }
+function showDropModal() { document.getElementById('dropModal').style.display = 'flex'; }
+function showCloseModal() { document.getElementById('closeModal').style.display = 'flex'; }
+</script>
+{% endblock %}

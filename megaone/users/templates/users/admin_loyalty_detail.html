@@ -1,0 +1,84 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Loyalty Card Detail - Admin{% endblock %}
+{% block extra_css %}
+<style>
+.card{background:#1e293b;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:24px;margin-bottom:20px}
+.stat-box{text-align:center;padding:20px;border-radius:12px;background:rgba(255,255,255,.03)}
+.stat-number{font-size:32px;font-weight:700}
+.table{color:#e2e8f0;font-size:14px}
+.table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-weight:600;border-bottom:1px solid rgba(255,255,255,.08)}
+.table td{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04)}
+</style>
+{% endblock %}
+{% block content %}
+<nav style="--bs-breadcrumb-divider:'>';margin-bottom:20px">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'users:admin_loyalty_list' %}" style="color:#94a3b8;text-decoration:none">Loyalty Cards</a></li>
+        <li class="breadcrumb-item active" style="color:#f59e0b">{{ card.card_number }}</li>
+    </ol>
+</nav>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-box"><div class="stat-number" style="color:#3b82f6">{{ card.total_points }}</div><div style="color:#94a3b8;font-size:13px">Total Points</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box"><div class="stat-number" style="color:#ef4444">{{ card.used_points }}</div><div style="color:#94a3b8;font-size:13px">Used Points</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box"><div class="stat-number" style="color:#22c55e">{{ card.remaining_points }}</div><div style="color:#94a3b8;font-size:13px">Remaining Points</div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-box"><div class="stat-number" style="color:#f59e0b">{{ card.get_status_display }}</div><div style="color:#94a3b8;font-size:13px">Status</div></div>
+    </div>
+</div>
+
+<div class="card">
+    <h6 style="color:#f59e0b;font-weight:600;margin-bottom:15px"><i class="bi bi-person me-2"></i>Customer</h6>
+    <p style="margin:0;color:#e2e8f0"><strong>Name:</strong> {{ card.user.name|default:"N/A" }}</p>
+    <p style="margin:0;color:#e2e8f0"><strong>Phone:</strong> {{ card.user.phone|default:"N/A" }}</p>
+    <p style="margin:0;color:#e2e8f0"><strong>Card #:</strong> {{ card.card_number }}</p>
+    <p style="margin:0;color:#e2e8f0"><strong>Created:</strong> {{ card.created_at|date:"d-m-Y h:i A" }}</p>
+    <div class="mt-3 d-flex gap-2">
+        <form method="POST" action="{% url 'users:admin_toggle_card_status' card.card_number %}">
+            {% csrf_token %}
+            {% if card.status == 'ACTIVE' %}
+            <button type="submit" class="btn btn-outline-danger btn-sm" style="border-radius:10px" onclick="return confirm('Block this card?')"><i class="bi bi-lock me-1"></i>Block Card</button>
+            {% else %}
+            <button type="submit" class="btn btn-outline-success btn-sm" style="border-radius:10px" onclick="return confirm('Activate this card?')"><i class="bi bi-unlock me-1"></i>Activate Card</button>
+            {% endif %}
+        </form>
+        <form method="POST" action="{% url 'users:admin_reset_points' card.card_number %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning btn-sm" style="border-radius:10px" onclick="return confirm('Reset all points and transactions? This cannot be undone.')"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Points</button>
+        </form>
+        <a href="{% url 'users:download_loyalty_pdf' card.card_number %}" class="btn btn-outline-info btn-sm" style="border-radius:10px" target="_blank"><i class="bi bi-filetype-pdf me-1"></i>Download PDF</a>
+    </div>
+</div>
+
+<div class="card">
+    <h6 style="color:#f59e0b;font-weight:600;margin-bottom:15px"><i class="bi bi-clock-history me-2"></i>Transactions</h6>
+    {% if transactions %}
+    <div class="table-responsive">
+        <table class="table mb-0">
+            <thead><tr><th>Order</th><th>Type</th><th>Earned</th><th>Redeemed</th><th>Balance</th><th>Date</th></tr></thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr>
+                    <td>{{ t.order_number|default:"-" }}</td>
+                    <td>{% if t.transaction_type == 'EARN' %}<span style="color:#22c55e">Earn</span>{% else %}<span style="color:#ef4444">Redeem</span>{% endif %}</td>
+                    <td>{% if t.earned_points > 0 %}<span style="color:#22c55e">+{{ t.earned_points }}</span>{% else %}-{% endif %}</td>
+                    <td>{% if t.redeemed_points > 0 %}<span style="color:#ef4444">-{{ t.redeemed_points }}</span>{% else %}-{% endif %}</td>
+                    <td>{{ t.remaining_balance }}</td>
+                    <td style="color:#64748b;font-size:13px">{{ t.created_at|date:"d-m-Y h:i A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:#64748b;margin:0">No transactions</p>
+    {% endif %}
+</div>
+{% endblock %}

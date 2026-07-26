@@ -1,0 +1,73 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}Wholesale Customer Report - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden;margin-bottom:24px}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Wholesale <span>Customer Report</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Customer purchase analysis</p>
+    </div>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="card-header">
+        <h5><i class="bi bi-people me-2 text-success"></i>Customer Purchase Summary</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="customerReportTable">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Phone</th>
+                    <th>Invoices</th>
+                    <th>Total Purchases</th>
+                    <th>Balance</th>
+                    <th>Credit Limit</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in customer_data %}
+                <tr>
+                    <td class="fw-semibold">{{ d.customer.company_name }}</td>
+                    <td>{{ d.customer.contact_person }}</td>
+                    <td>{{ d.customer.phone|default:"-" }}</td>
+                    <td><span class="badge bg-info text-dark">{{ d.invoice_count }}</span></td>
+                    <td class="fw-bold" style="color:#10b981">{% format_currency d.total_purchases 0 %}</td>
+                    <td style="color:#f59e0b">{% format_currency d.customer.balance 0 %}</td>
+                    <td>{% format_currency d.customer.credit_limit 0 %}</td>
+                    <td>
+                        {% if d.customer.is_active %}
+                        <span class="badge bg-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No customers found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+$('#customerReportTable').DataTable({
+    pageLength:10,
+    language:{search:'',searchPlaceholder:'Search...',emptyTable:'No data'},
+    dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+});
+</script>
+{% endblock %}

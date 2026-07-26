@@ -1,0 +1,99 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}{% if offer %}Edit Offer{% else %}Add Offer{% endif %} - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>{% if offer %}Edit <span>Offer</span>{% else %}Add <span>Offer</span>{% endif %}</h2>
+        <p style="color:#64748b;margin:0;font-size:14px">{% if offer %}Update the time-based offer details.{% else %}Create a new time-based discount offer.{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:offer_list' %}" class="btn btn-secondary-custom"><i class="bi bi-arrow-left me-1"></i> Back to Offers</a>
+    </div>
+</div>
+
+<div class="breadcrumb-nav" data-aos="fade-up">
+    <a href="{% url 'users:admin_dashboard' %}">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{% url 'users:offer_list' %}">Offers</a>
+    <span class="sep">/</span>
+    <span>{% if offer %}Edit{% else %}Add{% endif %}</span>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-custom d-flex align-items-center gap-2 mb-4" data-aos="fade-up">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle text-success{% else %}exclamation-circle text-warning{% endif %}"></i>
+    <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="form-card" data-aos="fade-up">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row g-4">
+            <div class="col-12">
+                <label>Offer Title</label>
+                <input type="text" name="title" class="form-control" value="{{ offer.title|default:'' }}" required placeholder="e.g. Weekend Special">
+            </div>
+            <div class="col-12">
+                <label>Offer Description</label>
+                <textarea name="description" class="form-control" placeholder="Describe the offer...">{{ offer.description|default:'' }}</textarea>
+            </div>
+            <div class="col-md-4">
+                <label>Discount Percentage (%)</label>
+                <input type="number" name="discount_percentage" class="form-control" value="{{ offer.discount_percentage|default:0 }}" min="0" max="100" step="0.01" required>
+            </div>
+            <div class="col-md-4">
+                <label>Background Color</label>
+                <input type="color" name="background_color" class="form-control form-control-color" value="{{ offer.background_color|default:'#f59e0b' }}" style="height:46px;padding:4px">
+            </div>
+            <div class="col-md-4">
+                <label>Active Status</label>
+                <select name="is_active" class="form-select">
+                    <option value="1" {% if offer.is_active %}selected{% endif %}>Active</option>
+                    <option value="0" {% if not offer.is_active %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label>Banner Image</label>
+                <input type="file" name="banner_image" class="form-control" accept="image/*">
+                {% if offer.banner_image %}
+                <div class="mt-2"><img src="{{ offer.banner_image.url }}" style="max-height:80px;border-radius:8px"></div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <label>Popup Image (Optional)</label>
+                <input type="file" name="popup_image" class="form-control" accept="image/*">
+                {% if offer.popup_image %}
+                <div class="mt-2"><img src="{{ offer.popup_image.url }}" style="max-height:80px;border-radius:8px"></div>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <label>Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ offer.start_date|date:'Y-m-d'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>Start Time</label>
+                <input type="time" name="start_time" class="form-control" value="{{ offer.start_time|time:'H:i'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ offer.end_date|date:'Y-m-d'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>End Time</label>
+                <input type="time" name="end_time" class="form-control" value="{{ offer.end_time|time:'H:i'|default:'' }}" required>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-warning-custom">
+                <i class="bi bi-{% if offer %}check-lg{% else %}plus-lg{% endif %} me-1"></i>
+                {% if offer %}Update Offer{% else %}Save Offer{% endif %}
+            </button>
+            <a href="{% url 'users:offer_list' %}" class="btn btn-secondary-custom">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

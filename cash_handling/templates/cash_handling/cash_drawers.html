@@ -1,0 +1,76 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Cash Drawers{% endblock %}
+{% block content %}
+<style>
+.card-dash{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px}
+.badge-open{background:rgba(34,197,94,.15);color:var(--color-success);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-closed{background:rgba(100,116,139,.15);color:var(--text-muted);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+</style>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h4 style="color:var(--text-primary);margin:0;font-weight:700"><i class="bi bi-cash me-2"></i>Cash Drawers</h4>
+    <a href="{% url 'cash_handling:session_open_page' %}" class="btn" style="background:var(--color-success);color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;text-decoration:none"><i class="bi bi-plus-circle"></i> Open New</a>
+</div>
+<div class="card-dash">
+    <div class="table-responsive">
+        <table class="table" style="color:var(--text-primary);font-size:13px;margin:0">
+            <thead><tr style="border-bottom:1px solid var(--table-header-border)">
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Session</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">User</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Status</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Opened</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Opening</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Closed</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Closed By</th>
+                <th style="padding:10px 12px;color:var(--table-header-color);font-size:11px;font-weight:600;text-transform:uppercase">Actions</th>
+            </tr></thead>
+            <tbody>{% for s in sessions %}
+                <tr style="border-bottom:1px solid var(--table-td-border)">
+                    <td style="padding:10px 12px;font-weight:600">#{{ s.id }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ s.user.email }}</td>
+                    <td style="padding:10px 12px"><span class="{% if s.status == 'open' %}badge-open{% else %}badge-closed{% endif %}">{{ s.status|title }}</span></td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ s.opened_at|date:"Y-m-d H:i" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ s.opening_balance|floatformat:2 }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ s.closed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ s.closed_by.email|default:"-" }}</td>
+                    <td style="padding:10px 12px">
+                        <a href="{% url 'cash_handling:transaction_list' %}?session_id={{ s.id }}" style="color:var(--accent);text-decoration:none;font-size:12px;font-weight:600">View</a>
+                        {% if s.status == 'open' and can_force_close %}
+                        <a href="#" onclick="forceCloseSession({{ s.id }})" style="color:var(--color-danger);text-decoration:none;font-size:12px;font-weight:600;margin-left:8px">Force Close</a>
+                        {% endif %}
+                        {% if s.status == 'closed' and can_reopen %}
+                        <a href="#" onclick="reopenSession({{ s.id }})" style="color:var(--color-warning);text-decoration:none;font-size:12px;font-weight:600;margin-left:8px">Reopen</a>
+                        {% endif %}
+                    </td>
+                </tr>{% empty %}
+                <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--text-muted)">No drawers found</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+function getCSRFToken(){return '{{ csrf_token }}';}
+function forceCloseSession(id){
+    if(!confirm('Force close session #'+id+'? This action will be logged.')) return;
+    fetch('/cash/session/'+id+'/force-close/',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({notes:'Force closed by admin'})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){alert(d.message);location.reload();}
+        else{alert(d.error||'Error');}
+    }).catch(function(e){alert('Error: '+e.message);});
+}
+function reopenSession(id){
+    if(!confirm('Reopen session #'+id+'? This action will be logged.')) return;
+    fetch('/cash/session/'+id+'/reopen/',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({notes:'Reopened by admin'})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){alert(d.message);location.reload();}
+        else{alert(d.error||'Error');}
+    }).catch(function(e){alert('Error: '+e.message);});
+}
+</script>
+{% endblock %}

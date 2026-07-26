@@ -1,0 +1,811 @@
+{% extends 'base.html' %}
+{% load static i18n format_tags %}
+
+{% block html_attributes %}{% endblock html_attributes %}
+
+{% block title %}Our Menu{% endblock title %}
+
+{% block css %}
+<link href="{% static '/vendor/css/bundle.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/line-awesome.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/revolution-settings.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/jquery.fancybox.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/owl.carousel.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/cubeportfolio.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/LineIcons.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick-theme.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/wow.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/swiper.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/nouislider.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/range-slider.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/style.css' %}" rel="stylesheet">
+<style>
+.food-list{position:relative;min-height:90px;padding-bottom:60px;}
+.add-to-cart-btn{position:absolute;bottom:30px;right:195px;background:#28a745;color:#fff;border:none;padding:8px 18px;border-radius:25px;font-size:14px;cursor:pointer;transition:.3s;z-index:99;}
+.add-to-cart-btn:hover{background:#218838;}
+.minicart-content{max-height:350px;overflow-y:auto;}
+.order-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;}
+.order-box{width:350px;background:#fff;padding:20px;margin:10% auto;border-radius:10px;}
+.header-orders{position:relative;list-style:none;margin-right:15px;}
+.header-orders > a{color:#fff;font-size:30px;display:block;padding:10px;transition:.3s;}
+.header-orders > a:hover{color:#ffcc00;transform:scale(1.08);}
+.orders-dropdown{position:absolute;top:100%;right:50%;transform:translateX(50%);margin-top:8px;width:360px;background:#111;border:1px solid #ff7b00;border-radius:15px;display:none;max-height:420px;overflow-y:auto;z-index:9999;box-shadow:0 0 15px rgba(255,133,20,.66),0 0 35px rgba(255,204,0,.15);animation:fadeIn .3s ease;}
+.header-orders:hover .orders-dropdown{display:block;}
+.orders-dropdown::-webkit-scrollbar{width:6px;}
+.orders-dropdown::-webkit-scrollbar-thumb{background:#ff7b00;border-radius:20px;}
+.order-item{padding:15px;border-bottom:1px solid rgba(255,255,255,.08);transition:.3s;}
+.order-item:hover{background:#1c1c1c;padding-left:20px;}
+.order-item:last-child{border-bottom:none;}
+.order-no{color:#fff;font-size:15px;font-weight:700;}
+.order-date{color:#aaa;font-size:16px;margin-top:5px;}
+.dropdown-title{padding:15px;color:#ff7b00;font-size:18px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);text-align:center;letter-spacing:1px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.table-badge{background:#ff7b00;color:#fff;padding:10px 25px;border-radius:50px;font-size:18px;font-weight:700;display:inline-block;margin-bottom:20px;}
+.food-list.highlight{animation:highlightPulse 2s ease;border-left:4px solid #f59e0b;padding-left:15px}
+@keyframes highlightPulse{0%{background:rgba(245,158,11,.15)}50%{background:rgba(245,158,11,.08)}100%{background:transparent}}
+</style>
+{% endblock css %}
+
+{% block body_attributes %}data-spy="scroll" data-target=".navbar" data-offset="90"{% endblock body_attributes %}
+
+{% block content %}
+
+<div class="preloader">
+    <div class="center">
+        <div class="spinner">
+            <div class="blob top"></div>
+            <div class="blob bottom"></div>
+            <div class="blob left"></div>
+            <div class="blob move-blob"></div>
+        </div>
+    </div>
+</div>
+
+<header id="home" class="cursor-light">
+    <div class="inner-header nav-icon">
+        <div class="main-navigation">
+            <div class="container">
+                <div class="row">
+                    <div class="col-6 col-lg-3">
+                        <a class="navbar-brand link" href="/">
+                            <img src="{% static 'food-delivery/img/logo.png' %}" alt="logo">
+                        </a>
+                    </div>
+                    <div class="col-lg-6 simple-navbar d-none d-lg-flex align-items-center justify-content-center">
+                        <nav class="navbar navbar-expand-lg">
+                            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                                <div class="navbar-nav ml-auto mr-auto">
+                                    <a class="nav-link link" href="{% url 'users:food_delivery_restaurant_detail' %}">Browse Products</a>
+                                    <a class="nav-link link" href="/#app-sec">Download App</a>
+                                    <a class="nav-link link" href="/#about-sec">About Us</a>
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                    <div class="col-6 col-lg-3 d-flex align-items-center justify-content-end">
+                        <ul class="user-links">
+                            <li class="header-shop-cart">
+                                <a href="javascript:void(0);" class="line-icon position-relative link">
+                                    <i class="las la-shopping-bag"></i>
+                                    <span class="badge rounded-circle cart-count">0</span>
+                                </a>
+                                <div class="minicart link">
+                                    <div class="minicart-content" id="cart-items"></div>
+                                    <ul class="ml-0">
+                                        <li>
+                                            <div class="total-price">
+                                                <span class="f-right">{% format_currency 0 %}</span>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="checkout-link">
+                                                <a href="#" class="main-btn rounded-pill" id="checkout-btn">Checkout</a>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            {% if user.is_authenticated %}
+                            <li class="header-orders">
+                                <a href="javascript:void(0);" class="line-icon position-relative link">
+                                    <i class="las la-receipt"></i>
+                                </a>
+                                <div class="orders-dropdown">
+                                    <div class="dropdown-title">My Orders</div>
+                                    <div id="myOrdersList"></div>
+                                </div>
+                            </li>
+                            {% endif %}
+                            <li class="user-menu-cart">
+                                <a href="javascript:void(0);" class="fa-icon link">
+                                    <i class="far fa-user"></i><span><i class="las la-angle-down ml-1"></i></span>
+                                </a>
+                                <div class="menu-links link">
+                                    <ul>
+                                        {% if user.is_authenticated %}
+                                        <li><a href="{% url 'users:loyalty_card_view' %}"><i class="lni lni-star"></i>My Loyalty Card</a></li>
+                                        <li><a href="{% url 'users:logout' %}"><i class="lni lni-lock"></i>Logout</a></li>
+                                        {% else %}
+                                        <li><a href="{% url 'food-delivery:food_delivery_login' %}"><i class="lni lni-key"></i>Login</a></li>
+                                        <li><a href="{% url 'food-delivery:food_delivery_registration' %}"><i class="lni lni-pointer-right"></i>Register</a></li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <a href="javascript:void(0)" class="sidemenu_btn link d-lg-none" id="sidemenu_toggle">
+            <span></span><span></span><span></span>
+        </a>
+    </div>
+    <div class="side-menu hidden side-menu-opacity">
+        <div class="bg-overlay"></div>
+        <div class="inner-wrapper">
+            <span class="btn-close" id="btn_sideNavClose"><i></i><i></i></span>
+            <div class="container">
+                <div class="row w-100 side-menu-inner-content">
+                    <div class="col-12 d-flex justify-content-center align-items-center">
+                        <a href="/" class="navbar-brand"><img src="{% static 'food-delivery/img/logo-white-small.png' %}" alt="logo"></a>
+                    </div>
+                    <div class="col-12 col-lg-8">
+                        <nav class="side-nav w-100">
+                            <ul class="navbar-nav">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'users:food_delivery_restaurant_detail' %}">Browse Products</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/#app-sec">Download App</a></li>
+                                <li class="nav-item"><a class="nav-link" href="/#about-sec">About Us</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <a id="close_side_menu" href="javascript:void(0);"></a>
+</header>
+
+<section class="secondary-pages-banner cursor-light bg-1" id="main-banner">
+    <img src="{% static 'food-delivery/img/slider-ele3.png' %}" class="secondary-item1">
+    <img src="{% static 'food-delivery/img/slider-ele1.png' %}" class="secondary-item2">
+    <div class="banner-content text-center">
+        <div class="heading-area">
+
+            <h4 class="heading">Our Menu</h4>
+            <div class="crumbs">
+                <nav aria-label="breadcrumb" class="breadcrumb-items">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/" class="link">Home</a></li>
+                        <li class="breadcrumb-item">Menu</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="detail-page-sec padding-top padding-bottom bg-2" id="detail-page-sec">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                {% include 'food-delivery/menu_banner.html' %}
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="pills-home" role="tabpanel">
+                        <div class="row">
+                            {% for product in products %}
+                            <div class="col-md-6">
+                                <div class="food-list ml-0" data-product-id="{{ product.id }}">
+                                    <div class="list-overlay"></div>
+                                    <div class="rates d-flex justify-content-between">
+                                        <div class="info">
+                                            <h6 class="main-heading">{{ product.name }}</h6>
+                                            <p class="text">{{ product.description|truncatechars:80 }}</p>
+                                        </div>
+                                        <p class="rate">{% format_currency product.price %}</p>
+                                    </div>
+                                    <button type="button" class="add-to-cart-btn"
+                                        data-id="{{ product.id }}"
+                                        data-name="{{ product.name }}"
+                                        data-price="{{ product.price }}"
+                                        data-image="{% if product.image %}{{ product.image.url }}{% else %}{% static 'food-delivery/img/item1.png' %}{% endif %}">
+                                        Add To Cart
+                                    </button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="col-12 text-center">
+                                <h4>No Products Available</h4>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="foot-effect"></div>
+<footer class="footer-style-1 bg-1">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <div class="footer-social text-center">
+                    <ul class="list-unstyled">
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-facebook-f"></i></a></li>
+                        <li><a class="wow fadeInDown" href="javascript:void(0);"><i class="fab fa-twitter"></i></a></li>
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-google-plus-g"></i></a></li>
+                        <li><a class="wow fadeInDown" href="javascript:void(0);"><i class="fab fa-linkedin-in"></i></a></li>
+                        <li><a class="wow fadeInUp" href="javascript:void(0);"><i class="fab fa-instagram"></i></a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-12 text-center mt-3">
+                <p class="company-about fadeIn">&copy; 2026 {{ company_name }}. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<div class="aimated-cursor">
+    <div class="cursor">
+        <div class="cursor-loader"></div>
+    </div>
+</div>
+<span class="scroll-top-arrow"><i class="fas fa-angle-up"></i></span>
+
+<div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:99999;justify-content:center;align-items:center;flex-direction:column;">
+    <div class="spinner-border text-warning" style="width:3rem;height:3rem;" role="status"></div>
+    <p class="text-white mt-3" style="font-size:20px;font-weight:600;">Processing your order...</p>
+</div>
+
+<!-- Payment Method Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.08);border-radius:20px;color:#e2e8f0">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:#f59e0b"><i class="fas fa-credit-card me-2"></i> Select Payment Method</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div id="paymentCartSummary" class="mb-3 p-3" style="background:rgba(255,255,255,.03);border-radius:12px">
+                    <div class="d-flex justify-content-between mb-1"><span style="color:#94a3b8">Items in Cart</span><span id="paymentCartCount" class="fw-bold">0</span></div>
+                    <div class="d-flex justify-content-between mb-1"><span style="color:#94a3b8">Subtotal</span><span id="paymentSubtotal" class="fw-bold">{% format_currency 0 0 %}</span></div>
+                    <div id="paymentOfferDiscountDisplay" class="d-flex justify-content-between mb-1" style="display:none"><span style="color:#f59e0b">Discount</span><span id="paymentOfferDiscountAmt" class="fw-bold" style="color:#f59e0b">-{% format_currency 0 0 %}</span></div>
+                    <div id="paymentTaxDisplay" class="d-flex justify-content-between mb-1" style="display:none!important"><span style="color:#94a3b8">Tax</span><span id="paymentTaxAmount" class="fw-bold" style="color:#f59e0b">{% format_currency 0 0 %}</span></div>
+                    <hr style="border-color:rgba(255,255,255,.1)">
+                    <div class="d-flex justify-content-between"><span class="fw-bold">Total</span><span id="paymentGrandTotal" class="fw-bold" style="color:#22c55e;font-size:18px">{% format_currency 0 0 %}</span></div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="payment-option" data-method="card" onclick="selectPayment('card')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:.2s;height:100%">
+                            <div style="font-size:40px;margin-bottom:10px;color:#3b82f6"><i class="fas fa-credit-card"></i></div>
+                            <h6 class="fw-bold mb-1" style="color:#f1f5f9">Card Payment</h6>
+                            <div style="font-size:13px;color:#94a3b8">Tax: 0% (No Tax)</div>
+                            <div style="font-size:13px;color:#22c55e;font-weight:600;margin-top:6px"><i class="fas fa-check-circle me-1"></i>Instant</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="payment-option" data-method="cash" onclick="selectPayment('cash')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:.2s;height:100%">
+                            <div style="font-size:40px;margin-bottom:10px;color:#22c55e"><i class="fas fa-money-bill-wave"></i></div>
+                            <h6 class="fw-bold mb-1" style="color:#f1f5f9">Cash Payment</h6>
+                            <div style="font-size:13px;color:#94a3b8">Tax: 0% (No Tax)</div>
+                            <div style="font-size:13px;color:#f59e0b;font-weight:600;margin-top:6px"><i class="fas fa-hand-holding-usd me-1"></i>Pay at Table</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="payment-option" data-method="loyalty" onclick="selectPayment('loyalty')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;text-align:center;cursor:pointer;transition:.2s;height:100%">
+                            <div style="font-size:40px;margin-bottom:10px;color:#f59e0b"><i class="fas fa-star"></i></div>
+                            <h6 class="fw-bold mb-1" style="color:#f1f5f9">Loyalty Points</h6>
+                            <div style="font-size:13px;color:#94a3b8">Tax: 0%</div>
+                            <div id="loyaltyPointsDisplay" style="font-size:13px;color:#22c55e;font-weight:600;margin-top:4px"><i class="fas fa-coins me-1"></i>Checking...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loyalty Points Input & Calculation (visible only when loyalty selected) -->
+                <div id="loyaltyBreakdownSection" style="display:none;margin-top:15px;padding:15px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:14px">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span style="color:#f59e0b;font-weight:600"><i class="fas fa-coins me-1"></i> Available Points: <span id="loyaltyAvailablePts" style="color:#fff">0</span></span>
+                    </div>
+                    <div class="mb-2">
+                        <label style="color:#94a3b8;font-size:13px">Use Loyalty Points</label>
+                        <input type="number" id="loyaltyPointsInput" min="0" value="0" style="width:100%;padding:10px 14px;background:#0f172a;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#fff;font-size:16px;font-weight:600;margin-top:4px">
+                        <div id="loyaltyPointsError" style="color:#ef4444;font-size:12px;margin-top:4px;display:none"></div>
+                    </div>
+                    <hr style="border-color:rgba(255,255,255,.08);margin:10px 0">
+                    <div style="font-size:13px">
+                        <div class="d-flex justify-content-between mb-1"><span style="color:#94a3b8">Order Total</span><span id="loyaltyCalcTotal" style="color:#fff;font-weight:600">{% format_currency 0 0 %}</span></div>
+                        <div class="d-flex justify-content-between mb-1"><span style="color:#94a3b8">Loyalty Used</span><span id="loyaltyCalcUsed" style="color:#f59e0b;font-weight:600">-{% format_currency 0 0 %}</span></div>
+                        <div class="d-flex justify-content-between mb-1"><span style="color:#94a3b8">Remaining Payment</span><span id="loyaltyCalcRemaining" style="color:#22c55e;font-weight:600">{% format_currency 0 0 %}</span></div>
+                        <div id="loyaltyTaxDisplay" class="d-flex justify-content-between mb-1" style="display:none"><span style="color:#94a3b8">Tax</span><span id="loyaltyCalcTax" style="color:#f59e0b;font-weight:600">{% format_currency 0 0 %}</span></div>
+                        <hr style="border-color:rgba(255,255,255,.08);margin:6px 0">
+                        <div class="d-flex justify-content-between"><span style="color:#fff;font-weight:700">Final Payable</span><span id="loyaltyCalcFinal" style="color:#22c55e;font-weight:700;font-size:16px">{% format_currency 0 0 %}</span></div>
+                    </div>
+                </div>
+
+                <!-- Secondary Payment Method (visible when loyalty remaining > 0) -->
+                <div id="secondaryPaymentSection" style="display:none;margin-top:12px;padding:14px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:14px">
+                    <div style="color:#3b82f6;font-weight:600;font-size:13px;margin-bottom:10px"><i class="fas fa-exclamation-triangle me-1"></i> Additional Payment Required</div>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <div class="secondary-option" data-secondary="cash" onclick="selectSecondary('cash')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;transition:.2s">
+                                <div style="font-size:24px;color:#22c55e;margin-bottom:4px"><i class="fas fa-money-bill-wave"></i></div>
+                                <div style="font-size:11px;color:#e2e8f0;font-weight:600">Cash</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="secondary-option" data-secondary="card" onclick="selectSecondary('card')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;transition:.2s">
+                                <div style="font-size:24px;color:#3b82f6;margin-bottom:4px"><i class="fas fa-credit-card"></i></div>
+                                <div style="font-size:11px;color:#e2e8f0;font-weight:600">Card</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="secondary-option" data-secondary="online" onclick="selectSecondary('online')" style="background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;transition:.2s">
+                                <div style="font-size:24px;color:#a855f7;margin-bottom:4px"><i class="fas fa-globe"></i></div>
+                                <div style="font-size:11px;color:#e2e8f0;font-weight:600">Online</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="paymentError" class="mt-3" style="display:none"></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:12px;padding:10px 24px">Cancel</button>
+                <button type="button" id="payNowBtn" class="btn btn-warning fw-bold" disabled style="border-radius:12px;padding:10px 24px;font-size:16px" onclick="processPayment()">
+                    <i class="fas fa-lock me-1"></i> Pay Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block modal %}
+{% include 'food-delivery/offers_popup.html' %}
+{% endblock modal %}
+
+{% block javascript %}
+<script>
+const isQrCustomer = {{ is_qr_customer|yesno:'true,false' }};
+const cartKey = "qr_cart_guest";
+let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+
+// Check for deal checkout pre-populated cart
+{% if request.session.deal_checkout_cart %}
+{% if request.session.deal_effective_total %}
+var dealEffectiveTotal = {{ request.session.deal_effective_total }};
+{% else %}
+var dealEffectiveTotal = null;
+{% endif %}
+(function() {
+    var dealCart = JSON.parse('{{ request.session.deal_checkout_cart|escapejs }}');
+    if (dealCart && dealCart.length > 0) {
+        cart = dealCart;
+        saveCart();
+        // Clean up session flag
+        fetch("/users/clear-deal-cart/", { method: "POST", headers: {"X-CSRFToken": "{{ csrf_token }}"} });
+        // Auto-open checkout after a short delay
+        setTimeout(function() {
+            document.getElementById("checkout-btn").click();
+        }, 800);
+    }
+})();
+{% else %}
+var dealEffectiveTotal = null;
+{% endif %}
+
+function saveCart() {
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    renderCart();
+}
+
+function addToCart(id, name, price, image) {
+    let item = cart.find(i => i.id === id);
+    if (item) { item.qty += 1; }
+    else { cart.push({ id, name, price, image, qty: 1 }); }
+    saveCart();
+}
+
+function removeItem(id) {
+    cart = cart.filter(item => item.id !== id);
+    saveCart();
+}
+
+function changeQty(id, qty) {
+    let item = cart.find(i => i.id === id);
+    if (item) {
+        item.qty = qty;
+        if (item.qty <= 0) { removeItem(id); return; }
+    }
+    saveCart();
+}
+
+function getCartSubtotal() {
+    if (dealEffectiveTotal) {
+        return dealEffectiveTotal;
+    }
+    return cart.reduce(function(s, i) { return s + i.price * i.qty; }, 0);
+}
+
+function renderCart() {
+    let container = document.getElementById("cart-items");
+    if (!container) return;
+    container.innerHTML = "";
+    let total = 0, count = 0;
+    cart.forEach(item => {
+        total += item.price * item.qty;
+        count += item.qty;
+        container.innerHTML += `
+        <div class="row mb-3">
+            <div class="cart-img col-5">
+                <img src="${item.image}" width="70">
+            </div>
+            <div class="cart-content col-7">
+                <h4 style="color:#ffffff;font-size:18px;">${item.name}</h4>
+                <div class="cart-price"><span class="new">${formatCurrency(item.price)}</span></div>
+                <div class="number">
+                    <span class="minus" onclick="changeQty(${item.id}, ${item.qty - 1})">-</span>
+                    <input type="text" value="${item.qty}" readonly>
+                    <span class="plus" onclick="changeQty(${item.id}, ${item.qty + 1})">+</span>
+                </div>
+                <div class="del-icon">
+                    <a href="javascript:void(0)" onclick="removeItem(${item.id})"><i class="far fa-trash-alt"></i></a>
+                </div>
+            </div>`;
+    });
+    if (cart.length === 0) {
+        container.innerHTML = `<div class="text-center p-3">Cart is empty</div>`;
+    }
+    const badge = document.querySelector(".cart-count");
+    if (badge) badge.innerText = count;
+    const totalEl = document.querySelector(".f-right");
+    if (totalEl) totalEl.innerText = formatCurrency(total, 2);
+}
+
+document.addEventListener("click", function(e) {
+    if (e.target.classList.contains("add-to-cart-btn")) {
+        addToCart(
+            parseInt(e.target.dataset.id),
+            e.target.dataset.name,
+            parseFloat(e.target.dataset.price),
+            e.target.dataset.image
+        );
+    }
+});
+
+renderCart();
+
+// ========================
+// AUTO-SCROLL TO SELECTED PRODUCT FROM HOMEPAGE
+// ========================
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get("product");
+    if (productId) {
+        const target = document.querySelector('.food-list[data-product-id="' + productId + '"]');
+        if (target) {
+            setTimeout(function() {
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+                target.classList.add("highlight");
+                setTimeout(function() { target.classList.remove("highlight"); }, 3000);
+                const btn = target.querySelector(".add-to-cart-btn");
+                if (btn) {
+                    addToCart(
+                        parseInt(btn.dataset.id),
+                        btn.dataset.name,
+                        parseFloat(btn.dataset.price),
+                        btn.dataset.image
+                    );
+                    setTimeout(function() {
+                        const cartToggle = document.querySelector(".header-shop-cart");
+                        if (cartToggle) {
+                            const minicart = cartToggle.querySelector(".minicart");
+                            if (minicart) minicart.style.display = "block";
+                        }
+                    }, 300);
+                }
+            }, 500);
+        }
+    }
+})();
+
+// Payment flow
+let selectedPayment = null;
+let selectedSecondary = null;
+let loyaltyPointsData = null;
+
+document.getElementById("checkout-btn").addEventListener("click", function(e) {
+    e.preventDefault();
+    if (cart.length === 0) { alert("Cart is empty"); return; }
+    selectedPayment = null;
+    selectedSecondary = null;
+    document.getElementById("payNowBtn").disabled = true;
+    document.getElementById("paymentError").style.display = "none";
+    document.getElementById("loyaltyBreakdownSection").style.display = "none";
+    document.getElementById("secondaryPaymentSection").style.display = "none";
+    document.getElementById("loyaltyPointsInput").value = "0";
+
+    const subtotal = getCartSubtotal();
+    document.getElementById("paymentCartCount").innerText = cart.reduce((c, i) => c + i.qty, 0);
+    document.getElementById("paymentSubtotal").innerText = formatCurrency(subtotal, 0);
+    document.getElementById("paymentTaxDisplay").style.display = "none";
+    document.getElementById("paymentGrandTotal").innerText = formatCurrency(subtotal, 0);
+
+    document.querySelectorAll(".payment-option").forEach(el => {
+        el.style.borderColor = "rgba(255,255,255,.1)";
+        el.style.background = "rgba(255,255,255,.04)";
+    });
+
+    // Set offer discount immediately from server data (no race condition)
+    if (typeof SERVER_ACTIVE_OFFER !== 'undefined' && SERVER_ACTIVE_OFFER && SERVER_ACTIVE_OFFER.active) {
+        window.activeOfferPct = SERVER_ACTIVE_OFFER.discount_percentage;
+        window.activeOfferDiscount = subtotal * SERVER_ACTIVE_OFFER.discount_percentage / 100;
+    } else {
+        window.activeOfferDiscount = 0;
+        window.activeOfferPct = 0;
+    }
+    // Also try to fetch fresh data (async refresh)
+    fetch('/users/offers/active-data/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.active) {
+            window.activeOfferPct = data.discount_percentage;
+            window.activeOfferDiscount = subtotal * data.discount_percentage / 100;
+        }
+    })
+    .catch(function() {});
+
+    // Fetch loyalty card info
+    const loyaltyDisplay = document.getElementById("loyaltyPointsDisplay");
+    loyaltyDisplay.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Checking...';
+
+    fetch("{% url 'users:loyalty_checkout_info' %}")
+    .then(r => r.json())
+    .then(data => {
+        loyaltyPointsData = data;
+        if (data.has_card) {
+            if (data.remaining_points > 0) {
+                loyaltyDisplay.innerHTML = '<i class="fas fa-coins me-1"></i>You have ' + data.remaining_points + ' pts';
+                if (data.remaining_points >= subtotal) {
+                    loyaltyDisplay.style.color = "#22c55e";
+                } else {
+                    loyaltyDisplay.style.color = "#f59e0b";
+                }
+            } else {
+                loyaltyDisplay.innerHTML = '<i class="fas fa-coins me-1"></i>0 points available';
+                loyaltyDisplay.style.color = "#94a3b8";
+            }
+        } else {
+            loyaltyDisplay.innerHTML = '<i class="fas fa-times me-1"></i>No loyalty card';
+            loyaltyDisplay.style.color = "#ef4444";
+        }
+    })
+    .catch(() => {
+        loyaltyPointsData = null;
+        loyaltyDisplay.innerHTML = '<i class="fas fa-times me-1"></i>Unavailable';
+        loyaltyDisplay.style.color = "#94a3b8";
+    });
+
+    new bootstrap.Modal(document.getElementById("paymentModal")).show();
+});
+
+function getDiscountedSubtotal() {
+    var subtotal = getCartSubtotal();
+    if (window.activeOfferDiscount > 0 && !dealEffectiveTotal) {
+        return subtotal - window.activeOfferDiscount;
+    }
+    return subtotal;
+}
+
+function selectPayment(method) {
+    selectedPayment = method;
+    selectedSecondary = null;
+    document.querySelectorAll(".payment-option").forEach(el => {
+        el.style.borderColor = "rgba(255,255,255,.1)";
+        el.style.background = "rgba(255,255,255,.04)";
+    });
+    const el = document.querySelector(`.payment-option[data-method="${method}"]`);
+    const borderColor = method === "card" ? "#3b82f6" : method === "cash" ? "#22c55e" : "#f59e0b";
+    const bgColor = method === "card" ? "rgba(59,130,246,.1)" : method === "cash" ? "rgba(34,197,94,.1)" : "rgba(245,158,11,.1)";
+    el.style.borderColor = borderColor;
+    el.style.background = bgColor;
+
+    var subtotal = getCartSubtotal();
+    var afterDiscount = getDiscountedSubtotal();
+
+    if (method === "loyalty") {
+        document.getElementById("paymentTaxDisplay").style.display = "none";
+        document.getElementById("loyaltyBreakdownSection").style.display = "block";
+        document.getElementById("secondaryPaymentSection").style.display = "none";
+        document.querySelectorAll(".secondary-option").forEach(el2 => {
+            el2.style.borderColor = "rgba(255,255,255,.1)";
+            el2.style.background = "rgba(255,255,255,.04)";
+        });
+
+        if (loyaltyPointsData && loyaltyPointsData.has_card) {
+            const avail = loyaltyPointsData.remaining_points;
+            const maxUse = Math.min(avail, afterDiscount);
+            document.getElementById("loyaltyAvailablePts").innerText = avail;
+            document.getElementById("loyaltyPointsInput").max = maxUse;
+            document.getElementById("loyaltyPointsInput").value = maxUse > 0 ? maxUse : 0;
+            updateLoyaltyCalc();
+        } else {
+            document.getElementById("loyaltyAvailablePts").innerText = "0";
+            document.getElementById("loyaltyPointsInput").value = 0;
+            document.getElementById("loyaltyPointsInput").disabled = true;
+            document.getElementById("payNowBtn").disabled = true;
+        }
+        return;
+    }
+
+    document.getElementById("loyaltyBreakdownSection").style.display = "none";
+    document.getElementById("secondaryPaymentSection").style.display = "none";
+    // Show discount if active offer exists
+    if (window.activeOfferDiscount > 0 && !dealEffectiveTotal) {
+        document.getElementById("paymentOfferDiscountDisplay").style.display = "flex";
+        document.getElementById("paymentOfferDiscountAmt").innerText = '-' + formatCurrency(window.activeOfferDiscount, 0);
+    } else {
+        document.getElementById("paymentOfferDiscountDisplay").style.display = "none";
+    }
+
+    document.getElementById("paymentTaxDisplay").style.display = "flex";
+    let pct = method === "card" ? 5 : 18;
+    const tax = afterDiscount * pct / 100;
+    document.getElementById("paymentTaxDisplay").querySelector("span:first-child").innerText = "Tax (" + pct + "%)";
+    document.getElementById("paymentTaxAmount").innerText = formatCurrency(tax, 0);
+    document.getElementById("paymentGrandTotal").innerText = formatCurrency(afterDiscount + tax, 0);
+    document.getElementById("payNowBtn").disabled = false;
+}
+
+function updateLoyaltyCalc() {
+    var subtotal = getCartSubtotal();
+    var afterOffer = getDiscountedSubtotal();
+    const avail = loyaltyPointsData ? loyaltyPointsData.remaining_points : 0;
+    const input = document.getElementById("loyaltyPointsInput");
+    const errorEl = document.getElementById("loyaltyPointsError");
+    let val = parseInt(input.value) || 0;
+    const maxAllowed = Math.min(avail, afterOffer);
+
+    if (val < 0) { val = 0; input.value = 0; }
+    if (val > avail) {
+        errorEl.style.display = "block";
+        errorEl.innerText = "You only have " + avail + " loyalty points available.";
+        val = avail;
+        input.value = avail;
+    } else if (val > afterOffer) {
+        val = afterOffer;
+        input.value = afterOffer;
+        errorEl.style.display = "none";
+    } else {
+        errorEl.style.display = "none";
+    }
+
+    const used = val;
+    const remaining = afterOffer - used;
+    let secondaryTax = 0;
+    let secondaryPct = 0;
+    let finalPayable = remaining;
+
+    if (remaining > 0) {
+        document.getElementById("secondaryPaymentSection").style.display = "block";
+        document.getElementById("paymentGrandTotal").innerText = formatCurrency(remaining, 0);
+        if (selectedSecondary === "card") { secondaryPct = 5; }
+        else if (selectedSecondary === "cash") { secondaryPct = 18; }
+        else { secondaryPct = 18; }
+        secondaryTax = Math.round(remaining * secondaryPct / 100);
+        finalPayable = remaining + secondaryTax;
+        document.getElementById("loyaltyTaxDisplay").style.display = "flex";
+        document.getElementById("loyaltyCalcTax").innerText = formatCurrency(secondaryTax, 0);
+        document.getElementById("paymentGrandTotal").innerText = formatCurrency(finalPayable, 0);
+        if (!selectedSecondary) {
+            document.getElementById("payNowBtn").disabled = true;
+        } else {
+            document.getElementById("payNowBtn").disabled = false;
+        }
+    } else {
+        document.getElementById("secondaryPaymentSection").style.display = "none";
+        document.getElementById("loyaltyTaxDisplay").style.display = "none";
+        document.getElementById("paymentGrandTotal").innerText = formatCurrency(0, 0);
+        document.getElementById("payNowBtn").disabled = false;
+    }
+
+    document.getElementById("loyaltyCalcTotal").innerText = formatCurrency(subtotal, 0);
+    document.getElementById("loyaltyCalcUsed").innerText = '-' + formatCurrency(used);
+    document.getElementById("loyaltyCalcRemaining").innerText = formatCurrency(remaining > 0 ? remaining : 0, 0);
+    document.getElementById("loyaltyCalcFinal").innerText = formatCurrency(finalPayable);
+}
+
+document.getElementById("loyaltyPointsInput").addEventListener("input", updateLoyaltyCalc);
+
+function selectSecondary(method) {
+    selectedSecondary = method;
+    document.querySelectorAll(".secondary-option").forEach(el2 => {
+        el2.style.borderColor = "rgba(255,255,255,.1)";
+        el2.style.background = "rgba(255,255,255,.04)";
+    });
+    const el2 = document.querySelector(`.secondary-option[data-secondary="${method}"]`);
+    const borderColor2 = method === "card" ? "#3b82f6" : method === "cash" ? "#22c55e" : "#a855f7";
+    const bgColor2 = method === "card" ? "rgba(59,130,246,.1)" : method === "cash" ? "rgba(34,197,94,.1)" : "rgba(168,85,247,.1)";
+    el2.style.borderColor = borderColor2;
+    el2.style.background = bgColor2;
+    updateLoyaltyCalc();
+}
+
+function processPayment() {
+    if (!selectedPayment) return;
+    document.getElementById("paymentError").style.display = "none";
+    document.getElementById("payNowBtn").disabled = true;
+    document.getElementById("payNowBtn").innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+
+    const endpoint = isQrCustomer || !{{ user.is_authenticated|yesno:'true,false' }}
+        ? "{% url 'users:guest_checkout' %}"
+        : "{% url 'users:checkout_invoice' %}";
+
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const body = { cart: cart, payment_method: selectedPayment, timezone: tz };
+    if (selectedPayment === "loyalty" && loyaltyPointsData && loyaltyPointsData.has_card) {
+        body.use_loyalty_points = parseInt(document.getElementById("loyaltyPointsInput").value) || 0;
+        body.loyalty_card_number = loyaltyPointsData.card_number;
+        body.secondary_payment_method = selectedSecondary || "cash";
+    }
+    fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+        body: JSON.stringify(body)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const modalEl_ = document.getElementById("paymentModal");
+            if (modalEl_) { const m = new bootstrap.Modal(modalEl_); m.hide(); }
+            localStorage.removeItem(cartKey);
+            cart = [];
+            renderCart();
+            window.location.href = "/users/invoice/" + data.uuid_token + "/";
+        } else {
+            document.getElementById("payNowBtn").disabled = false;
+            document.getElementById("payNowBtn").innerHTML = '<i class="fas fa-lock me-1"></i> Pay Now';
+            document.getElementById("paymentError").style.display = "block";
+            document.getElementById("paymentError").className = "mt-3 alert alert-danger py-2";
+            document.getElementById("paymentError").innerText = data.message;
+        }
+    })
+    .catch(err => {
+        document.getElementById("payNowBtn").disabled = false;
+        document.getElementById("payNowBtn").innerHTML = '<i class="fas fa-lock me-1"></i> Pay Now';
+        document.getElementById("paymentError").style.display = "block";
+        document.getElementById("paymentError").className = "mt-3 alert alert-danger py-2";
+        document.getElementById("paymentError").innerText = "Error: " + err;
+    });
+}
+
+</script>
+<script src="{% static '/vendor/js/bundle.min.js' %}"></script>
+<script src="{% static '/vendor/js/jquery.fancybox.min.js' %}"></script>
+<script src="{% static '/vendor/js/owl.carousel.min.js' %}"></script>
+<script src="{% static '/vendor/js/parallaxie.min.js' %}"></script>
+<script src="{% static '/vendor/js/wow.min.js' %}"></script>
+<script src="{% static '/vendor/js/jquery.themepunch.tools.min.js' %}"></script>
+<script src="{% static '/vendor/js/jquery.themepunch.revolution.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.actions.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.carousel.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.kenburn.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.layeranimation.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.migration.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.navigation.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.parallax.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.slideanims.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.video.min.js' %}"></script>
+<script src="{% static '/vendor/js/TweenMax.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/nouislider.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/slick.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/notify.min.js' %}"></script>
+<script src="{% static '/vendor/js/contact_us.js' %}"></script>
+<script src="{% static '/vendor/js/swiper.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/script.js' %}"></script>
+{% endblock javascript %}

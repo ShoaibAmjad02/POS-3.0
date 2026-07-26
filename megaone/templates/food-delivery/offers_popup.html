@@ -1,0 +1,296 @@
+<style>
+.offer-popup-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 99999;
+    display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.offer-popup-overlay.show { display: flex; }
+.offer-popup-modal {
+    background: #1e293b; border-radius: 24px; max-width: 480px; width: 90%;
+    position: relative; overflow: hidden;
+    animation: offerFadeIn 0.4s ease;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+@keyframes offerFadeIn {
+    from { opacity: 0; transform: scale(0.85) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.offer-popup-close {
+    position: absolute; top: 12px; right: 14px; z-index: 10;
+    background: rgba(0,0,0,0.4); border: none; color: #fff;
+    width: 32px; height: 32px; border-radius: 50%;
+    font-size: 18px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+    transition: 0.2s;
+}
+.offer-popup-close:hover { background: rgba(255,255,255,0.2); }
+.offer-popup-banner {
+    width: 100%; height: 200px; object-fit: cover;
+    display: block;
+}
+.offer-popup-body { padding: 24px; color: #e2e8f0; }
+.offer-popup-title {
+    font-size: 22px; font-weight: 800; margin: 0 0 8px;
+    color: #f59e0b;
+}
+.offer-popup-desc {
+    font-size: 14px; color: #94a3b8; line-height: 1.6; margin: 0 0 16px;
+}
+.offer-popup-discount {
+    display: inline-block;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #000; font-weight: 800; font-size: 28px;
+    padding: 4px 20px; border-radius: 12px; margin-bottom: 16px;
+}
+.offer-popup-timer {
+    display: flex; gap: 12px; margin-bottom: 20px;
+}
+.offer-popup-timer-item {
+    background: rgba(255,255,255,0.06); border-radius: 10px;
+    padding: 8px 14px; text-align: center; min-width: 60px;
+}
+.offer-popup-timer-item .num {
+    font-size: 22px; font-weight: 700; color: #f59e0b; display: block;
+}
+.offer-popup-timer-item .lbl {
+    font-size: 10px; color: #64748b; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 2px;
+}
+.offer-popup-btn {
+    display: block; width: 100%; padding: 14px; border: none;
+    border-radius: 12px; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: 0.2s; text-align: center;
+    text-decoration: none;
+}
+.offer-popup-btn.view-deal {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #fff;
+}
+.offer-popup-btn.view-deal:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.3); }
+
+.deal-popup-modal .offer-popup-banner { height: 180px; }
+
+.offers-carousel .carousel-item { padding: 0; }
+.offers-carousel .carousel-indicators { bottom: -8px; }
+.offers-carousel .carousel-indicators button {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #475569; border: none;
+}
+.offers-carousel .carousel-indicators button.active { background: #f59e0b; }
+
+.deal-product-list {
+    list-style: none; padding: 0; margin: 0 0 16px;
+}
+.deal-product-list li {
+    padding: 6px 0; font-size: 14px; color: #e2e8f0;
+    display: flex; align-items: center; gap: 8px;
+}
+.deal-product-list li::before {
+    content: "\2713"; color: #22c55e; font-weight: 700;
+}
+.deal-product-list li.free::before {
+    content: "\2605"; color: #f59e0b;
+}
+.deal-price-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff; font-weight: 800; font-size: 28px;
+    padding: 4px 20px; border-radius: 12px; margin-bottom: 16px;
+}
+</style>
+
+<div class="offer-popup-overlay" id="offerPopupOverlay">
+    <div class="offer-popup-modal" id="offerPopupContent">
+        <button class="offer-popup-close" onclick="dismissOfferPopup()">&times;</button>
+        <div id="offerPopupCarousel" class="carousel slide offers-carousel" data-bs-ride="false" data-bs-interval="false">
+            <div class="carousel-indicators" id="offerCarouselIndicators"></div>
+            <div class="carousel-inner" id="offerCarouselInner"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+{% if active_offer %}
+var SERVER_ACTIVE_OFFER = {
+    active: true,
+    id: {{ active_offer.id }},
+    title: '{{ active_offer.title|escapejs }}',
+    description: '{{ active_offer.description|escapejs }}',
+    discount_percentage: {{ active_offer.discount_percentage }},
+    banner_image: '{% if active_offer.banner_image %}{{ active_offer.banner_image.url }}{% endif %}',
+    background_color: '{{ active_offer.background_color|default:"#f59e0b" }}',
+    popup_image: '{% if active_offer.popup_image %}{{ active_offer.popup_image.url }}{% endif %}',
+    start_date: '{{ active_offer.start_date|date:"d-m-Y" }}',
+    start_time: '{{ active_offer.start_time|time:"h:i A" }}',
+    end_date: '{{ active_offer.end_date|date:"d-m-Y" }}',
+    end_time: '{{ active_offer.end_time|time:"h:i A" }}',
+    end_timestamp: Math.floor(new Date('{{ active_offer.end_date|date:"Y-m-d" }}T{{ active_offer.end_time|time:"H:i:s" }}Z').getTime() / 1000),
+};
+{% else %}
+var SERVER_ACTIVE_OFFER = null;
+{% endif %}
+
+{% if active_deal %}
+var SERVER_ACTIVE_DEAL = {
+    active: true,
+    id: {{ active_deal.id }},
+    title: '{{ active_deal.title|escapejs }}',
+    end_timestamp: Math.floor(new Date('{{ active_deal.end_date|date:"Y-m-d" }}T{{ active_deal.end_time|time:"H:i:s" }}Z').getTime() / 1000),
+};
+{% else %}
+var SERVER_ACTIVE_DEAL = null;
+{% endif %}
+
+function fetchActiveOffers() {
+    var items = [];
+    if (SERVER_ACTIVE_OFFER) {
+        items.push({ type: 'offer', data: SERVER_ACTIVE_OFFER });
+    }
+    if (SERVER_ACTIVE_DEAL) {
+        items.push({ type: 'deal', data: SERVER_ACTIVE_DEAL });
+    }
+    if (items.length > 0) {
+        renderOfferPopup(items);
+        return;
+    }
+    // Fallback: fetch from API
+    fetch('/users/offers/active-data/')
+        .then(function(r) { return r.json(); })
+        .then(function(offerData) {
+            fetch('/users/deals/active-data/')
+                .then(function(r) { return r.json(); })
+                .then(function(dealData) {
+                    var items = [];
+                    if (offerData.active) items.push({ type: 'offer', data: offerData });
+                    if (dealData.active) items.push({ type: 'deal', data: dealData });
+                    if (items.length > 0) {
+                        renderOfferPopup(items);
+                    }
+                });
+        });
+}
+
+function renderOfferPopup(items) {
+    var inner = document.getElementById('offerCarouselInner');
+    var indicators = document.getElementById('offerCarouselIndicators');
+    inner.innerHTML = '';
+    indicators.innerHTML = '';
+
+    items.forEach(function(item, idx) {
+        var activeClass = idx === 0 ? ' active' : '';
+        var indicator = document.createElement('button');
+        indicator.type = 'button';
+        indicator.setAttribute('data-bs-target', '#offerPopupCarousel');
+        indicator.setAttribute('data-bs-slide-to', idx.toString());
+        if (idx === 0) indicator.classList.add('active');
+        indicator.setAttribute('aria-current', idx === 0 ? 'true' : 'false');
+        indicator.setAttribute('aria-label', 'Slide ' + (idx + 1));
+        indicators.appendChild(indicator);
+
+        var slide = document.createElement('div');
+        slide.className = 'carousel-item' + activeClass;
+
+        if (item.type === 'offer') {
+            slide.innerHTML = buildOfferHTML(item.data);
+        } else {
+            slide.innerHTML = buildDealHTML(item.data);
+        }
+        inner.appendChild(slide);
+    });
+
+    var overlay = document.getElementById('offerPopupOverlay');
+    overlay.classList.add('show');
+    startCountdowns();
+}
+
+function buildOfferHTML(data) {
+    var banner = data.banner_image
+        ? '<img src="' + data.banner_image + '" class="offer-popup-banner" alt="' + data.title + '">'
+        : '<div class="offer-popup-banner" style="background:' + data.background_color + ';display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff"><div style="font-size:48px;margin-bottom:4px">&#127881;</div><div style="font-size:16px;font-weight:700">Special Store Offer</div></div>';
+    return '<div class="offer-popup-body">'
+        + banner
+        + '<div class="offer-popup-discount">' + data.discount_percentage + '% OFF</div>'
+        + '<h3 class="offer-popup-title">' + data.title + '</h3>'
+        + '<p class="offer-popup-desc">' + data.description + '</p>'
+        + '<div class="offer-popup-timer" id="countdownContainer"><div class="offer-popup-timer-item"><span class="num" id="cdHours">00</span><span class="lbl">Hours</span></div><div class="offer-popup-timer-item"><span class="num" id="cdMinutes">00</span><span class="lbl">Minutes</span></div><div class="offer-popup-timer-item"><span class="num" id="cdSeconds">00</span><span class="lbl">Seconds</span></div></div>'
+        + '<p style="text-align:center;font-size:11px;color:#64748b;margin:8px 0 0">Start: ' + data.start_time + '</p>'
+        + '<p style="text-align:center;font-size:11px;color:#64748b;margin:2px 0 0">End: ' + data.end_date + ' at ' + data.end_time + '</p>'
+        + '</div>';
+}
+
+function buildDealHTML(data) {
+    var img = data.deal_image
+        ? '<img src="' + data.deal_image + '" class="offer-popup-banner" alt="' + data.title + '">'
+        : '<div class="offer-popup-banner" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff"><div style="font-size:48px;margin-bottom:4px">&#127860;</div><div style="font-size:16px;font-weight:700">Special Store Offer</div></div>';
+
+    var productsHtml = '';
+    if (data.products && data.products.length > 0) {
+        productsHtml = '<ul class="deal-product-list">';
+        data.products.forEach(function(p) {
+            var cls = p.free ? ' class="free"' : '';
+            var name = p.free ? p.name + ' <span style="color:#22c55e;font-size:12px">(FREE)</span>' : p.name;
+            productsHtml += '<li' + cls + '>' + name + '</li>';
+        });
+        productsHtml += '</ul>';
+    }
+
+    var priceHtml = data.combo_price
+        ? '<div class="deal-price-tag">' + formatCurrency(data.combo_price) + '</div>'
+        : '';
+
+    return '<div class="offer-popup-body">'
+        + img
+        + '<div style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:700;font-size:13px;padding:4px 14px;border-radius:20px;margin-bottom:12px">&#9889; Today\'s Deal</div>'
+        + '<h3 class="offer-popup-title" style="color:#60a5fa">' + data.title + '</h3>'
+        + '<p class="offer-popup-desc">' + data.description + '</p>'
+        + productsHtml
+        + priceHtml
+        + '<div class="offer-popup-timer" id="dealCountdownContainer"><div class="offer-popup-timer-item"><span class="num" id="dealCdHours">00</span><span class="lbl">Hours</span></div><div class="offer-popup-timer-item"><span class="num" id="dealCdMinutes">00</span><span class="lbl">Minutes</span></div><div class="offer-popup-timer-item"><span class="num" id="dealCdSeconds">00</span><span class="lbl">Seconds</span></div></div>'
+        + '<a href="/users/deals/' + data.id + '/public/" class="offer-popup-btn view-deal">&#128073; View Deal</a>'
+        + '<p style="text-align:center;font-size:11px;color:#64748b;margin:8px 0 0">Start: ' + data.start_time + '</p>'
+        + '<p style="text-align:center;font-size:11px;color:#64748b;margin:2px 0 0">End: ' + data.end_date + ' at ' + data.end_time + '</p>'
+        + '</div>';
+}
+
+function dismissOfferPopup() {
+    document.getElementById('offerPopupOverlay').classList.remove('show');
+}
+
+var countdownInterval = null;
+
+function startCountdowns() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(function() {
+        fetch('/users/offers/banner-data/')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var now = Math.floor(Date.now() / 1000);
+                if (data.offer && data.offer.end_timestamp) {
+                    updateCountdown('cdHours', 'cdMinutes', 'cdSeconds', data.offer.end_timestamp, now);
+                }
+                if (data.deal && data.deal.end_timestamp) {
+                    updateCountdown('dealCdHours', 'dealCdMinutes', 'dealCdSeconds', data.deal.end_timestamp, now);
+                }
+            });
+    }, 1000);
+}
+
+function updateCountdown(hoursId, minsId, secsId, endTs, now) {
+    var diff = Math.max(0, endTs - now);
+    var h = Math.floor(diff / 3600);
+    var m = Math.floor((diff % 3600) / 60);
+    var s = diff % 60;
+    var hEl = document.getElementById(hoursId);
+    var mEl = document.getElementById(minsId);
+    var sEl = document.getElementById(secsId);
+    if (hEl) hEl.textContent = String(h).padStart(2, '0');
+    if (mEl) mEl.textContent = String(m).padStart(2, '0');
+    if (sEl) sEl.textContent = String(s).padStart(2, '0');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(fetchActiveOffers, 500);
+});
+</script>

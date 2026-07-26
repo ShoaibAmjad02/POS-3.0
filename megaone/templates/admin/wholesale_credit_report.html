@@ -1,0 +1,81 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Credit Report - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.stat-card{background:#0f172a;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:16px;text-align:center;height:100%}
+.stat-card .stat-val{font-size:24px;font-weight:800;margin-top:4px}
+.stat-card .stat-label{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Wholesale <span>Credit Report</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Customer-wise credit usage and outstanding summary</p>
+    </div>
+    <div>
+        <a href="{% url 'users:wholesale_credit_settlement_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Back to Settlements</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4" data-aos="fade-up">
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Credit Given</div>
+            <div class="stat-val" style="color:#8b5cf6">{% format_currency total_credit_given 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Total Settled</div>
+            <div class="stat-val" style="color:#10b981">{% format_currency total_credit_settled 0 %}</div>
+        </div>
+    </div>
+    <div class="col-md-4 col-6">
+        <div class="stat-card">
+            <div class="stat-label">Outstanding Invoices</div>
+            <div class="stat-val" style="color:#f59e0b">{{ outstanding_count }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Credit Limit</th>
+                    <th>Used Credit</th>
+                    <th>Available</th>
+                    <th>Settled</th>
+                    <th>Outstanding</th>
+                    <th>Invoices Due</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cd in customer_data %}
+                <tr>
+                    <td class="fw-semibold">{{ cd.customer.company_name }}</td>
+                    <td>{% format_currency cd.credit_limit 0 %}</td>
+                    <td style="color:#f59e0b;font-weight:600">{% format_currency cd.used_credit 0 %}</td>
+                    <td style="color:#10b981;font-weight:600">{% format_currency cd.available_credit 0 %}</td>
+                    <td>{% format_currency cd.total_settled 0 %}</td>
+                    <td style="color:#ef4444;font-weight:600">{% format_currency cd.outstanding 0 %}</td>
+                    <td>{{ cd.invoice_count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No credit data found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

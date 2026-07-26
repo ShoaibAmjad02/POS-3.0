@@ -1,0 +1,117 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Stock History - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.in-badge{font-size:12px;padding:4px 10px;border-radius:20px}
+.in-badge.positive{background:var(--color-success-bg);color:var(--color-success)}
+.in-badge.negative{background:var(--color-danger-bg);color:var(--color-danger)}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Stock <span>History</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:14px">Complete stock movement ledger for all products</p>
+    </div>
+    <div>
+        <a href="{% url 'users:stock_position' %}" class="btn btn-sm btn-outline-info"><i class="bi bi-bar-chart"></i> Stock Position</a>
+        <a href="{% url 'users:stock_movement_report' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-file-text"></i> Report</a>
+    </div>
+</div>
+
+<div class="filter-card" data-aos="fade-up">
+    <form method="GET" class="row g-3">
+        <div class="col-md-3">
+            <label>Product</label>
+            <select name="product" class="form-select">
+                <option value="">All Products</option>
+                {% for p in products %}
+                <option value="{{ p.id }}" {% if selected_product == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>Type</label>
+            <select name="type" class="form-select">
+                <option value="">All Types</option>
+                <option value="opening_stock" {% if selected_type == 'opening_stock' %}selected{% endif %}>Opening Stock</option>
+                <option value="stock_purchase" {% if selected_type == 'stock_purchase' %}selected{% endif %}>Stock Purchase</option>
+                <option value="stock_adjustment" {% if selected_type == 'stock_adjustment' %}selected{% endif %}>Adjustment</option>
+                <option value="retail_sale" {% if selected_type == 'retail_sale' %}selected{% endif %}>Retail Sale</option>
+                <option value="wholesale_sale" {% if selected_type == 'wholesale_sale' %}selected{% endif %}>Wholesale Sale</option>
+                <option value="retail_return" {% if selected_type == 'retail_return' %}selected{% endif %}>Retail Return</option>
+                <option value="wholesale_return" {% if selected_type == 'wholesale_return' %}selected{% endif %}>Wholesale Return</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>From</label>
+            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+        </div>
+        <div class="col-md-2">
+            <label>To</label>
+            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+        </div>
+        <div class="col-md-2">
+            <label>User</label>
+            <select name="user" class="form-select">
+                <option value="">All Users</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>{{ u.name|default:u.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <button type="submit" class="btn btn-warning btn-action w-100"><i class="bi bi-search"></i></button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="table-responsive">
+        <table class="table" id="stockHistoryTable">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th>Reference</th>
+                    <th>Qty In</th>
+                    <th>Qty Out</th>
+                    <th>Stock Before</th>
+                    <th>Stock After</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td style="white-space:nowrap">{{ m.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="fw-semibold">{{ m.food.name }}</td>
+                    <td><span class="badge bg-secondary" style="font-size:11px">{{ m.get_transaction_type_display }}</span></td>
+                    <td style="color:var(--text-secondary);font-size:13px">{{ m.reference_number|default:"—" }}</td>
+                    <td>{% if m.quantity_change > 0 %}<span class="in-badge positive">+{{ m.quantity_change }}</span>{% else %}—{% endif %}</td>
+                    <td>{% if m.quantity_change < 0 %}<span class="in-badge negative">{{ m.quantity_change }}</span>{% else %}—{% endif %}</td>
+                    <td>{{ m.stock_before }}</td>
+                    <td>{{ m.stock_after }}</td>
+                    <td style="color:var(--text-secondary);font-size:13px">{{ m.created_by.name|default:m.created_by.email|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No stock movements found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+$('#stockHistoryTable').DataTable({
+    pageLength:25,
+    order:[[0,'desc']],
+    language:{search:'',searchPlaceholder:'Search...',emptyTable:'No data available',info:'Showing _START_ to _END_ of _TOTAL_ movements'},
+    dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+});
+</script>
+{% endblock %}

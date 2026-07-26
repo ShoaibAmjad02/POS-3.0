@@ -1,0 +1,62 @@
+<div id="menuBannerContainer" style="display:none"></div>
+
+<script>
+function loadMenuBanner() {
+    fetch('/users/offers/banner-data/')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            var container = document.getElementById('menuBannerContainer');
+            var html = '';
+            if (data.offer) {
+                html += '<div style="background:' + (data.offer.background_color || '#f59e0b') + ';border-radius:16px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+                    + '<div style="display:flex;align-items:center;gap:12px">'
+                    + '<span style="font-size:24px">&#127881;</span>'
+                    + '<div><div style="font-weight:700;font-size:15px;color:#000">' + data.offer.title + '</div>'
+                    + '<div style="font-size:13px;color:rgba(0,0,0,0.7)">' + data.offer.discount_percentage + '% OFF &middot; <span class="menuBannerCountdown" data-end="' + data.offer.end_timestamp + '"></span></div></div></div>'
+                    + '<a href="#" onclick="document.getElementById(\'offerPopupOverlay\')?.classList.add(\'show\');return false" style="background:rgba(0,0,0,0.15);color:#000;padding:8px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">View Offer &rarr;</a>'
+                    + '</div>';
+            }
+            if (data.deal) {
+                var priceInfo = '';
+                if (data.deal.combo_price) {
+                    priceInfo = ' | ' + formatCurrency(data.deal.combo_price);
+                }
+                html += '<div style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:16px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'
+                    + '<div style="display:flex;align-items:center;gap:12px">'
+                    + '<span style="font-size:24px">&#9889;</span>'
+                    + '<div><div style="font-weight:700;font-size:15px;color:#fff">' + data.deal.title + '</div>'
+                    + '<div style="font-size:13px;color:rgba(255,255,255,0.8)">' + (data.deal.description || 'Limited time offer') + priceInfo + ' &middot; <span class="menuBannerCountdown" data-end="' + data.deal.end_timestamp + '"></span></div></div></div>'
+                    + '<a href="/users/deals/' + data.deal.id + '/public/" style="background:rgba(255,255,255,0.2);color:#fff;padding:8px 20px;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px">View Deal &rarr;</a>'
+                    + '</div>';
+            }
+            if (html) {
+                container.innerHTML = html;
+                container.style.display = 'block';
+                startBannerCountdowns();
+            }
+        });
+}
+
+function startBannerCountdowns() {
+    setInterval(function() {
+        var now = Math.floor(Date.now() / 1000);
+        document.querySelectorAll('.menuBannerCountdown').forEach(function(el) {
+            var end = parseInt(el.getAttribute('data-end'));
+            if (!end) return;
+            var diff = Math.max(0, end - now);
+            var h = Math.floor(diff / 3600);
+            var m = Math.floor((diff % 3600) / 60);
+            var s = diff % 60;
+            el.textContent = 'Ends in ' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            if (diff <= 0) {
+                el.closest('[style*="display"]')?.remove();
+                if (!document.querySelector('.menuBannerCountdown')) {
+                    document.getElementById('menuBannerContainer').style.display = 'none';
+                }
+            }
+        });
+    }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', loadMenuBanner);
+</script>

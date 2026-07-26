@@ -1,0 +1,93 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}Stock Position - {{ company_name }}{% endblock %}
+{% block extra_css %}{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Stock <span>Position</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:14px">Current inventory valuation with quick access to stock history</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:stock_history' %}" class="btn btn-sm btn-outline-info"><i class="bi bi-clock-history"></i> Stock History</a>
+        <a href="{% url 'users:stock_movement_report' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-file-text"></i> Report</a>
+        <a href="{% url 'users:admin_dashboard' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="filter-card" data-aos="fade-up">
+    <form method="GET" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label>From Date</label>
+            <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+        </div>
+        <div class="col-md-4">
+            <label>To Date</label>
+            <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+        </div>
+        <div class="col-md-4">
+            <button type="submit" class="btn btn-warning btn-action w-100"><i class="bi bi-search me-1"></i> Generate Report</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="table-responsive">
+        <table class="table" id="stockTable">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Current Stock</th>
+                    <th>Avg Batch Cost</th>
+                    <th>Inventory Value</th>
+                    <th>Opening</th>
+                    <th>Purchased</th>
+                    <th>Sold</th>
+                    <th>Returned</th>
+                    <th>Closing</th>
+                    <th>Last Sale</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in stock_data %}
+                <tr>
+                    <td class="fw-semibold">{{ item.name }}</td>
+                    <td>
+                        <span class="badge {% if item.closing > 10 %}bg-success{% elif item.closing > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ item.closing }}</span>
+                    </td>
+                    <td>{% format_currency item.cost_price %}</td>
+                    <td>{% format_currency item.inventory_value %}</td>
+                    <td>{{ item.opening }}</td>
+                    <td style="color:var(--color-success)">{{ item.purchased }}</td>
+                    <td style="color:var(--color-danger)">{{ item.sold }}</td>
+                    <td style="color:var(--accent)">{{ item.returned }}</td>
+                    <td>{{ item.closing }}</td>
+                    <td style="font-size:12px;color:var(--text-secondary)">{{ item.last_sale_date|date:"Y-m-d H:i"|default:"—" }}</td>
+                    <td>
+                        <a href="{% url 'users:stock_history' %}?product={{ item.food_id }}" class="btn btn-sm btn-outline-info" style="padding:2px 8px;font-size:11px"><i class="bi bi-eye"></i> History</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11" class="text-center text-muted py-4">No products found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+$('#stockTable').DataTable({
+    pageLength:25,
+    order:[[0,'asc']],
+    language:{
+        search:'',searchPlaceholder:'Search products...',
+        emptyTable:'No data available',
+        info:'Showing _START_ to _END_ of _TOTAL_ products',
+    },
+    dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+});
+</script>
+{% endblock %}

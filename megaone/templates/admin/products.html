@@ -1,0 +1,493 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}Product Management - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.content-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:24px;margin-bottom:24px}
+.product-img{width:60px;height:60px;object-fit:cover;border-radius:12px;border:2px solid var(--border-input)}
+.badge-available{background:var(--color-success-bg);color:var(--color-success);padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-outofstock{background:var(--color-danger-bg);color:var(--color-danger);padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.btn-action{border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600}
+.modal-dark .modal-content{background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px}
+.modal-dark .modal-header{border-bottom:1px solid var(--alert-border);padding:20px 24px}
+.modal-dark .modal-header .btn-close{filter:invert(1)}
+.modal-dark .modal-body{padding:24px}
+.modal-dark .modal-footer{border-top:1px solid var(--alert-border);padding:16px 24px}
+.modal-dark .form-control,.modal-dark .form-select{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px}
+.modal-dark .form-control:focus,.modal-dark .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.15)}
+.modal-dark .form-control::placeholder{color:var(--text-placeholder)}
+.modal-dark label{color:var(--text-secondary);font-size:13px;font-weight:600;margin-bottom:6px}
+.modal-dark .input-group-text{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-secondary);border-radius:10px}
+.product-info-card{background:rgba(var(--accent-rgb),.03);border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid var(--border-color)}
+.product-info-card .info-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color)}
+.product-info-card .info-row:last-child{border-bottom:none}
+.product-info-card .info-label{color:var(--text-secondary);font-size:13px}
+.product-info-card .info-value{color:var(--text-detail-value);font-size:14px;font-weight:600}
+.select2-container--default .select2-selection--single{background:var(--bg-input)!important;border:1px solid var(--border-input)!important;border-radius:10px!important;height:auto!important;padding:8px 14px!important;color:var(--text-primary)!important}
+.select2-container--default .select2-selection--single .select2-selection__rendered{color:var(--text-primary)!important;line-height:normal!important;padding:0!important}
+.select2-container--default .select2-selection--single .select2-selection__arrow{top:10px!important;right:10px!important}
+.select2-container--default .select2-selection--single .select2-selection__placeholder{color:var(--text-placeholder)!important}
+.select2-dropdown{background:var(--bg-card)!important;border:1px solid var(--border-input)!important;border-radius:10px!important;color:var(--text-primary)!important}
+.select2-search__field{background:var(--bg-input)!important;border:1px solid var(--border-input)!important;border-radius:8px!important;color:var(--text-primary)!important}
+.select2-results__option{color:var(--text-primary)!important;padding:10px 14px!important}
+.select2-results__option--highlighted{background:var(--color-warning-bg)!important;color:var(--accent)!important}
+.select2-results__option[aria-selected=true]{background:rgba(var(--accent-rgb),.08)!important;color:var(--accent)!important}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Product <span>Management</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:14px">Manage all products from one place</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:add_product' %}" class="btn btn-warning btn-action px-3"><i class="bi bi-plus-circle me-1"></i> Add Product</a>
+        <a href="{% url 'users:admin_dashboard' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-speedometer2"></i> Dashboard</a>
+    </div>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="table-responsive">
+        <table class="table" id="productsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Barcode</th>
+                    <th>Code</th>
+                    <th>Default Cost</th>
+                    <th>SP</th>
+                    <th>WS Price</th>
+                    <th>Stock</th>
+                    <th>Discount</th>
+                    <th>Status</th>
+                    <th width="240">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td>#{{ product.id }}</td>
+                    <td>
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" class="product-img">
+                        {% else %}
+                        <div class="product-img d-flex align-items-center justify-content-center bg-secondary text-white">
+                            <i class="bi bi-image"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="fw-semibold">{{ product.name }}</td>
+                    <td>{{ product.category.name }}</td>
+                    <td><code class="text-info">{{ product.barcode|default:"-" }}</code></td>
+                    <td><code class="text-primary">{{ product.product_code|default:"-" }}</code></td>
+                    <td style="color:var(--text-secondary)">{% format_currency product.default_purchase_cost 0 %}</td>
+                    <td class="fw-bold color-success">{% format_currency product.price 0 %}</td>
+                    <td>
+                        {% if product.wholesale_price %}
+                        <span class="color-emerald">{% format_currency product.wholesale_price 0 %}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if product.stock > 10 %}bg-success{% elif product.stock > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ product.stock }}</span>
+                    </td>
+                    <td>
+                        {% if product.discount_type and product.discount_value > 0 %}
+                        <span class="badge bg-info text-dark">{{ product.discount_value|floatformat:0 }}{% if product.discount_type == 'percentage' %}%{% else %} fixed{% endif %}</span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if product.available %}
+                        <span class="badge-available">Available</span>
+                        {% else %}
+                        <span class="badge-outofstock">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-success add-stock-btn me-1" title="Add Stock" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                        <a href="{% url 'users:edit_product' product.id %}" class="btn btn-sm btn-outline-warning me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a href="{% url 'users:barcode_print' product.id %}" class="btn btn-sm btn-outline-info me-1" title="Print Barcode" target="_blank"><i class="bi bi-upc-scan"></i></a>
+                        <form action="{% url 'users:delete_product' product.id %}" method="POST" class="d-inline" onsubmit="return confirm('Delete {{ product.name }}?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="13" class="text-center text-muted py-4">No products found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Stock Modal -->
+<div class="modal fade modal-dark" id="addStockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle text-success me-2"></i>Add Stock</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addStockForm" autocomplete="off">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <!-- Product Search -->
+                    <div class="mb-4">
+                        <label>Search Product <span class="text-danger">*</span></label>
+                        <select class="form-select" id="productSearch" style="width:100%">
+                            <option value="">Type to search by name, SKU, or barcode...</option>
+                        </select>
+                        <input type="hidden" name="product_id" id="selectedProductId">
+                        <div id="productSearchError" class="text-danger small mt-1 d-none">Please select a product.</div>
+                    </div>
+
+                    <!-- Product Info Display -->
+                    <div class="product-info-card d-none" id="productInfoCard">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-row"><span class="info-label">Product Name</span><span class="info-value" id="displayName">-</span></div>
+                                <div class="info-row"><span class="info-label">Current Stock</span><span class="info-value" id="displayStock">-</span></div>
+                                <div class="info-row"><span class="info-label">Unit / SKU</span><span class="info-value" id="displayUnit">-</span></div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-row"><span class="info-label">Current Selling Price</span><span class="info-value" id="displayPrice">-</span></div>
+                                <div class="info-row"><span class="info-label">Current Wholesale Price</span><span class="info-value" id="displayWSPrice">-</span></div>
+                                <div class="info-row"><span class="info-label">Latest Purchase Cost</span><span class="info-value" id="displayCost">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock Entry Fields -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label>New Quantity <span class="text-danger">*</span></label>
+                            <input type="number" name="quantity" id="inputQuantity" class="form-control" placeholder="Enter quantity" min="1" step="1" required>
+                            <div id="quantityError" class="text-danger small mt-1 d-none">Quantity must be greater than zero.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Purchase Cost Per Unit <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ currency_symbol }}</span>
+                                <input type="number" name="purchase_cost" id="inputPurchaseCost" class="form-control" placeholder="0.00" min="0" step="0.01" required>
+                            </div>
+                            <div id="costError" class="text-danger small mt-1 d-none">Purchase cost is required.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>New Selling Price <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ currency_symbol }}</span>
+                                <input type="number" name="selling_price" id="inputSellingPrice" class="form-control" placeholder="0.00" min="0" step="0.01" required>
+                            </div>
+                            <div id="spError" class="text-danger small mt-1 d-none">Selling price is required.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label>New Wholesale Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ currency_symbol }}</span>
+                                <input type="number" name="wholesale_price" id="inputWholesalePrice" class="form-control" placeholder="0.00" min="0" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label>Purchase Date</label>
+                            <input type="date" name="purchase_date" id="inputPurchaseDate" class="form-control" value="{{ today|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Supplier</label>
+                            <input type="text" name="supplier" id="inputSupplier" class="form-control" placeholder="Supplier name">
+                        </div>
+                        <div class="col-md-4">
+                            <label>Invoice Number</label>
+                            <input type="text" name="invoice_number" id="inputInvoiceNumber" class="form-control" placeholder="Optional">
+                        </div>
+                        <div class="col-12">
+                            <label>Remarks</label>
+                            <textarea name="remarks" id="inputRemarks" class="form-control" rows="2" placeholder="Optional notes"></textarea>
+                        </div>
+                    </div>
+
+                    <div id="formErrors" class="alert alert-danger mt-3 d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="saveStockBtn">
+                        <i class="bi bi-check-circle me-1"></i> Save Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<link href="{% static 'vendor/css/select2.min.css' %}" rel="stylesheet">
+<script src="{% static 'vendor/js/select2.min.js' %}"></script>
+<script>
+AOS.init({duration:800,once:true});
+$('#productsTable').DataTable({
+    pageLength:10,
+    order:[[0,'desc']],
+    language:{
+        search:'',searchPlaceholder:'Search products...',
+        emptyTable:'No products found',
+        info:'Showing _START_ to _END_ of _TOTAL_ products',
+    },
+    dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip',
+});
+
+// ========================
+// Add Stock Functionality
+// ========================
+var addStockModal = new bootstrap.Modal(document.getElementById('addStockModal'));
+
+// Initialize Select2 for product search
+$('#productSearch').select2({
+    dropdownParent: $('#addStockModal'),
+    placeholder: 'Type to search by name, SKU, or barcode...',
+    allowClear: true,
+    minimumInputLength: 1,
+    ajax: {
+        url: '{% url "users:search_products" %}',
+        dataType: 'json',
+        delay: 300,
+        data: function(params) {
+            return { q: params.term };
+        },
+        processResults: function(data) {
+            return {
+                results: data.products.map(function(p) {
+                    return {
+                        id: p.id,
+                        text: p.name + ' [' + (p.barcode || p.sku || 'N/A') + ']',
+                        product: p
+                    };
+                })
+            };
+        },
+        cache: true
+    },
+    templateResult: function(data) {
+        if (!data.product) return data.text;
+        var $el = $(
+            '<div class="d-flex justify-content-between align-items-center" style="padding:4px 0">' +
+                '<div><strong>' + escapeHtml(data.product.name) + '</strong><br>' +
+                '<small class="text-muted">' +
+                    (data.product.barcode ? 'Barcode: ' + escapeHtml(data.product.barcode) : '') +
+                    (data.product.sku ? ' | SKU: ' + escapeHtml(data.product.sku) : '') +
+                '</small></div>' +
+                '<div class="text-end">' +
+                    '<span class="badge bg-secondary me-1">Stock: ' + data.product.stock + '</span>' +
+                    '<span class="badge bg-info text-dark">' + formatCurrency(data.product.price) + '</span>' +
+                '</div>' +
+            '</div>'
+        );
+        return $el;
+    },
+    templateSelection: function(data) {
+        if (!data.product) return data.text || 'Type to search...';
+        return data.product.name + ' [' + (data.product.barcode || data.product.sku || 'ID:' + data.product.id) + ']';
+    }
+}).on('select2:select', function(e) {
+    var p = e.params.data.product;
+    $('#selectedProductId').val(p.id);
+    populateProductInfo(p);
+    $('#productSearchError').addClass('d-none');
+}).on('select2:clear', function() {
+    $('#selectedProductId').val('');
+    $('#productInfoCard').addClass('d-none');
+    clearFormFields();
+});
+
+// Populate product info card
+function populateProductInfo(p) {
+    $('#displayName').text(p.name);
+    $('#displayStock').text(p.stock + ' units');
+    $('#displayUnit').text(p.sku || 'N/A');
+    $('#displayPrice').text(formatCurrency(p.price));
+    $('#displayWSPrice').text(p.wholesale_price > 0 ? formatCurrency(p.wholesale_price) : 'N/A');
+    $('#displayCost').text(formatCurrency(p.cost_price || p.default_purchase_cost || 0));
+    $('#productInfoCard').removeClass('d-none');
+
+    // Pre-fill form fields with current values
+    $('#inputPurchaseCost').val(parseFloat(p.cost_price || p.default_purchase_cost || 0).toFixed(2));
+    $('#inputSellingPrice').val(parseFloat(p.price).toFixed(2));
+    $('#inputWholesalePrice').val(p.wholesale_price > 0 ? parseFloat(p.wholesale_price).toFixed(2) : '');
+}
+
+function clearFormFields() {
+    $('#inputQuantity').val('');
+    $('#inputPurchaseCost').val('');
+    $('#inputSellingPrice').val('');
+    $('#inputWholesalePrice').val('');
+    $('#inputSupplier').val('');
+    $('#inputInvoiceNumber').val('');
+    $('#inputRemarks').val('');
+    $('#inputPurchaseDate').val('{{ today|date:"Y-m-d" }}');
+    $('#formErrors').addClass('d-none').html('');
+    $('.text-danger.d-none').addClass('d-none');
+}
+
+// Add Stock button click
+$(document).on('click', '.add-stock-btn', function() {
+    var productId = $(this).data('product-id');
+    var productName = $(this).data('product-name');
+    addStockModal.show();
+
+    // Pre-select product in Select2
+    if (productId) {
+        $.ajax({
+            url: '{% url "users:add_stock" %}',
+            data: { product_id: productId },
+            method: 'GET',
+            success: function(data) {
+                var option = new Option(data.name + ' [' + (data.barcode || 'ID:' + data.id) + ']', data.id, true, true);
+                $('#productSearch').append(option).trigger('change');
+                $('#productSearch').trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: {
+                            id: data.id,
+                            text: data.name,
+                            product: {
+                                id: data.id,
+                                name: data.name,
+                                stock: data.stock,
+                                price: data.price,
+                                wholesale_price: data.wholesale_price,
+                                cost_price: data.default_purchase_cost,
+                                sku: data.unit,
+                                barcode: data.barcode
+                            }
+                        }
+                    }
+                });
+            },
+            error: function() {
+                // If the API fails, create a manual option
+                var opt = new Option(productName, productId, true, true);
+                $('#productSearch').append(opt).trigger('change');
+            }
+        });
+    }
+});
+
+// Reset form on modal close
+$('#addStockModal').on('hidden.bs.modal', function() {
+    $('#productSearch').val(null).trigger('change');
+    $('#selectedProductId').val('');
+    $('#productInfoCard').addClass('d-none');
+    clearFormFields();
+    $('#productSearchError').addClass('d-none');
+    $('#saveStockBtn').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Save Stock');
+});
+
+// Form submission
+$('#addStockForm').on('submit', function(e) {
+    e.preventDefault();
+    $('#formErrors').addClass('d-none').html('');
+    $('.text-danger.d-none').addClass('d-none');
+
+    var productId = $('#selectedProductId').val();
+    var quantity = $('#inputQuantity').val();
+    var purchaseCost = $('#inputPurchaseCost').val();
+    var sellingPrice = $('#inputSellingPrice').val();
+    var wholesalePrice = $('#inputWholesalePrice').val() || 0;
+    var purchaseDate = $('#inputPurchaseDate').val();
+    var supplier = $('#inputSupplier').val();
+    var invoiceNumber = $('#inputInvoiceNumber').val();
+    var remarks = $('#inputRemarks').val();
+
+    // Client-side validation
+    var hasError = false;
+    if (!productId) {
+        $('#productSearchError').removeClass('d-none');
+        hasError = true;
+    }
+    if (!quantity || parseInt(quantity) <= 0) {
+        $('#quantityError').removeClass('d-none');
+        hasError = true;
+    }
+    if (!purchaseCost || parseFloat(purchaseCost) < 0) {
+        $('#costError').removeClass('d-none');
+        hasError = true;
+    }
+    if (!sellingPrice || parseFloat(sellingPrice) < 0) {
+        $('#spError').removeClass('d-none');
+        hasError = true;
+    }
+    if (hasError) return;
+
+    $('#saveStockBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> Saving...');
+
+    $.ajax({
+        url: '{% url "users:add_stock" %}',
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+        data: JSON.stringify({
+            product_id: productId,
+            quantity: quantity,
+            purchase_cost: purchaseCost,
+            selling_price: sellingPrice,
+            wholesale_price: wholesalePrice,
+            purchase_date: purchaseDate,
+            supplier: supplier,
+            invoice_number: invoiceNumber,
+            remarks: remarks
+        }),
+        success: function(data) {
+            if (data.success) {
+                // Show success message via bootstrap toast
+                var toastHtml = '<div class="position-fixed top-0 end-0 p-3" style="z-index:9999">' +
+                    '<div class="toast align-items-center text-bg-success border-0 show" role="alert">' +
+                    '<div class="d-flex"><div class="toast-body"><i class="bi bi-check-circle me-2"></i>' +
+                    escapeHtml(data.message) + '</div>' +
+                    '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div></div>';
+                $('body').append(toastHtml);
+                setTimeout(function() { $('.toast').toast('hide'); }, 4000);
+
+                addStockModal.hide();
+                // Reload page after a short delay to reflect updated stock
+                setTimeout(function() { location.reload(); }, 1000);
+            } else {
+                showFormErrors(data.errors || ['An unknown error occurred']);
+                $('#saveStockBtn').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Save Stock');
+            }
+        },
+        error: function(xhr) {
+            var resp = xhr.responseJSON;
+            var errs = (resp && resp.errors) ? resp.errors : ['Server error. Please try again.'];
+            showFormErrors(errs);
+            $('#saveStockBtn').prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Save Stock');
+        }
+    });
+});
+
+function showFormErrors(errors) {
+    var html = '<ul class="mb-0">';
+    $.each(errors, function(i, e) {
+        html += '<li>' + escapeHtml(e) + '</li>';
+    });
+    html += '</ul>';
+    $('#formErrors').html(html).removeClass('d-none');
+}
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

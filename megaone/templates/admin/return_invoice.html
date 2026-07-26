@@ -1,0 +1,499 @@
+{% load static tz format_tags %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ theme_mode }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Return Invoice - {{ company_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+{% include 'includes/theme_vars.html' %}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--text-primary);overflow:hidden;height:100vh}
+.pos-container{display:flex;height:100vh;gap:0}
+.left-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.right-panel{width:420px;min-width:420px;background:var(--bg-card);border-left:1px solid var(--alert-border);display:flex;flex-direction:column;height:100vh}
+.top-bar{background:var(--gradient-neutral);padding:10px 20px;border-bottom:1px solid var(--alert-border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.top-bar h5{margin:0;font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.top-bar h5 span{color:var(--color-danger)}
+.search-section{padding:12px 20px;background:var(--bg-body);flex-shrink:0}
+.search-row{display:flex;gap:8px;flex-wrap:nowrap}
+.search-row input{flex:1;background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px;min-width:0}
+.search-row input:focus{border-color:var(--color-danger);outline:none}
+.search-row input::placeholder{color:var(--text-placeholder)}
+.search-row select{background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:13px}
+.products-grid{flex:1;overflow-y:auto;padding:12px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start}
+.product-card{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-card);overflow:hidden;transition:.2s;cursor:pointer}
+.product-card:hover{border-color:var(--color-danger-border);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.product-card .p-img{height:100px;background:var(--bg-body);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.product-card .p-img img{width:100%;height:100%;object-fit:cover}
+.product-card .p-img .no-img{color:var(--text-placeholder);font-size:28px}
+.product-card .p-body{padding:8px 10px}
+.product-card .p-name{font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-card .p-price{font-size:15px;font-weight:700;color:var(--color-success)}
+.product-card .p-stock{font-size:10px;color:var(--text-placeholder);margin-top:2px}
+.product-card .p-sku{font-size:9px;color:var(--text-placeholder);margin-top:1px}
+.product-card .p-add{width:100%;margin-top:6px;padding:4px;border-radius:6px;border:none;font-size:11px;font-weight:600;transition:.2s}
+.product-card .p-add.add{background:var(--color-danger);color:#fff}
+.product-card .p-add.add:hover{background:var(--color-danger)}
+.product-card .p-add.oos{background:var(--color-danger-bg);color:var(--color-danger);cursor:not-allowed}
+.cart-header{padding:12px 16px;border-bottom:1px solid var(--alert-border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.cart-header h6{margin:0;font-weight:700;font-size:14px}
+.cart-header h6 span{color:var(--color-danger)}
+.cart-actions{display:flex;gap:4px}
+.cart-actions .btn{font-size:11px;padding:3px 10px;border-radius:6px}
+.cart-items{flex:1;overflow-y:auto;padding:8px 12px}
+.cart-item{background:var(--bg-body);border-radius:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--border-card)}
+.cart-item .ci-row1{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.cart-item .ci-name{font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cart-item .ci-price{font-size:12px;color:var(--color-success);font-weight:600;white-space:nowrap}
+.cart-item .ci-row2{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:6px}
+.cart-item .ci-qty{display:flex;align-items:center;gap:4px}
+.cart-item .ci-qty button{width:24px;height:24px;border-radius:6px;border:1px solid var(--border-input);background:transparent;color:var(--text-primary);font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;padding:0;line-height:1}
+.cart-item .ci-qty button:hover{background:var(--color-danger);color:#fff;border-color:var(--color-danger)}
+.cart-item .ci-qty span{font-size:13px;font-weight:700;min-width:20px;text-align:center}
+.cart-item .ci-del{background:transparent;border:none;color:var(--color-danger);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;opacity:.6}
+.cart-item .ci-del:hover{opacity:1}
+.cart-item .ci-returnable{font-size:10px;color:var(--text-placeholder);margin-top:2px}
+.cart-summary{padding:12px 16px;border-top:1px solid var(--alert-border);flex-shrink:0}
+.cart-summary .cs-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.cart-summary .cs-row.total{font-size:18px;font-weight:700;color:var(--color-danger);padding-top:8px;border-top:1px solid var(--alert-border);margin-top:4px}
+.checkout-section{padding:8px 16px 12px;border-top:1px solid var(--alert-border);flex-shrink:0}
+.checkout-section .btn-checkout{width:100%;padding:12px;font-size:15px;font-weight:700;border-radius:10px;border:none;background:linear-gradient(135deg,var(--color-danger),var(--color-danger));color:#fff;transition:.2s}
+.checkout-section .btn-checkout:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(239,68,68,.3)}
+.checkout-section .btn-checkout:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.toast-msg{position:fixed;bottom:20px;right:20px;z-index:9999;background:var(--bg-card);border:1px solid var(--color-danger-border);border-radius:12px;padding:12px 20px;color:var(--text-primary);font-size:13px;font-weight:600;display:none;box-shadow:0 8px 25px rgba(0,0,0,.5);max-width:400px}
+.toast-msg.show{display:block;animation:slideIn .3s}
+.toast-msg.success{border-color:var(--color-success-border)}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.invoice-info-card{background:var(--bg-card);border:1px solid var(--color-danger-border);border-radius:10px;padding:10px 14px;margin:8px 20px;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+.invoice-info-card .iic-label{font-size:11px;color:var(--text-placeholder)}
+.invoice-info-card .iic-value{font-size:13px;font-weight:600;color:var(--text-primary)}
+.invoice-info-card .iic-value span{color:var(--color-danger)}
+.return-history-btn{background:transparent;border:1px solid var(--border-input);color:var(--text-secondary);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;transition:.2s;text-decoration:none}
+.return-history-btn:hover{background:var(--color-danger-bg);border-color:var(--color-danger);color:var(--color-danger)}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--text-secondary);text-decoration:none;font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px;transition:.2s;cursor:pointer;margin-right:8px}
+.back-link:hover{background:var(--color-danger-bg);color:var(--color-danger)}
+.inv-result{background:var(--bg-card);border-radius:10px;border:1px solid var(--border-card);padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:.2s}
+.inv-result:hover{background:var(--color-danger-bg);border-color:var(--color-danger-border)}
+.inv-result .ir-number{color:var(--color-danger);font-weight:700;font-size:14px}
+.inv-result .ir-customer{color:var(--text-secondary);font-size:12px}
+.inv-result .ir-total{color:var(--color-success);font-weight:600;font-size:13px}
+.inv-result .ir-date{color:var(--text-placeholder);font-size:11px}
+@media(max-width:900px){.right-panel{width:340px;min-width:340px}.products-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}}
+@media(max-width:700px){.pos-container{flex-direction:column}.right-panel{width:100%;min-width:0;height:50vh;border-left:none;border-top:1px solid var(--alert-border)}.left-panel{height:50vh}}
+</style>
+</head>
+<body>
+
+<div class="pos-container">
+    <!-- LEFT: Invoice Search / Products -->
+    <div class="left-panel">
+        <div class="top-bar">
+            {% if user.is_staff or user.is_software_owner %}
+            <a href="{% url 'users:admin_dashboard' %}" class="back-link"><i class="bi bi-arrow-left"></i> Back</a>
+            {% endif %}
+            <h5><i class="bi bi-arrow-return-left" style="color:var(--color-danger)"></i> {{ company_name }} <small style="font-size:10px;color:var(--text-muted);font-weight:400">| Return</small></h5>
+            <div class="d-flex gap-3 align-items-center">
+                <span id="invBadge" style="display:none;font-size:11px;padding:4px 10px;border-radius:50px;background:var(--color-danger-bg);color:var(--color-danger);font-weight:600"><i class="bi bi-receipt me-1"></i><span id="invBadgeText"></span></span>
+                <span id="clock" style="color:var(--text-secondary);font-size:12px;font-weight:600"></span>
+                <button class="return-history-btn" onclick="window.location.href='{% url 'users:return_invoice_history' %}'"><i class="bi bi-clock-history me-1"></i>History</button>
+                <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Invoice Search Bar (shown when no invoice selected) -->
+        <div id="invoiceSearchSection" class="search-section">
+            <div class="search-row">
+                <input type="text" id="invoiceSearch" placeholder="Search original invoice by number, customer, email..." autocomplete="off">
+            </div>
+            <div id="invoiceResults" class="mt-2"></div>
+        </div>
+
+        <!-- Invoice Info Bar (shown when invoice selected) -->
+        <div id="invoiceInfoBar" class="invoice-info-card" style="display:none">
+            <div>
+                <div class="iic-label">Original Invoice</div>
+                <div class="iic-value"><span id="selInvNumber"></span></div>
+                <div style="font-size:11px;color:var(--text-muted)" id="selInvCustomer"></div>
+            </div>
+            <div class="text-end">
+                <div class="iic-label">Date</div>
+                <div style="font-size:12px;color:var(--text-secondary)" id="selInvDate"></div>
+                <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size:10px;padding:2px 8px;border-radius:4px" onclick="changeInvoice()"><i class="bi bi-x-lg"></i> Change</button>
+            </div>
+        </div>
+
+        <!-- Search Bar (for products within selected invoice) -->
+        <div id="productSearchSection" class="search-section" style="display:none;padding:8px 20px">
+            <div class="search-row">
+                <input type="text" id="productSearch" placeholder="Search product in this invoice..." oninput="filterInvoiceProducts()" autofocus>
+                <select id="returnableFilter" onchange="filterInvoiceProducts()" style="background:var(--bg-card);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:9px 12px;font-size:12px">
+                    <option value="all">All Items</option>
+                    <option value="returnable">Returnable Only</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Products Grid (shows invoice items) -->
+        <div class="products-grid" id="productGrid">
+            <div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px" id="emptyState">
+                <i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>
+                <div id="emptyStateText">Search an invoice to start return</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Return Cart -->
+    <div class="right-panel">
+        <div class="cart-header">
+            <h6><i class="bi bi-cart3 me-1" style="color:var(--color-danger)"></i> Return Cart <span id="cartCount" class="badge bg-danger" style="font-size:10px">0</span></h6>
+            <div class="cart-actions">
+                <button class="btn btn-outline-danger" onclick="clearReturnCart()" title="Clear Cart"><i class="bi bi-trash3"></i></button>
+            </div>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Return cart is empty<br><small style="color:var(--text-placeholder)">Click products from invoice to add</small></div>
+        </div>
+        <div class="cart-summary" id="cartSummary" style="display:none">
+            <div class="cs-row"><span>Items</span><span id="returnCount">0</span></div>
+            <div class="cs-row"><span>Total Qty</span><span id="returnTotalQty">0</span></div>
+            <div class="cs-row total"><span>Refund Amount</span><span id="refundAmount">{% format_currency 0 %}</span></div>
+        </div>
+        <div class="checkout-section">
+            <textarea id="returnNotes" class="form-control" rows="2" placeholder="Return reason / notes (optional)" style="background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:8px;resize:none"></textarea>
+            <button class="btn-checkout" id="processReturnBtn" onclick="processReturn()" disabled><i class="bi bi-check-lg me-1"></i> Process Return</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toastMsg"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let selectedInvoiceId = null;
+let selectedInvoiceType = 'retail';
+let invoiceProducts = [];
+let returnCart = [];
+let searchTimeout = null;
+const currencySymbol = '{{ currency_symbol }}' || 'Rs ';
+
+function showToast(msg, isError) {
+    const t = document.getElementById('toastMsg');
+    t.textContent = msg;
+    t.className = 'toast-msg show' + (isError ? '' : ' success');
+    t.style.borderColor = isError ? 'var(--color-danger-border)' : 'var(--color-success-border)';
+    setTimeout(() => { t.classList.remove('show'); }, 3500);
+}
+
+function updateClock() { document.getElementById("clock").innerText = new Date().toLocaleString(); }
+setInterval(updateClock, 1000); updateClock();
+
+function formatNumber(value, decimals) {
+    if (value == null || isNaN(value)) value = 0;
+    return Number(value).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+}
+function formatCurrency(value, decimals) {
+    if (decimals === undefined) decimals = 2;
+    return currencySymbol + formatNumber(value, decimals);
+}
+
+// ================================
+// STEP 1: Search Original Invoice
+// ================================
+document.getElementById('invoiceSearch').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const q = this.value.trim();
+    if (q.length < 1) {
+        document.getElementById('invoiceResults').innerHTML = '';
+        return;
+    }
+    searchTimeout = setTimeout(() => searchInvoices(q), 200);
+});
+
+function searchInvoices(q) {
+    fetch("{% url 'users:return_invoice_search' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({search: q})
+    })
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('invoiceResults');
+        if (!data.invoices || data.invoices.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:12px;font-size:13px">No invoices found</div>';
+            return;
+        }
+        container.innerHTML = data.invoices.map(inv => {
+            const isWs = inv.type === 'wholesale';
+            return '<div class="inv-result" onclick="selectInvoice(' + inv.id + ',\'' + inv.type + '\')" style="' + (isWs ? 'border-left:3px solid var(--color-emerald)' : '') + '">' +
+                '<div class="d-flex justify-content-between align-items-center">' +
+                    '<div>' +
+                        '<div class="ir-number">' + inv.invoice_number + ' <span class="badge bg-' + (isWs ? 'success' : 'danger') + '" style="font-size:8px;vertical-align:middle">' + inv.type.toUpperCase() + '</span></div>' +
+                        '<div class="ir-customer">' + inv.customer_name + (inv.customer_email ? ' (' + inv.customer_email + ')' : '') + '</div>' +
+                    '</div>' +
+                    '<div class="text-end">' +
+                        '<div class="ir-total">' + formatCurrency(inv.total, 0) + '</div>' +
+                        '<div class="ir-date">' + inv.date + '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    });
+}
+
+// ================================
+// STEP 2: Select Invoice
+// ================================
+function selectInvoice(invoiceId, invType) {
+    selectedInvoiceId = invoiceId;
+    selectedInvoiceType = invType || 'retail';
+    document.getElementById('invoiceResults').innerHTML = '';
+    document.getElementById('invoiceSearch').value = '';
+    var url = "{% url 'users:return_invoice_get_items' 0 %}".replace('0', invoiceId);
+    if (selectedInvoiceType === 'wholesale') {
+        url += '?invoice_type=wholesale';
+    }
+    fetch(url)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { showToast(data.error || 'Error loading invoice', true); return; }
+        // Show invoice info bar
+        document.getElementById('invoiceSearchSection').style.display = 'none';
+        document.getElementById('invoiceInfoBar').style.display = 'flex';
+        document.getElementById('productSearchSection').style.display = 'block';
+        document.getElementById('selInvNumber').textContent = data.invoice.invoice_number + ' (' + (data.invoice.type || 'retail').toUpperCase() + ')';
+        document.getElementById('selInvCustomer').textContent = data.invoice.customer_name + (data.invoice.customer_email ? ' - ' + data.invoice.customer_email : '');
+        document.getElementById('selInvDate').textContent = data.invoice.date;
+        document.getElementById('invBadge').style.display = 'inline-block';
+        document.getElementById('invBadgeText').textContent = data.invoice.invoice_number;
+        // Store products
+        invoiceProducts = data.items;
+        returnCart = [];
+        renderReturnCart();
+        filterInvoiceProducts();
+        document.getElementById('emptyStateText').textContent = 'Click a product to add to return cart';
+        document.getElementById('productSearch').value = '';
+        document.getElementById('productSearch').focus();
+    })
+    .catch(() => showToast('Error loading invoice items', true));
+}
+
+function changeInvoice() {
+    selectedInvoiceId = null;
+    selectedInvoiceType = 'retail';
+    invoiceProducts = [];
+    returnCart = [];
+    document.getElementById('invoiceSearchSection').style.display = 'block';
+    document.getElementById('invoiceInfoBar').style.display = 'none';
+    document.getElementById('productSearchSection').style.display = 'none';
+    document.getElementById('productGrid').innerHTML = '<div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px" id="emptyState"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i><div id="emptyStateText">Search an invoice to start return</div></div>';
+    document.getElementById('invBadge').style.display = 'none';
+    document.getElementById('returnNotes').value = '';
+    renderReturnCart();
+}
+
+// ================================
+// STEP 3: Filter & Show Products
+// ================================
+function filterInvoiceProducts() {
+    const q = document.getElementById('productSearch').value.trim().toLowerCase();
+    const filter = document.getElementById('returnableFilter').value;
+    let filtered = invoiceProducts;
+    if (filter === 'returnable') {
+        filtered = filtered.filter(p => p.returnable > 0);
+    }
+    if (q) {
+        filtered = filtered.filter(p =>
+            p.product_name.toLowerCase().includes(q) ||
+            (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+            (p.product_code && p.product_code.toLowerCase().includes(q)) ||
+            (p.sku && p.sku.toLowerCase().includes(q))
+        );
+    }
+    renderProductGrid(filtered);
+}
+
+function renderProductGrid(products) {
+    const grid = document.getElementById('productGrid');
+    if (!products || products.length === 0) {
+        grid.innerHTML = '<div class="text-center text-muted py-5" style="grid-column:1/-1;font-size:13px"><i class="bi bi-box" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>No products found in this invoice</div>';
+        return;
+    }
+    grid.innerHTML = products.map(p => {
+        const inCart = returnCart.find(c => c.item_id === p.id);
+        const cartQty = inCart ? inCart.qty : 0;
+        const remaining = p.returnable - cartQty;
+        const canAdd = remaining > 0;
+        return `<div class="product-card" onclick="${canAdd ? "addToReturnCart(" + p.id + ")" : "showToast('Max returnable: " + p.returnable + "', true)"}">
+            <div class="p-img">${p.image ? '<img src="' + p.image + '">' : '<i class="bi bi-box no-img"></i>'}</div>
+            <div class="p-body">
+                <div class="p-name">${p.product_name}</div>
+                ${p.barcode ? '<div class="p-sku"><i class="bi bi-upc-scan"></i> ' + p.barcode + '</div>' : ''}
+                ${p.sku ? '<div class="p-sku">SKU: ' + p.sku + '</div>' : ''}
+                <div class="p-price">${formatCurrency(p.price, 0)}</div>
+                <div class="p-stock">Sold: ${p.quantity} | Returned: ${p.already_returned} | Left: ${p.returnable}</div>
+                <button class="p-add ${canAdd ? 'add' : 'oos'}" onclick="event.stopPropagation();${canAdd ? "addToReturnCart(" + p.id + ")" : "showToast('Max returnable: " + p.returnable + "', true)"}">${canAdd ? '<i class="bi bi-plus-lg"></i> Return' : 'Fully Returned'}</button>
+                ${inCart ? '<div style="text-align:center;font-size:10px;color:var(--color-danger);margin-top:2px;font-weight:600">' + cartQty + ' in cart</div>' : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ================================
+// STEP 4: Return Cart Management
+// ================================
+function addToReturnCart(itemId) {
+    const product = invoiceProducts.find(p => p.id === itemId);
+    if (!product) return;
+    const inCart = returnCart.find(c => c.item_id === itemId);
+    const currentQty = inCart ? inCart.qty : 0;
+    if (currentQty >= product.returnable) {
+        showToast('Maximum returnable quantity is ' + product.returnable, true);
+        return;
+    }
+    if (inCart) {
+        inCart.qty++;
+    } else {
+        returnCart.push({
+            item_id: product.id,
+            product_name: product.product_name,
+            price: product.price,
+            qty: 1,
+            max_qty: product.returnable,
+        });
+    }
+    renderReturnCart();
+    filterInvoiceProducts();
+    showToast(product.product_name + ' added to return');
+}
+
+function updateReturnCartQty(itemId, newQty) {
+    const product = invoiceProducts.find(p => p.id === itemId);
+    if (!product) return;
+    if (newQty <= 0) {
+        returnCart = returnCart.filter(c => c.item_id !== itemId);
+    } else {
+        const item = returnCart.find(c => c.item_id === itemId);
+        if (item) {
+            if (newQty > product.returnable) newQty = product.returnable;
+            item.qty = newQty;
+        }
+    }
+    renderReturnCart();
+    filterInvoiceProducts();
+}
+
+function removeFromReturnCart(itemId) {
+    returnCart = returnCart.filter(c => c.item_id !== itemId);
+    renderReturnCart();
+    filterInvoiceProducts();
+}
+
+function clearReturnCart() {
+    if (returnCart.length === 0) return;
+    if (!confirm('Clear return cart?')) return;
+    returnCart = [];
+    renderReturnCart();
+    filterInvoiceProducts();
+}
+
+function renderReturnCart() {
+    const container = document.getElementById('cartItems');
+    const count = document.getElementById('cartCount');
+    const summary = document.getElementById('cartSummary');
+    const btn = document.getElementById('processReturnBtn');
+    if (!returnCart || returnCart.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-5" style="font-size:13px"><i class="bi bi-cart" style="font-size:32px;display:block;margin-bottom:8px;opacity:.3"></i>Return cart is empty<br><small style="color:var(--text-placeholder)">Click products from invoice to add</small></div>';
+        count.textContent = '0';
+        summary.style.display = 'none';
+        btn.disabled = true;
+        return;
+    }
+    summary.style.display = 'block';
+    count.textContent = returnCart.length;
+    let totalRefund = 0;
+    let totalQty = 0;
+    container.innerHTML = returnCart.map(item => {
+        const subtotal = item.qty * item.price;
+        totalRefund += subtotal;
+        totalQty += item.qty;
+        return `<div class="cart-item">
+            <div class="ci-row1">
+                <span class="ci-name">${item.product_name}</span>
+                <span class="ci-price">${formatCurrency(subtotal, 0)}</span>
+                <button class="ci-del" onclick="removeFromReturnCart(${item.item_id})"><i class="bi bi-x-circle"></i></button>
+            </div>
+            <div class="ci-row2">
+                <div class="ci-qty">
+                    <button onclick="updateReturnCartQty(${item.item_id}, ${item.qty - 1})">−</button>
+                    <input type="number" value="${item.qty}" min="0" max="${item.max_qty}" style="width:36px;text-align:center;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;font-size:13px;font-weight:700;padding:1px 2px" oninput="updateReturnCartQty(${item.item_id}, parseInt(this.value) || 0)">
+                    <button onclick="updateReturnCartQty(${item.item_id}, ${item.qty + 1})">+</button>
+                </div>
+                <span style="font-size:11px;color:var(--text-secondary)">${formatCurrency(item.price, 0)} × ${item.qty}</span>
+            </div>
+            <div class="ci-returnable">Max returnable: ${item.max_qty}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('returnCount').textContent = returnCart.length + ' items';
+    document.getElementById('returnTotalQty').textContent = totalQty;
+    document.getElementById('refundAmount').textContent = formatCurrency(totalRefund, 0);
+    btn.disabled = false;
+}
+
+// ================================
+// STEP 5: Process Return
+// ================================
+function processReturn() {
+    if (!selectedInvoiceId || returnCart.length === 0) return;
+    const items = returnCart.map(c => ({ item_id: c.item_id, quantity: c.qty }));
+    const notes = document.getElementById('returnNotes').value.trim();
+    const btn = document.getElementById('processReturnBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+    fetch("{% url 'users:return_invoice_save' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({ invoice_id: selectedInvoiceId, items: items, notes: notes, invoice_type: selectedInvoiceType })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Process Return';
+        if (data.success) {
+            showToast(data.message, false);
+            if (data.return_invoice_id) {
+                setTimeout(() => {
+                    if (confirm('Return ' + (data.return_number || '') + ' processed! Refund: ' + formatCurrency(data.total_refund_amount, 0) + '\n\nPrint Return Invoice?')) {
+                        window.open("/users/return-invoice/print/" + data.return_invoice_id + "/", "_blank");
+                    }
+                }, 500);
+            }
+            changeInvoice();
+        } else {
+            showToast(data.error || 'Error processing return', true);
+            btn.disabled = false;
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Process Return';
+        showToast('Error processing return', true);
+    });
+}
+
+// Keyboard shortcut: Escape to clear invoice selection
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && selectedInvoiceId) {
+        changeInvoice();
+    }
+    // F5 or scan barcode in search field
+    if (!selectedInvoiceId && document.activeElement !== document.getElementById('invoiceSearch')) {
+        // pass
+    }
+});
+</script>
+</body>
+</html>

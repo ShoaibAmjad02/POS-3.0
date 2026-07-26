@@ -1,0 +1,255 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Profit & Loss Statement - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.filter-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:24px;margin-bottom:24px}
+.filter-card label{color:#94a3b8;font-size:13px;font-weight:600;margin-bottom:6px}
+.filter-card .form-control,.filter-card .form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:10px 14px}
+.filter-card .form-control:focus,.filter-card .form-select:focus{border-color:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.filter-card .form-control::placeholder{color:#475569}
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden;margin-bottom:24px}
+.table-card .card-header{background:rgba(255,255,255,.02);padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.05)}
+.table-card .card-header h5{margin:0;font-size:15px;font-weight:600}
+.btn-action{border-radius:10px;padding:10px 24px;font-weight:600}
+.pl-preset{border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;transition:.2s}
+.pl-preset.active{background:#f59e0b;color:#0f172a;border-color:#f59e0b}
+.pl-preset:not(.active):hover{border-color:#f59e0b;color:#f59e0b}
+@media print{body{background:#fff!important;color:#000!important}.sidebar,.top-bar .btn,.filter-card,.btn-toolbar{display:none!important}.main-content{margin-left:0!important;padding:20px!important}.table-card{border:1px solid #ddd!important;background:#fff!important}.table-card .card-header{background:#f5f5f5!important}.table-card .card-header h5{color:#000!important}.pl-line{border-bottom-color:#ddd!important}.pl-label{color:#333!important}.pl-value{color:#000!important}.pl-total{color:#000!important}.pl-section-title{color:#000!important}.text-muted{color:#666!important}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Profit & Loss <span>Statement</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Comprehensive financial breakdown for the selected period</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-outline-info" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+        <a id="exportPdfBtn" class="btn btn-sm btn-outline-danger" href="#"><i class="bi bi-filetype-pdf"></i> PDF</a>
+        <a id="exportExcelBtn" class="btn btn-sm btn-outline-success" href="#"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+        <button class="btn btn-sm btn-outline-warning" onclick="loadProfitLoss()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+</div>
+
+<div class="filter-card" data-aos="fade-up">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+            <button class="btn btn-sm btn-outline-warning pl-preset active" data-range="today">Today</button>
+            <button class="btn btn-sm btn-outline-warning pl-preset" data-range="yesterday">Yesterday</button>
+            <button class="btn btn-sm btn-outline-warning pl-preset" data-range="this_week">This Week</button>
+            <button class="btn btn-sm btn-outline-warning pl-preset" data-range="this_month">This Month</button>
+            <button class="btn btn-sm btn-outline-warning pl-preset" data-range="this_year">This Year</button>
+            <button class="btn btn-sm btn-outline-warning pl-preset" data-range="custom">Custom</button>
+            <div id="plCustomDates" style="display:none" class="d-flex gap-2 align-items-center ms-2">
+                <input type="date" id="plStartDate" class="form-control form-control-sm" style="width:140px">
+                <span style="color:#64748b">to</span>
+                <input type="date" id="plEndDate" class="form-control form-control-sm" style="width:140px">
+                <button class="btn btn-sm btn-warning" onclick="loadProfitLoss()"><i class="bi bi-search"></i></button>
+            </div>
+            <span id="plDateLabel" class="ms-2" style="font-size:12px;color:#94a3b8"></span>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4" data-aos="fade-up">
+    <div class="col-xl-8 col-lg-10">
+        <div class="table-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-calculator me-2 text-warning"></i>Profit & Loss Statement</h5>
+                <span id="plStatementDate" style="font-size:12px;color:#94a3b8"></span>
+            </div>
+            <div class="p-4" id="plStatementBody">
+                <div class="text-center text-muted py-4">Select a date range to view the Profit & Loss statement</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.pl-preset').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.pl-preset').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            var range = this.getAttribute('data-range');
+            if (range === 'custom') {
+                document.getElementById('plCustomDates').style.display = 'flex';
+                return;
+            }
+            document.getElementById('plCustomDates').style.display = 'none';
+            loadProfitLoss();
+        });
+    });
+
+    // Check for URL query params from dashboard filter
+    var params = new URLSearchParams(window.location.search);
+    var start = params.get('start_date');
+    var end = params.get('end_date');
+    if (start && end) {
+        document.querySelectorAll('.pl-preset').forEach(function(b) { b.classList.remove('active'); });
+        document.querySelector('.pl-preset[data-range="custom"]').classList.add('active');
+        document.getElementById('plCustomDates').style.display = 'flex';
+        document.getElementById('plStartDate').value = start;
+        document.getElementById('plEndDate').value = end;
+        loadProfitLoss();
+    } else {
+        loadProfitLoss();
+    }
+});
+
+function getDateRange(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+    function fmt(dt) { return dt.toISOString().split('T')[0]; }
+
+    switch (range) {
+        case 'today': return { start: fmt(now), end: fmt(now) };
+        case 'yesterday': { var yd = new Date(now); yd.setDate(yd.getDate() - 1); return { start: fmt(yd), end: fmt(yd) }; }
+        case 'this_week': { var day = now.getDay(); var diff = now.getDate() - day + (day === 0 ? -6 : 1); var mon = new Date(now); mon.setDate(diff); return { start: fmt(mon), end: fmt(now) }; }
+        case 'this_month': return { start: fmt(new Date(y, m, 1)), end: fmt(now) };
+        case 'this_year': return { start: fmt(new Date(y, 0, 1)), end: fmt(now) };
+        case 'custom': return { start: document.getElementById('plStartDate').value, end: document.getElementById('plEndDate').value };
+        default: return { start: fmt(now), end: fmt(now) };
+    }
+}
+
+function loadProfitLoss() {
+    var activeBtn = document.querySelector('.pl-preset.active');
+    var range = activeBtn ? activeBtn.getAttribute('data-range') : 'today';
+    var dates = getDateRange(range);
+    if (!dates.start || !dates.end) {
+        document.getElementById('plStatementBody').innerHTML = '<div class="text-center text-muted py-4">Please select both start and end dates</div>';
+        return;
+    }
+    document.getElementById('plDateLabel').textContent = dates.start + ' to ' + dates.end;
+    document.getElementById('plStatementDate').textContent = dates.start + ' to ' + dates.end;
+
+    var pdfUrl = "{% url 'users:profit_loss_export_pdf' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end);
+    var excelUrl = "{% url 'users:profit_loss_export_excel' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end);
+    document.getElementById('exportPdfBtn').href = pdfUrl;
+    document.getElementById('exportExcelBtn').href = excelUrl;
+
+    fetch("{% url 'users:profit_loss_data' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end), {
+        credentials: "same-origin"
+    })
+    .then(function(r) {
+        if (!r.ok) return r.json().then(function(err) { throw new Error(err.error || 'Server error'); });
+        return r.json();
+    })
+    .then(function(data) {
+        if (data.error) { showPlError(data.error); return; }
+        renderPlStatement(data);
+    })
+    .catch(function(err) {
+        document.getElementById('plStatementBody').innerHTML = '<div class="text-center text-danger py-4">Error: ' + (err.message || 'Failed to load data') + '</div>';
+    });
+}
+
+function renderPlStatement(data) {
+    function r(v) { return formatCurrency(v); }
+    var gpClass = data.gross_profit >= 0 ? 'color:#22c55e' : 'color:#ef4444';
+    var npClass = data.net_profit >= 0 ? 'color:#22c55e' : 'color:#ef4444';
+
+    document.getElementById('plStatementBody').innerHTML = `
+        <div style="max-width:600px;margin:0 auto">
+            <div class="d-flex justify-content-between py-2 pl-section-title" style="border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;font-size:14px;color:#f1f5f9">
+                <span>Revenue</span>
+                <span></span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Retail Sales Revenue</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.retail_revenue)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Wholesale Sales Revenue</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.wholesale_revenue)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#ef4444;padding-left:16px">Less: Returns</span>
+                <span class="pl-value" style="color:#ef4444">(${r(data.return_revenue)})</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-total" style="border-bottom:2px dashed rgba(255,255,255,.1);font-weight:700;color:#f59e0b">
+                <span>Total Revenue</span>
+                <span>${r(data.total_revenue)}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 pl-section-title" style="border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;font-size:14px;color:#f1f5f9;margin-top:12px">
+                <span>Taxes Collected</span>
+                <span></span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Retail Tax</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.retail_tax)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Wholesale Tax</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.wholesale_tax)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-total" style="border-bottom:2px dashed rgba(255,255,255,.1);font-weight:700;color:#a855f7">
+                <span>Total Tax Collected</span>
+                <span>${r(data.total_tax)}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 pl-section-title" style="border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;font-size:14px;color:#f1f5f9;margin-top:12px">
+                <span>Costs & Expenses</span>
+                <span></span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Product Cost (COGS)</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.total_cogs)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Discounts Given</span>
+                <span class="pl-value" style="color:#e2e8f0">${r(data.total_discounts)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Business Expenses</span>
+                <span class="pl-value" style="color:#ef4444">${r(data.business_expenses || 0)}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 pl-section-title" style="border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;font-size:14px;color:#f1f5f9;margin-top:12px">
+                <span>Inventory Summary</span>
+                <span></span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Total Products</span>
+                <span class="pl-value" style="color:#e2e8f0">${data.total_products}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-line" style="border-bottom:1px solid rgba(255,255,255,.04)">
+                <span class="pl-label" style="color:#94a3b8;padding-left:16px">Total Stock Quantity</span>
+                <span class="pl-value" style="color:#e2e8f0">${Number(data.total_stock_quantity).toLocaleString()} Units</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-total" style="border-bottom:2px dashed rgba(255,255,255,.1);font-weight:700;color:#22c55e">
+                <span>Total Inventory Cost</span>
+                <span>${r(data.total_inventory_cost)}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 pl-total" style="border-bottom:2px dashed rgba(255,255,255,.1);font-weight:700;font-size:15px;color:#f1f5f9;margin-top:16px">
+                <span>Gross Profit</span>
+                <span style="${gpClass}">${r(data.gross_profit)}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 pl-total" style="font-weight:800;font-size:18px;margin-top:4px">
+                <span style="color:#f1f5f9">Net Profit</span>
+                <span style="${npClass}">${r(data.net_profit)}</span>
+            </div>
+
+            <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:#64748b">
+                <div>Total Retail Invoices: <strong style="color:#e2e8f0">${data.retail_count}</strong> &nbsp;|&nbsp; Total Wholesale Invoices: <strong style="color:#e2e8f0">${data.wholesale_count}</strong></div>
+                <div style="margin-top:4px">Total Sales: <strong style="color:#e2e8f0">${data.total_count}</strong></div>
+            </div>
+        </div>
+    `;
+}
+
+function showPlError(msg) {
+    document.getElementById('plStatementBody').innerHTML = '<div class="text-center text-danger py-4">' + msg + '</div>';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,536 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n format_tags %}
+{% block title %}Admin Dashboard - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.stat-card{border:none;border-radius:16px;padding:24px;transition:.3s;position:relative;overflow:hidden;height:100%}
+.stat-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(0,0,0,.3)}
+.stat-card .stat-icon{font-size:38px;opacity:.2;position:absolute;right:15px;bottom:10px}
+.stat-card .stat-value{font-size:28px;font-weight:700;margin:8px 0 4px}
+.stat-card .stat-label{font-size:13px;opacity:.85;font-weight:500}
+.gradient-revenue{background:linear-gradient(135deg,#059669,#10b981)}
+.gradient-orders{background:linear-gradient(135deg,#3b82f6,#6366f1)}
+.gradient-active{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.gradient-delivered{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.gradient-kitchen{background:linear-gradient(135deg,#8b5cf6,#a855f7)}
+.gradient-tables{background:linear-gradient(135deg,#ec4899,#f43f5e)}
+.gradient-foods{background:linear-gradient(135deg,#14b8a6,#06b6d4)}
+.gradient-customers{background:linear-gradient(135deg,#64748b,#475569)}
+.gradient-tax-total{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+.gradient-tax-card{background:linear-gradient(135deg,#2563eb,#3b82f6)}
+.gradient-tax-cash{background:linear-gradient(135deg,#ea580c,#f97316)}
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden;margin-bottom:24px}
+.table-card .card-header{background:rgba(255,255,255,.02);padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.05)}
+.table-card .card-header h5{margin:0;font-size:15px;font-weight:600}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+.status-badge{padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600;display:inline-block}
+.section-heading h4{font-size:18px;font-weight:600;color:#f1f5f9;margin:0 0 4px}
+.section-heading .section-divider{border-color:rgba(245,158,11,.3);margin:0 0 16px;opacity:1}
+.quick-action-btn{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px;text-align:center;transition:.2s;color:#e2e8f0;text-decoration:none;display:block}
+.quick-action-btn:hover{background:rgba(245,158,11,.1);border-color:#f59e0b;color:#f59e0b;transform:translateY(-3px)}
+.quick-action-btn i{font-size:28px;margin-bottom:8px;display:block}
+.quick-action-btn span{font-size:13px;font-weight:500}
+.badge-pending{background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:600}
+.badge-approved{background:rgba(34,197,94,.15);color:#22c55e;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:600}
+.badge-rejected{background:rgba(239,68,68,.15);color:#ef4444;padding:4px 10px;border-radius:50px;font-size:11px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Admin <span>Dashboard</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Welcome back! Here's your store overview.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-outline-warning" onclick="location.reload()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+    </div>
+</div>
+
+{% if user_perms.reports.view %}
+<!-- Profit & Loss Card -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981);cursor:pointer" onclick="openPlFilterModal()" title="Click to view detailed Profit & Loss statement">
+            <div class="stat-value" id="plNetProfit">{% format_currency 0 2 %}</div>
+            <div class="stat-label">Profit & Loss</div>
+            <i class="bi bi-graph-up-arrow stat-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- P&L Filter Modal -->
+<div class="modal fade" id="plFilterModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);color:#e2e8f0;border-radius:16px">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-funnel text-warning me-2"></i>Select Reporting Period</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-2 mb-3" id="plFilterPresets">
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset active" data-range="today">Today</button>
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset" data-range="yesterday">Yesterday</button>
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset" data-range="this_week">This Week</button>
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset" data-range="this_month">This Month</button>
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset" data-range="this_year">This Year</button>
+                    <button class="btn btn-sm btn-outline-warning pl-filter-preset" data-range="custom">Custom</button>
+                </div>
+                <div id="plFilterCustomDates" style="display:none">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label style="color:#94a3b8;font-size:12px;font-weight:600;margin-bottom:4px">From</label>
+                            <input type="date" id="plFilterStartDate" class="form-control form-control-sm" style="background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px">
+                        </div>
+                        <div class="col-6">
+                            <label style="color:#94a3b8;font-size:12px;font-weight:600;margin-bottom:4px">To</label>
+                            <input type="date" id="plFilterEndDate" class="form-control form-control-sm" style="background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:8px">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-warning" onclick="applyPlFilter()"><i class="bi bi-bar-chart me-1"></i> View Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Invoice Approvals Section -->
+
+<!-- General Stats -->
+<div class="section-heading" data-aos="fade-up">
+    <h4><i class="bi bi-grid-3x3-gap me-2"></i>General Stats</h4>
+    <hr class="section-divider">
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card gradient-orders">
+            <div class="stat-value" id="plTotalOrders">{{ total_orders }}</div>
+            <div class="stat-label">Total Orders</div>
+            <i class="bi bi-cart-check stat-icon"></i>
+        </div>
+    </div>
+    {% if user_perms.return_invoice %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444)">
+            <div class="stat-value" id="plReturnsTotal">{% format_currency returns_total 0 %}</div>
+            <div class="stat-label">Total Returned Amount</div>
+            <i class="bi bi-arrow-return-left stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f97316,#ea580c)">
+            <div class="stat-value">{{ returned_qty }}</div>
+            <div class="stat-label">Returned Products</div>
+            <i class="bi bi-box-seam stat-icon"></i>
+        </div>
+    </div>
+    {% endif %}
+    {% if user_perms.sales.create %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="150">
+        <div class="stat-card" style="background:linear-gradient(135deg,#a855f7,#8b5cf6)">
+            <div class="stat-value">{{ pending_approvals_count }}</div>
+            <div class="stat-label">Pending Approvals</div>
+            <i class="bi bi-clock-history stat-icon"></i>
+        </div>
+    </div>
+    {% endif %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-card gradient-kitchen">
+            <div class="stat-value">{{ operator_users_count }}</div>
+            <div class="stat-label">Operators</div>
+            <i class="bi bi-people-fill stat-icon"></i>
+        </div>
+    </div>
+    {% if user_perms.customers.manage %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="250">
+        <div class="stat-card gradient-customers">
+            <div class="stat-value">{{ customers_count }}</div>
+            <div class="stat-label">Customers</div>
+            <i class="bi bi-person-badge stat-icon"></i>
+        </div>
+    </div>
+    {% endif %}
+    {% if user_perms.products.view %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+            <div class="stat-value">{{ total_offers }}</div>
+            <div class="stat-label">Total Offers</div>
+            <i class="bi bi-megaphone stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="350">
+        <div class="stat-card" style="background:linear-gradient(135deg,#22c55e,#16a34a)">
+            <div class="stat-value">{{ active_offers }}</div>
+            <div class="stat-label">Active Offers</div>
+            <i class="bi bi-check-circle stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="400">
+        <div class="stat-card" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            <div class="stat-value">{{ expired_offers }}</div>
+            <div class="stat-label">Expired Offers</div>
+            <i class="bi bi-clock-history stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="450">
+        <div class="stat-card" style="background:linear-gradient(135deg,#8b5cf6,#a855f7)">
+            <div class="stat-value">{{ total_deals }}</div>
+            <div class="stat-label">Today's Deals</div>
+            <i class="bi bi-fire stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="500">
+        <div class="stat-card" style="background:linear-gradient(135deg,#14b8a6,#06b6d4)">
+            <div class="stat-value">{{ offer_discount_given }}</div>
+            <div class="stat-label">Offer Usage Count</div>
+            <i class="bi bi-graph-up stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="550">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f97316,#ea580c)">
+            <div class="stat-value">{% format_currency offer_usage 0 %}</div>
+            <div class="stat-label">Discount Given</div>
+            <i class="bi bi-cash-coin stat-icon"></i>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if user_perms.cash_handling.dashboard_view %}
+<!-- Cash Handling Widget -->
+<div class="section-heading" data-aos="fade-up">
+    <h4><i class="bi bi-cash-stack me-2 text-warning"></i>Cash Drawer</h4>
+    <hr class="section-divider">
+</div>
+<div class="row g-3 mb-4" id="cashDrawerWidget">
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card" style="background:linear-gradient(135deg,#059669,#10b981)">
+            <div class="stat-value" id="chCurrentBalance">--</div>
+            <div class="stat-label">Current Balance</div>
+            <i class="bi bi-cash stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-card" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">
+            <div class="stat-value" id="chCashSales">--</div>
+            <div class="stat-label">Cash Sales</div>
+            <i class="bi bi-graph-up-arrow stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card" style="background:linear-gradient(135deg,#ef4444,#dc2626)">
+            <div class="stat-value" id="chRefunds">--</div>
+            <div class="stat-label">Refunds</div>
+            <i class="bi bi-arrow-return-left stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="150">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#f97316)">
+            <div class="stat-value" id="chDrops">--</div>
+            <div class="stat-label">Drops</div>
+            <i class="bi bi-safe stat-icon"></i>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    fetch('{% url "cash_handling:dashboard_data" %}')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.has_active_session) {
+                var sym = window.currencySymbol || 'Rs ';
+                document.getElementById('chCurrentBalance').textContent = sym + ' ' + Number(d.current_balance).toLocaleString('en-US', {minimumFractionDigits:2});
+                document.getElementById('chCashSales').textContent = sym + ' ' + Number(d.cash_sales).toLocaleString('en-US', {minimumFractionDigits:2});
+                document.getElementById('chRefunds').textContent = sym + ' ' + Number(d.cash_refunds).toLocaleString('en-US', {minimumFractionDigits:2});
+                document.getElementById('chDrops').textContent = sym + ' ' + Number(d.cash_drops).toLocaleString('en-US', {minimumFractionDigits:2});
+            } else {
+                document.getElementById('cashDrawerWidget').innerHTML = '<div class="col-12"><div class="stat-card" style="background:linear-gradient(135deg,#64748b,#475569);text-align:center;padding:30px"><div style="font-size:14px;opacity:.8">No active drawer session. <a href="{% url "cash_handling:transaction_list" %}" style="color:var(--accent);text-decoration:underline">Open one here</a>.</div></div></div>';
+            }
+        })
+        .catch(function() {});
+})();
+</script>
+{% endif %}
+
+<!-- Invoice Approvals Section -->
+{% if user_perms.sales.create %}
+<div class="section-heading" data-aos="fade-up">
+    <h4><i class="bi bi-clock-history me-2 text-warning"></i>Invoice Approvals</h4>
+    <hr class="section-divider">
+</div>
+<div class="table-card mb-4" data-aos="fade-up">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="bi bi-hourglass-split me-2 text-warning"></i>Pending Approvals</h5>
+        <a href="{% url 'users:admin_pending_approvals' %}" class="btn btn-sm btn-warning" style="border-radius:8px;font-weight:600">
+            <i class="bi bi-eye me-1"></i> View All ({{ pending_approvals_count }})
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table" id="pendingApprovalsTable">
+            <thead>
+                <tr>
+                    <th>Request #</th>
+                    <th>Operator</th>
+                    <th>Customer</th>
+                    <th>Date & Time</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in pending_approvals %}
+                <tr>
+                    <td><strong>#{{ req.id }}</strong></td>
+                    <td>{{ req.operator.name|default:req.operator.email }}</td>
+                    <td>{{ req.customer_name|default:"Walk-in Customer" }}</td>
+                    <td>{{ req.created_at|date:"d-m-Y h:i A" }}</td>
+                    <td>{% format_currency req.subtotal 2 %}</td>
+                    <td><span class="badge badge-pending"><i class="bi bi-hourglass me-1"></i>Pending</span></td>
+                    <td>
+                        <a href="{% url 'users:admin_pending_approvals' %}" class="btn btn-sm btn-outline-warning" style="border-radius:6px">
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No pending approvals</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Backup Status Section -->
+{% if user_perms.users.manage %}
+<div class="section-heading" data-aos="fade-up">
+    <h4><i class="bi bi-database me-2"></i>Backup Status</h4>
+    <hr class="section-divider">
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1e293b,#334155)">
+            <div class="stat-label">Last Backup</div>
+            <div class="stat-value" style="font-size:16px">{{ last_backup_time }}</div>
+            <i class="bi bi-clock-history stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1e293b,#334155)">
+            <div class="stat-label">Backup Status</div>
+            <div class="stat-value" style="font-size:16px">
+                {% if backup_status == "success" %}
+                <span style="color:#22c55e">Success</span>
+                {% elif backup_status == "failed" %}
+                <span style="color:#ef4444">Failed</span>
+                {% else %}
+                <span style="color:#f59e0b">No backup yet</span>
+                {% endif %}
+            </div>
+            <i class="bi bi-shield-check stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1e293b,#334155)">
+            <div class="stat-label">Auto Backup</div>
+            <div class="stat-value" style="font-size:16px">
+                {% if auto_backup_enabled %}
+                <span style="color:#22c55e">Enabled</span>
+                {% else %}
+                <span style="color:#ef4444">Disabled</span>
+                {% endif %}
+            </div>
+            <i class="bi bi-toggle-on stat-icon"></i>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="stat-card" style="background:linear-gradient(135deg,#1e293b,#334155)">
+            <div class="stat-label">Backup File</div>
+            <div class="stat-value" style="font-size:16px">
+                {% if backup_exists %}
+                <span style="color:#22c55e">Available</span>
+                {% else %}
+                <span style="color:#f59e0b">None</span>
+                {% endif %}
+            </div>
+            <i class="bi bi-file-earmark-zip stat-icon"></i>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4" data-aos="fade-up">
+    <div class="col-12"><h5 style="font-size:14px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px"><i class="bi bi-lightning me-2"></i>Quick Actions</h5></div>
+    {% if user_perms.products.view %}
+    <div class="col-md-3 col-6"><a href="{% url 'users:product_list' %}" class="quick-action-btn"><i class="bi bi-box-seam"></i><span>Products</span></a></div>
+    {% endif %}
+    {% if user_perms.inventory.view %}
+    <div class="col-md-3 col-6"><a href="{% url 'users:stock_position' %}" class="quick-action-btn"><i class="bi bi-bar-chart"></i><span>Stock Position</span></a></div>
+    {% endif %}
+    {% if user_perms.sales.view %}
+    <div class="col-md-3 col-6"><a href="{% url 'users:invoice_search_page' %}" class="quick-action-btn"><i class="bi bi-receipt"></i><span>Invoices</span></a></div>
+    {% endif %}
+    {% if user_perms.users.manage %}
+    <div class="col-md-3 col-6"><a href="{% url 'users:operator_users_page' %}" class="quick-action-btn"><i class="bi bi-people"></i><span>Operators</span></a></div>
+    <div class="col-md-3 col-6"><a href="{% url 'users:admin_operator_permissions' %}" class="quick-action-btn"><i class="bi bi-shield-check"></i><span>Permissions</span></a></div>
+    {% endif %}
+    {% if user_perms.sales.create %}
+    <div class="col-md-3 col-6"><a href="{% url 'users:admin_pending_approvals' %}" class="quick-action-btn"><i class="bi bi-clock-history"></i><span>Pending Approvals</span></a></div>
+    {% endif %}
+</div>
+
+<!-- Low Stock Alert Modal -->
+{% if low_stock_products or out_of_stock_products %}
+<div class="modal fade" id="lowStockModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.05);color:#e2e8f0;border-radius:16px">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Low Stock Alert</h5>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if low_stock_products %}
+                <h6 style="color:#f59e0b;font-size:13px;font-weight:600;margin-bottom:8px">Low Stock (≤ 5 items)</h6>
+                <table class="table table-sm" style="color:#e2e8f0;font-size:13px">
+                    <thead><tr style="color:#94a3b8"><th>Product</th><th>Stock</th></tr></thead>
+                    <tbody>
+                        {% for p in low_stock_products %}
+                        <tr><td>{{ p.name }}</td><td><span class="badge bg-warning text-dark">{{ p.stock }}</span></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% if out_of_stock_products %}
+                <h6 style="color:#ef4444;font-size:13px;font-weight:600;margin-bottom:8px;margin-top:12px">Out of Stock</h6>
+                <table class="table table-sm" style="color:#e2e8f0;font-size:13px">
+                    <thead><tr style="color:#94a3b8"><th>Product</th><th>Stock</th></tr></thead>
+                    <tbody>
+                        {% for p in out_of_stock_products %}
+                        <tr><td>{{ p.name }}</td><td><span class="badge bg-danger">0</span></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+            </div>
+            <div class="modal-footer border-secondary">
+                <button class="btn btn-warning" data-bs-dismiss="modal">Got it</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+
+document.addEventListener('DOMContentLoaded', function() {
+    var lowStockModal = document.getElementById('lowStockModal');
+    if (lowStockModal) {
+        var modal = new bootstrap.Modal(lowStockModal);
+        modal.show();
+    }
+    loadPlCard();
+
+    // Setup filter modal preset buttons
+    document.querySelectorAll('.pl-filter-preset').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.pl-filter-preset').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            var range = this.getAttribute('data-range');
+            document.getElementById('plFilterCustomDates').style.display = range === 'custom' ? 'flex' : 'none';
+        });
+    });
+});
+
+function getDateRange(range) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var d = now.getDate();
+    function fmt(dt) { return dt.toISOString().split('T')[0]; }
+
+    switch (range) {
+        case 'today': return { start: fmt(now), end: fmt(now) };
+        case 'yesterday': { var yd = new Date(now); yd.setDate(yd.getDate() - 1); return { start: fmt(yd), end: fmt(yd) }; }
+        case 'this_week': { var day = now.getDay(); var diff = now.getDate() - day + (day === 0 ? -6 : 1); var mon = new Date(now); mon.setDate(diff); return { start: fmt(mon), end: fmt(now) }; }
+        case 'this_month': return { start: fmt(new Date(y, m, 1)), end: fmt(now) };
+        case 'this_year': return { start: fmt(new Date(y, 0, 1)), end: fmt(now) };
+        case 'custom': return { start: document.getElementById('plFilterStartDate').value, end: document.getElementById('plFilterEndDate').value };
+        default: return { start: fmt(now), end: fmt(now) };
+    }
+}
+
+function loadPlCard() {
+    var dates = getDateRange('today');
+    fetch("{% url 'users:profit_loss_data' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end), {
+        credentials: "same-origin"
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) return;
+        var el = document.getElementById('plNetProfit');
+        var val = Number(data.net_profit);
+        el.textContent = formatCurrency(val);
+        el.style.color = val >= 0 ? '#22c55e' : '#ef4444';
+    })
+    .catch(function() {});
+}
+
+function openPlFilterModal() {
+    var modal = new bootstrap.Modal(document.getElementById('plFilterModal'));
+    modal.show();
+}
+
+function applyPlFilter() {
+    var activeBtn = document.querySelector('.pl-filter-preset.active');
+    var range = activeBtn ? activeBtn.getAttribute('data-range') : 'today';
+    var dates = getDateRange(range);
+    if (!dates.start || !dates.end) return;
+    var url = "{% url 'users:profit_loss_statement' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end);
+    window.location.href = url;
+}
+</script>
+<script>
+(function() {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.cookie = "user_timezone=" + encodeURIComponent(tz) + "; path=/; max-age=" + (365*24*60*60);
+    fetch("{% url 'users:set_timezone' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({timezone: tz})
+    });
+})();
+</script>
+
+<audio id="clickSound" preload="auto">
+    <source src="{% static 'audio/click.mp3' %}" type="audio/mpeg">
+</audio>
+
+<script>
+document.body.addEventListener("click", function(){
+    var s = document.getElementById("clickSound");
+    if(s){ s.load(); }
+}, {once:true});
+
+document.addEventListener("click", function(event){
+    var clickable = event.target.closest("button, a, .btn, input[type='button'], input[type='submit'], .card, .dropdown-item");
+    if(!clickable) return;
+    var clickSound = document.getElementById("clickSound");
+    if(clickSound){
+        clickSound.volume = 0.5;
+        clickSound.currentTime = 0;
+        clickSound.play().catch(function(error){
+            console.log("Click sound blocked:", error);
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}No Sale{% endblock %}
+{% block content %}
+<style>.form-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:24px;max-width:480px}</style>
+<div style="max-width:600px;margin:0 auto">
+    <h4 style="color:var(--text-primary);margin:0 0 24px;font-weight:700"><i class="bi bi-x-circle" style="color:var(--text-muted)"></i> No Sale</h4>
+    {% if not session %}
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:20px;color:var(--color-warning)">
+        <strong>No active session.</strong> <a href="{% url 'cash_handling:session_open_page' %}" style="color:var(--accent)">Open one first</a>.
+    </div>
+    {% else %}
+    <div class="form-card">
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">Record a drawer opening without a sale (e.g. to give change or check contents).</p>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Reason</label>
+            <input type="text" id="reason" class="form-control" placeholder="e.g. Give change to customer" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <button class="btn" style="width:100%;background:var(--text-muted);color:#fff;border:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer" onclick="submitNoSale()"><i class="bi bi-cash"></i> Open Drawer (No Sale)</button>
+    </div>
+    {% endif %}
+</div>
+<script>
+function getCSRFToken(){return '{{ csrf_token }}'}
+function submitNoSale(){
+    var reason=document.getElementById('reason').value;
+    fetch('{% url "cash_handling:no_sale" %}',{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({reason:reason})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){alert('No sale recorded. Drawer opened.');window.location.href='{% url "cash_handling:dashboard" %}';}
+        else{alert(d.error||'Error');}
+    }).catch(e=>alert('Error:'+e.message));
+}
+</script>
+{% endblock %}

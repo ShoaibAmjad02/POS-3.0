@@ -1,0 +1,111 @@
+{% extends 'admin/base_admin.html' %}
+{% load static i18n %}
+{% block title %}Categories - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.badge-active{background:var(--color-success-bg);color:var(--color-success);padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.badge-inactive{background:var(--color-danger-bg);color:var(--color-danger);padding:4px 12px;border-radius:50px;font-size:12px;font-weight:600}
+.modal-content{background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;color:var(--text-primary)}
+.modal-header{border-color:var(--alert-border)}
+.modal-footer{border-color:var(--alert-border)}
+.modal .btn-close{filter:invert(1)}
+.form-control{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px}
+.form-control:focus{border-color:var(--accent);outline:none}
+.form-select{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px}
+.form-check-input{background:var(--bg-input);border:1px solid var(--border-input)}
+.form-check-input:checked{background:var(--accent);border-color:var(--accent)}
+.btn-action{border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+<div><h2>Category <span>Management</span></h2><p style="color:var(--text-muted);margin:0;font-size:14px">Manage product categories and discounts</p></div>
+<button class="btn btn-warning btn-action" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-circle me-1"></i> Add Category</button>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags }} alert-custom d-flex align-items-center gap-2" style="background:var(--color-success-bg);border:1px solid var(--color-success-border);border-radius:12px;color:var(--text-primary);padding:12px 20px;margin-bottom:16px">
+<i class="bi bi-check-circle-fill color-success"></i><span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="table-card">
+<div class="table-responsive">
+<table class="table" id="categoriesTable">
+<thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Products</th><th>Discount</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for cat in categories %}
+<tr>
+<td>#{{ cat.id }}</td>
+<td class="fw-semibold">{{ cat.name }}</td>
+<td style="color:var(--text-secondary);font-size:13px">{{ cat.description|default:"-"|truncatechars:50 }}</td>
+<td><span class="badge bg-secondary">{{ cat.foods.count }}</span></td>
+<td>{% if cat.discount_type and cat.discount_value > 0 %}<span class="badge bg-info text-dark">{{ cat.discount_value|floatformat:0 }}{% if cat.discount_type == 'percentage' %}%{% else %} fixed{% endif %}</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+<td><span class="{% if cat.is_active %}badge-active{% else %}badge-inactive{% endif %}">{{ cat.is_active|yesno:"Active,Inactive" }}</span></td>
+<td>
+<button class="btn btn-sm btn-outline-warning me-1" onclick="editCategory({{ cat.id }},'{{ cat.name|escapejs }}','{{ cat.description|escapejs }}',{{ cat.is_active|lower }},'{{ cat.discount_type|default:'' }}','{{ cat.discount_value }}')"><i class="bi bi-pencil"></i></button>
+<button class="btn btn-sm btn-outline-info me-1" onclick="toggleCategory({{ cat.id }})"><i class="bi bi-{% if cat.is_active %}pause{% else %}play{% endif %}"></i></button>
+<form action="{% url 'users:category_delete' cat.id %}" method="POST" class="d-inline" onsubmit="return confirm('Delete category {{ cat.name }}? Products in this category will also be deleted.');">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+</td>
+</tr>
+{% empty %}
+<tr><td colspan="7" class="text-center text-muted py-4">No categories</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div></div>
+
+<!-- Add Modal -->
+<div class="modal fade" id="addModal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content">
+<div class="modal-header"><h5 class="m-0"><i class="bi bi-plus-circle me-2"></i>Add Category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<form method="POST" action="{% url 'users:category_add' %}">{% csrf_token %}
+<div class="modal-body">
+<div class="mb-3"><label class="form-label">Name</label><input type="text" name="name" class="form-control" required></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea name="description" class="form-control" rows="2"></textarea></div>
+<div class="mb-3"><label class="form-label">Discount Type</label><select name="discount_type" class="form-select"><option value="">No Discount</option><option value="percentage">Percentage (%)</option><option value="fixed">Fixed Amount (Rs)</option></select></div>
+<div class="mb-3"><label class="form-label">Discount Value</label><input type="number" step="0.01" name="discount_value" class="form-control" value="0" min="0"></div>
+<div class="mb-0"><div class="form-check"><input type="checkbox" class="form-check-input" name="is_active" checked id="addActive"><label class="form-check-label" for="addActive">Active</label></div></div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-sm btn-warning">Save</button></div>
+</form>
+</div></div></div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content">
+<div class="modal-header"><h5 class="m-0"><i class="bi bi-pencil me-2"></i>Edit Category</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+<form method="POST" id="editForm">{% csrf_token %}
+<div class="modal-body">
+<div class="mb-3"><label class="form-label">Name</label><input type="text" name="name" id="editName" class="form-control" required></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea name="description" id="editDesc" class="form-control" rows="2"></textarea></div>
+<div class="mb-3"><label class="form-label">Discount Type</label><select name="discount_type" id="editDiscType" class="form-select"><option value="">No Discount</option><option value="percentage">Percentage (%)</option><option value="fixed">Fixed Amount (Rs)</option></select></div>
+<div class="mb-3"><label class="form-label">Discount Value</label><input type="number" step="0.01" name="discount_value" id="editDiscVal" class="form-control" min="0"></div>
+<div class="mb-0"><div class="form-check"><input type="checkbox" class="form-check-input" name="is_active" id="editActive"><label class="form-check-label" for="editActive">Active</label></div></div>
+</div>
+<div class="modal-footer"><button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-sm btn-warning">Update</button></div>
+</form>
+</div></div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+$('#categoriesTable').DataTable({pageLength:10,order:[[0,'desc']],language:{search:'',searchPlaceholder:'Search categories...',info:'Showing _START_ to _END_ of _TOTAL_ categories'},dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip'});
+function editCategory(id,name,desc,active,discType,discVal) {
+document.getElementById('editName').value = name;
+document.getElementById('editDesc').value = desc;
+document.getElementById('editActive').checked = active;
+document.getElementById('editDiscType').value = discType;
+document.getElementById('editDiscVal').value = discVal;
+document.getElementById('editForm').action = '/users/categories/' + id + '/edit/';
+new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+function toggleCategory(id) {
+fetch('/users/categories/' + id + '/toggle/', {method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'}})
+.then(r=>r.json()).then(d=>{location.reload()});
+}
+</script>
+{% endblock %}

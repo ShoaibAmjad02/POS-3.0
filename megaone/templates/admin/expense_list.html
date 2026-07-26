@@ -1,0 +1,123 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Business Expenses - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden;margin-bottom:24px}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+.filter-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:20px;margin-bottom:24px}
+.filter-card .form-control,.filter-card .form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;min-width:130px}
+.filter-card label{font-size:11px;color:#94a3b8;margin-bottom:4px;display:block;font-weight:600}
+.filter-group{display:flex;flex-direction:column}
+.btn-action{border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Business <span>Expenses</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Manage all operational expenses</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:expense_report' %}" class="btn btn-outline-info btn-action"><i class="bi bi-bar-chart me-1"></i> Report</a>
+        <a href="{% url 'users:expense_category_list' %}" class="btn btn-outline-warning btn-action"><i class="bi bi-tags me-1"></i> Categories</a>
+        <a href="{% url 'users:expense_add' %}" class="btn btn-success btn-action"><i class="bi bi-plus-circle me-1"></i> Add Expense</a>
+    </div>
+</div>
+
+<div class="filter-card" data-aos="fade-up">
+    <form method="GET" class="d-flex flex-wrap gap-3 align-items-end w-100">
+        <div class="filter-group">
+            <label>Search</label>
+            <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Title or description">
+        </div>
+        <div class="filter-group">
+            <label>Category</label>
+            <select name="category" class="form-select">
+                <option value="">All</option>
+                {% for c in categories %}
+                <option value="{{ c.id }}" {% if filters.category == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>From</label>
+            <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-control">
+        </div>
+        <div class="filter-group">
+            <label>To</label>
+            <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-control">
+        </div>
+        <div class="filter-group">
+            <label>Payment</label>
+            <select name="payment_method" class="form-select">
+                <option value="">All</option>
+                <option value="cash" {% if filters.payment_method == 'cash' %}selected{% endif %}>Cash</option>
+                <option value="bank_transfer" {% if filters.payment_method == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option>
+                <option value="cheque" {% if filters.payment_method == 'cheque' %}selected{% endif %}>Cheque</option>
+                <option value="card" {% if filters.payment_method == 'card' %}selected{% endif %}>Card</option>
+                <option value="other" {% if filters.payment_method == 'other' %}selected{% endif %}>Other</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>User</label>
+            <select name="created_by" class="form-select">
+                <option value="">All</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if filters.created_by == u.id|stringformat:"s" %}selected{% endif %}>{{ u.email }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Min</label>
+            <input type="number" step="0.01" name="amount_min" value="{{ filters.amount_min }}" class="form-control" placeholder="0">
+        </div>
+        <div class="filter-group">
+            <label>Max</label>
+            <input type="number" step="0.01" name="amount_max" value="{{ filters.amount_max }}" class="form-control" placeholder="99999">
+        </div>
+        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-funnel me-1"></i> Filter</button>
+        <a href="{% url 'users:expense_list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+    </form>
+</div>
+
+<div class="table-card" data-aos="fade-up">
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th><th>Title</th><th>Category</th><th>Amount</th><th>Payment</th>
+                    <th>Date</th><th>Created By</th><th width="130">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expenses %}
+                <tr>
+                    <td>#{{ e.id }}</td>
+                    <td class="fw-semibold">{{ e.title }}</td>
+                    <td><span class="badge bg-secondary text-light">{{ e.category.name }}</span></td>
+                    <td class="fw-bold" style="color:#ef4444">{% format_currency e.amount 0 %}</td>
+                    <td><span class="badge bg-info text-dark">{{ e.payment_method|upper }}</span></td>
+                    <td style="font-size:12px;color:#94a3b8">{{ e.expense_date|date:"d-m-Y H:i" }}</td>
+                    <td style="font-size:12px">{{ e.created_by.email|default:'—' }}</td>
+                    <td>
+                        <a href="{% url 'users:expense_detail' e.id %}" class="btn btn-sm btn-outline-info" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{% url 'users:expense_edit' e.id %}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <form method="POST" action="{% url 'users:expense_delete' e.id %}" style="display:inline" onsubmit="return confirm('Delete this expense?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No expenses found</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Drawer Sessions{% endblock %}
+{% block content %}
+<style>
+    .ch-section{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:20px;margin-bottom:24px}
+    .ch-section h5{color:var(--text-primary);margin-bottom:16px;font-size:15px;font-weight:600}
+    .badge-open{background:rgba(34,197,94,.15);color:var(--color-success);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+    .badge-closed{background:rgba(100,116,139,.15);color:var(--text-muted);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <h4 style="color:var(--text-primary);margin:0;font-weight:700"><i class="bi bi-clock-history"></i> Drawer Sessions</h4>
+</div>
+
+<div class="ch-section">
+    <h5><i class="bi bi-list-ul"></i> All Sessions</h5>
+    {% if sessions %}
+    <div class="table-responsive">
+        <table class="table" style="color:var(--text-primary);font-size:13px;margin:0">
+            <thead>
+                <tr style="border-bottom:1px solid var(--table-header-border)">
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Session</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Status</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Opened</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Closed</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Opening</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Expected</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Actual</th>
+                    <th style="padding:10px 12px;color:var(--table-header-color);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr style="border-bottom:1px solid var(--table-td-border)">
+                    <td style="padding:10px 12px;font-weight:600">#{{ session.id }}</td>
+                    <td style="padding:10px 12px"><span class="{% if session.status == 'open' %}badge-open{% else %}badge-closed{% endif %}">{{ session.status|title }}</span></td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ session.opened_at|date:"Y-m-d H:i" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ session.closed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ session.opening_balance|floatformat:2 }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ session.expected_closing|floatformat:2|default:"-" }}</td>
+                    <td style="padding:10px 12px;color:var(--text-secondary)">{{ currency_symbol }}{{ session.closing_balance|floatformat:2|default:"-" }}</td>
+                    <td style="padding:10px 12px">
+                        <a href="{% url 'cash_handling:transaction_list' %}?session_id={{ session.id }}" style="color:var(--accent);text-decoration:none;font-size:12px;font-weight:600">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);text-align:center;padding:40px 0;margin:0">No sessions found.</p>
+    {% endif %}
+</div>
+
+{% if sessions.has_other_pages %}
+<div style="display:flex;justify-content:center;gap:8px;margin-top:16px">
+    {% if sessions.has_previous %}
+    <a href="?page={{ sessions.previous_page_number }}" style="padding:8px 16px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-card);border-radius:8px;text-decoration:none;font-size:13px">&laquo; Previous</a>
+    {% endif %}
+    <span style="padding:8px 16px;color:var(--text-muted);font-size:13px">Page {{ sessions.number }} of {{ sessions.paginator.num_pages }}</span>
+    {% if sessions.has_next %}
+    <a href="?page={{ sessions.next_page_number }}" style="padding:8px 16px;background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-card);border-radius:8px;text-decoration:none;font-size:13px">Next &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

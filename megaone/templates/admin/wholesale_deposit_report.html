@@ -1,0 +1,153 @@
+{% extends 'admin/base_admin.html' %}{% load static i18n format_tags %}
+{% block title %}Wholesale Deposit Report - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.stat-card{background:#1e293b;border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,.05);text-align:center}
+.stat-card .value{font-size:28px;font-weight:700;color:#10b981}
+.stat-card .label{font-size:12px;color:#94a3b8;margin-top:4px}
+.table-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden;margin-bottom:24px}
+.table-card .table{margin:0;color:#e2e8f0}
+.table-card .table thead th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.05);padding:12px 16px}
+.table-card .table td{padding:12px 16px;vertical-align:middle;border-color:rgba(255,255,255,.05)}
+.filter-card{background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:20px;margin-bottom:24px}
+.filter-card .form-control,.filter-card .form-select{background:#0f172a;border:1px solid rgba(255,255,255,.1);color:#e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Wholesale <span>Deposit Report</span></h2>
+        <p style="color:#64748b;margin:0;font-size:14px">Summary of all wholesale deposit transactions</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'users:wholesale_deposit_list' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-left me-1"></i> Deposits</a>
+        <a href="{% url 'users:wholesale_deposit_export' %}?format=csv&start_date={{ start_date }}&end_date={{ end_date }}" class="btn btn-sm btn-outline-info"><i class="bi bi-download me-1"></i> Export CSV</a>
+    </div>
+</div>
+
+<div class="filter-card" data-aos="fade-up">
+    <form method="GET" class="d-flex flex-wrap gap-3 align-items-end">
+        <div>
+            <label style="font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weight:600">Quick Filter</label>
+            <select name="date_filter" class="form-select" onchange="this.form.submit()">
+                <option value="">Custom Range</option>
+                <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                <option value="week" {% if date_filter == 'week' %}selected{% endif %}>This Week</option>
+                <option value="month" {% if date_filter == 'month' %}selected{% endif %}>This Month</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weight:600">Start Date</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="form-control">
+        </div>
+        <div>
+            <label style="font-size:11px;color:#94a3b8;display:block;margin-bottom:4px;font-weight:600">End Date</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-funnel me-1"></i> Filter</button>
+        <a href="{% url 'users:wholesale_deposit_report' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="value">{% format_currency total_amount 0 %}</div>
+            <div class="label">Total Deposits</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="value">{{ total_count }}</div>
+            <div class="label">Transactions</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="table-card">
+            <div class="card-header p-3"><h5 class="mb-0"><i class="bi bi-building me-2 text-success"></i>By Customer</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Deposits</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in by_customer %}
+                        <tr>
+                            <td>{{ item.customer__company_name }}</td>
+                            <td>{% format_currency item.total 0 %}</td>
+                            <td>{{ item.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="table-card">
+            <div class="card-header p-3"><h5 class="mb-0"><i class="bi bi-person me-2 text-info"></i>By User</h5></div>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Deposits</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in by_user %}
+                        <tr>
+                            <td>{{ item.created_by__email }}</td>
+                            <td>{% format_currency item.total 0 %}</td>
+                            <td>{{ item.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center text-muted">No data</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="card-header p-3"><h5 class="mb-0"><i class="bi bi-credit-card me-2 text-warning"></i>By Payment Method</h5></div>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Payment Method</th>
+                    <th>Total</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in by_payment %}
+                <tr>
+                    <td>{{ item.payment_method|title }}</td>
+                    <td>{% format_currency item.total 0 %}</td>
+                    <td>{{ item.count }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center text-muted">No data</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>AOS.init({duration:800,once:true})</script>
+{% endblock %}

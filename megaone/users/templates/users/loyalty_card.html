@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Loyalty Card - {{ company_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.navbar{background:linear-gradient(135deg,#1e293b,#0f172a);border-bottom:1px solid rgba(255,255,255,.05);padding:12px 0}
+.navbar-brand{color:#f59e0b!important;font-weight:700;font-size:22px}
+.nav-link{color:#94a3b8!important;font-size:14px;transition:.2s}
+.nav-link:hover{color:#f59e0b!important}
+.container{max-width:1100px;padding:20px}
+.card-section{margin-bottom:30px}
+.card-preview{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:16px;padding:35px;border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden;max-width:500px;margin:0 auto}
+.card-preview::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(245,158,11,.03) 0%,transparent 70%);pointer-events:none}
+.card-header-text{color:#f59e0b;font-size:20px;font-weight:700;letter-spacing:1px;margin-bottom:5px}
+.card-subtitle{color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:25px}
+.card-detail{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.card-detail:last-child{border-bottom:none}
+.card-label{color:#94a3b8;font-size:12px;font-weight:500}
+.card-value{color:#e2e8f0;font-size:13px;font-weight:600;text-align:right}
+.qr-section{text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)}
+.qr-section img{width:100px;height:100px;border-radius:8px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-top:25px}
+.stat-card{background:rgba(255,255,255,.03);border-radius:12px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+.stat-value{font-size:28px;font-weight:700;margin-bottom:5px}
+.stat-label{color:#94a3b8;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+.stat-total{color:#3b82f6}
+.stat-remaining{color:#22c55e}
+.stat-earned{color:#f59e0b}
+.action-buttons{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;justify-content:center}
+.btn-download{border-radius:12px;padding:12px 24px;font-weight:600;font-size:14px;transition:.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-pdf{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none}
+.btn-png{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;border:none}
+.btn-download:hover{transform:translateY(-2px);color:#fff;box-shadow:0 8px 25px rgba(0,0,0,.3)}
+.transaction-table{width:100%;border-collapse:collapse;margin-top:15px}
+.transaction-table th{background:rgba(255,255,255,.03);color:#94a3b8;font-size:12px;font-weight:600;text-transform:uppercase;padding:12px 15px;border-bottom:1px solid rgba(255,255,255,.05);text-align:left}
+.transaction-table td{padding:12px 15px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13px;color:#e2e8f0}
+.earn-badge{color:#22c55e;font-weight:600}
+.redeem-badge{color:#ef4444;font-weight:600}
+.section-title{font-size:18px;font-weight:600;margin-bottom:20px;color:#f1f5f9}
+.card-number-display{font-size:16px;font-weight:700;color:#f59e0b;letter-spacing:2px;margin-bottom:15px}
+@media(max-width:768px){.card-preview{padding:20px}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.card-status{position:absolute;top:15px;right:15px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600}
+.status-active{background:rgba(34,197,94,.15);color:#22c55e}
+.status-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+</style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/"><i class="bi bi-star-fill me-2"></i>{{ company_name }}</a>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'users:food_delivery_restaurant_detail' %}" class="nav-link"><i class="bi bi-shop me-1"></i>Menu</a>
+            <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-warning" style="border-radius:10px;padding:6px 16px"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    {% if messages %}
+    <div class="row mb-3">
+        <div class="col-12">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" style="border-radius:12px">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_welcome %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-success d-flex align-items-center justify-content-between" style="border-radius:16px;background:linear-gradient(135deg,#064e3b,#047857);border:none;padding:20px 24px">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-check-circle-fill" style="font-size:28px;color:#22c55e"></i>
+                    <div>
+                        <h5 style="color:#fff;font-weight:700;margin:0;font-size:18px">Welcome! Your Loyalty Card has been generated successfully.</h5>
+                        <p style="color:#a7f3d0;margin:4px 0 0;font-size:13px">You can download your card below or continue browsing the menu.</p>
+                    </div>
+                </div>
+                <a href="{% url 'users:food_delivery_restaurant_detail' %}" class="btn btn-light" style="border-radius:12px;font-weight:600;padding:10px 20px;white-space:nowrap">
+                    <i class="bi bi-shop me-1"></i>Browse Menu
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card-section">
+        <h4 class="section-title"><i class="bi bi-star-fill me-2" style="color:#f59e0b"></i>My Loyalty Card</h4>
+
+        <div class="card-preview">
+            <div class="card-status status-{{ card.status|lower }}">{{ card.get_status_display }}</div>
+            <div class="card-header-text">RESTAURANT</div>
+            <div class="card-subtitle">LOYALTY CARD</div>
+            <div class="card-number-display">{{ card.card_number }}</div>
+
+            <div class="card-detail"><span class="card-label">Customer Name</span><span class="card-value">{{ card.user.name }}</span></div>
+            <div class="card-detail"><span class="card-label">Email</span><span class="card-value">{{ card.user.email }}</span></div>
+            <div class="card-detail"><span class="card-label">Card Number</span><span class="card-value">{{ card.card_number }}</span></div>
+            <div class="card-detail"><span class="card-label">Total Points</span><span class="card-value">{{ card.total_points }}</span></div>
+            <div class="card-detail"><span class="card-label">Remaining Points</span><span class="card-value">{{ card.remaining_points }}</span></div>
+            <div class="card-detail"><span class="card-label">Issue Date</span><span class="card-value">{{ card.created_at|date:"d-m-Y" }}</span></div>
+
+            <div class="qr-section">
+                {% if card.qr_code_image %}
+                <img src="{{ card.qr_code_image.url }}" alt="Loyalty Card QR Code">
+                {% else %}
+                <div style="width:100px;height:100px;background:rgba(255,255,255,.05);border-radius:8px;display:flex;align-items:center;justify-content:center;margin:0 auto;color:#64748b;font-size:11px">
+                    <i class="bi bi-qr-code fs-1"></i>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value stat-total">{{ card.total_points }}</div>
+                <div class="stat-label">Total Points</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-remaining">{{ card.remaining_points }}</div>
+                <div class="stat-label">Remaining Points</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value stat-earned">{{ card.total_points }}</div>
+                <div class="stat-label">Lifetime Earned</div>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <a href="{% url 'users:download_loyalty_pdf' card.card_number %}" class="btn-download btn-pdf" target="_blank">
+                <i class="bi bi-filetype-pdf"></i> Download PDF
+            </a>
+            <a href="{% url 'users:download_loyalty_image' card.card_number %}" class="btn-download btn-png" target="_blank">
+                <i class="bi bi-image"></i> Download PNG
+            </a>
+        </div>
+    </div>
+
+    <div class="card-section">
+        <h4 class="section-title"><i class="bi bi-clock-history me-2" style="color:#3b82f6"></i>Transaction History</h4>
+
+        {% if transactions %}
+        <div class="table-responsive" style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);overflow:hidden">
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Order</th>
+                        <th>Type</th>
+                        <th>Earned</th>
+                        <th>Redeemed</th>
+                        <th>Balance</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr>
+                        <td style="color:#64748b">{{ forloop.counter }}</td>
+                        <td>{{ t.order_number|default:"-" }}</td>
+                        <td>{% if t.transaction_type == 'EARN' %}<span class="earn-badge"><i class="bi bi-arrow-up-circle me-1"></i>Earn</span>{% else %}<span class="redeem-badge"><i class="bi bi-arrow-down-circle me-1"></i>Redeem</span>{% endif %}</td>
+                        <td>{% if t.earned_points > 0 %}<span class="earn-badge">+{{ t.earned_points }}</span>{% else %}-{% endif %}</td>
+                        <td>{% if t.redeemed_points > 0 %}<span class="redeem-badge">-{{ t.redeemed_points }}</span>{% else %}-{% endif %}</td>
+                        <td>{{ t.remaining_balance }}</td>
+                        <td style="color:#64748b;font-size:12px">{{ t.created_at|date:"d-m-Y h:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="background:#1e293b;border-radius:16px;border:1px solid rgba(255,255,255,.05);padding:40px;text-align:center">
+            <i class="bi bi-inbox" style="font-size:40px;color:#475569"></i>
+            <p style="color:#64748b;margin-top:10px">No transactions yet</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function refreshCardData() {
+    fetch("{% url 'users:loyalty_card_data' %}")
+    .then(r => r.json())
+    .then(data => {
+        if (data.has_card) {
+            document.querySelectorAll('.stat-total').forEach(el => el.innerText = data.total_points);
+            document.querySelectorAll('.stat-remaining').forEach(el => el.innerText = data.remaining_points);
+            const details = document.querySelectorAll('.card-detail .card-value');
+            details.forEach(el => {
+                const text = el.innerText.trim();
+                if (!isNaN(parseInt(text))) {
+                    const label = el.previousElementSibling ? el.previousElementSibling.innerText.trim() : '';
+                    if (label === 'Total Points') el.innerText = data.total_points;
+                    if (label === 'Remaining Points') el.innerText = data.remaining_points;
+                }
+            });
+        }
+    });
+}
+refreshCardData();
+setInterval(refreshCardData, 15000);
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+{% extends 'admin/base_admin.html' %}
+{% load static format_tags %}
+{% block title %}{% if deal %}Edit Deal{% else %}Add Deal{% endif %} - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>{% if deal %}Edit <span>Deal</span>{% else %}Add <span>Deal</span>{% endif %}</h2>
+        <p style="color:#64748b;margin:0;font-size:14px">{% if deal %}Update the promotional deal details.{% else %}Create a new promotional deal.{% endif %}</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:deal_list' %}" class="btn btn-secondary-custom"><i class="bi bi-arrow-left me-1"></i> Back to Deals</a>
+    </div>
+</div>
+
+<div class="breadcrumb-nav" data-aos="fade-up">
+    <a href="{% url 'users:admin_dashboard' %}">Dashboard</a>
+    <span class="sep">/</span>
+    <a href="{% url 'users:deal_list' %}">Deals</a>
+    <span class="sep">/</span>
+    <span>{% if deal %}Edit{% else %}Add{% endif %}</span>
+</div>
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-custom d-flex align-items-center gap-2 mb-4" data-aos="fade-up">
+    <i class="bi bi-{% if message.tags == 'success' %}check-circle text-success{% else %}exclamation-circle text-warning{% endif %}"></i>
+    <span>{{ message }}</span>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="form-card" data-aos="fade-up">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="row g-4">
+            <div class="col-12">
+                <label>Deal Title</label>
+                <input type="text" name="title" class="form-control" value="{{ deal.title|default:'' }}" required placeholder="e.g. Pizza Combo">
+            </div>
+            <div class="col-12">
+                <label>Deal Description</label>
+                <textarea name="description" class="form-control" placeholder="Describe the deal...">{{ deal.description|default:'' }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label>Select Products (Combo Items)</label>
+                <select name="products" class="form-select" multiple style="min-height:120px">
+                    {% for product in products %}
+                    <option value="{{ product.id }}" {% if deal and product in deal.products.all %}selected{% endif %}>
+                        {{ product.name }} - {% format_currency product.price %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div style="font-size:12px;color:#64748b;margin-top:4px">Hold Ctrl/Cmd to select multiple products</div>
+            </div>
+            <div class="col-md-6">
+                <label>Free Product (Optional)</label>
+                <select name="free_product" class="form-select">
+                    <option value="">-- No Free Product --</option>
+                    {% for product in products %}
+                    <option value="{{ product.id }}" {% if deal and deal.free_product_id == product.id %}selected{% endif %}>
+                        {{ product.name }} - {% format_currency product.price %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label>Combo Price (Optional)</label>
+                <input type="number" name="combo_price" class="form-control" value="{{ deal.combo_price|default:'' }}" min="0" step="0.01" placeholder="e.g. 1250">
+            </div>
+            <div class="col-md-4">
+                <label>Discount % (Optional)</label>
+                <input type="number" name="discount_percentage" class="form-control" value="{{ deal.discount_percentage|default:'' }}" min="0" max="100" step="0.01" placeholder="e.g. 20">
+            </div>
+            <div class="col-md-4">
+                <label>Active Status</label>
+                <select name="is_active" class="form-select">
+                    <option value="1" {% if deal.is_active %}selected{% endif %}>Active</option>
+                    <option value="0" {% if not deal.is_active %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label>Deal Image</label>
+                <input type="file" name="deal_image" class="form-control" accept="image/*">
+                {% if deal.deal_image %}
+                <div class="mt-2"><img src="{{ deal.deal_image.url }}" style="max-height:80px;border-radius:8px"></div>
+                {% endif %}
+            </div>
+            <div class="col-md-4">
+                <label>Deal Banner</label>
+                <input type="file" name="deal_banner" class="form-control" accept="image/*">
+                {% if deal.deal_banner %}
+                <div class="mt-2"><img src="{{ deal.deal_banner.url }}" style="max-height:80px;border-radius:8px"></div>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <label>Start Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ deal.start_date|date:'Y-m-d'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>Start Time</label>
+                <input type="time" name="start_time" class="form-control" value="{{ deal.start_time|time:'H:i'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>End Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ deal.end_date|date:'Y-m-d'|default:'' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label>End Time</label>
+                <input type="time" name="end_time" class="form-control" value="{{ deal.end_time|time:'H:i'|default:'' }}" required>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-warning-custom">
+                <i class="bi bi-{% if deal %}check-lg{% else %}plus-lg{% endif %} me-1"></i>
+                {% if deal %}Update Deal{% else %}Save Deal{% endif %}
+            </button>
+            <a href="{% url 'users:deal_list' %}" class="btn btn-secondary-custom">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

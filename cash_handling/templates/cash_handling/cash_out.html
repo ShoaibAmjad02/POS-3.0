@@ -1,0 +1,42 @@
+{% extends "admin/base_admin.html" %}
+{% load static format_tags %}
+{% block title %}Cash Out{% endblock %}
+{% block content %}
+<style>.form-card{background:var(--bg-card);border:1px solid var(--border-card);border-radius:12px;padding:24px;max-width:480px}</style>
+<div style="max-width:600px;margin:0 auto">
+    <h4 style="color:var(--text-primary);margin:0 0 24px;font-weight:700"><i class="bi bi-dash-circle" style="color:var(--color-danger)"></i> Cash Out</h4>
+    {% if not session %}
+    <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:20px;color:var(--color-warning)">
+        <strong>No active session.</strong> <a href="{% url 'cash_handling:session_open_page' %}" style="color:var(--accent)">Open one first</a>.
+    </div>
+    {% else %}
+    <div class="form-card">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Session #{{ session.id }} | Balance: <strong style="color:var(--accent)">{{ currency_symbol }}{{ session_data.current_balance|floatformat:2 }}</strong></div>
+        <div class="form-group" style="margin-bottom:16px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Amount ({{ currency_symbol }})</label>
+            <input type="number" id="amount" class="form-control" step="0.01" min="0.01" placeholder="0.00" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:12px 16px;font-size:20px;font-weight:700">
+        </div>
+        <div class="form-group" style="margin-bottom:20px">
+            <label style="display:block;color:var(--text-label);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Reason</label>
+            <input type="text" id="reason" class="form-control" placeholder="e.g. Petty cash withdrawal" style="width:100%;background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border-input);border-radius:8px;padding:10px 14px;font-size:14px">
+        </div>
+        <button class="btn" style="width:100%;background:var(--color-danger);color:#fff;border:none;padding:14px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer" onclick="submitOp()"><i class="bi bi-dash-circle"></i> Remove Cash</button>
+    </div>
+    {% endif %}
+</div>
+<script>
+function getCSRFToken(){return '{{ csrf_token }}'}
+function submitOp(){
+    var amt=document.getElementById('amount').value;
+    var reason=document.getElementById('reason').value;
+    if(!amt||parseFloat(amt)<=0){alert('Enter a valid amount');return;}
+    fetch('{% url "cash_handling:cash_out" %}',{
+        method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+        body:JSON.stringify({amount:amt,reason:reason})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){alert('Cash removed! New balance: {{ currency_symbol }}'+d.balance_after);window.location.href='{% url "cash_handling:dashboard" %}';}
+        else{alert(d.error||'Error');}
+    }).catch(e=>alert('Error:'+e.message));
+}
+</script>
+{% endblock %}

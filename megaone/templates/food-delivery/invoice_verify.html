@@ -1,0 +1,199 @@
+{% load static format_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice Verification | {{ company_name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0c0e1a 0%,#1a1040 40%,#0f2027 100%);min-height:100vh;color:#e2e8f0;padding:20px}
+.glass{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.glass-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.07);border-radius:20px;box-shadow:0 4px 24px rgba(0,0,0,0.2);padding:28px;margin-bottom:20px;transition:transform 0.2s ease}
+.glass-card:hover{transform:translateY(-2px)}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#94a3b8;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.section-title i{font-size:16px;color:#f59e0b}
+.info-label{font-size:13px;color:#94a3b8;font-weight:400}
+.info-value{font-size:14px;font-weight:600;color:#f1f5f9;text-align:right}
+.verify-badge{display:inline-flex;align-items:center;gap:12px;padding:16px 28px;border-radius:16px;font-size:15px;font-weight:600}
+.verify-valid{background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.25)}
+.verify-invalid{background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25)}
+.verify-valid i,.verify-invalid i{font-size:24px}
+.item-row{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.item-row:last-child{border-bottom:none}
+.item-name{font-weight:600;color:#f1f5f9;font-size:15px}
+.item-meta{font-size:13px;color:#94a3b8;margin-top:2px}
+.item-total{font-weight:600;color:#f1f5f9;font-size:15px;text-align:right}
+.summary-row{display:flex;justify-content:space-between;padding:10px 0}
+.summary-row.total{border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:16px}
+.summary-label{font-size:14px;color:#94a3b8}
+.summary-value{font-size:14px;font-weight:600;color:#f1f5f9}
+.summary-value.grand{font-size:22px;font-weight:800;color:#f59e0b}
+.header-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;margin-right:16px;flex-shrink:0}
+.page-footer{padding:24px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px}
+.page-footer p{color:#64748b;font-size:13px;margin:0;font-weight:500}
+@media(max-width:576px){body{padding:12px}.glass-card{padding:20px}.section-title{font-size:12px}.verify-badge{padding:14px 20px;font-size:14px;width:100%;justify-content:center}}
+</style>
+</head>
+<body>
+
+<div class="container" style="max-width:600px">
+
+    {% if valid %}
+
+    <!-- HEADER -->
+    <div class="glass-card text-center" style="padding:32px 28px 24px;margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px">
+            <div class="header-logo">
+                {% if company_logo %}
+                <img src="{{ company_logo.url }}" alt="{{ company_name }}" style="max-height:50px;max-width:50px;border-radius:8px;object-fit:contain">
+                {% else %}
+                <i class="fas fa-utensils"></i>
+                {% endif %}
+            </div>
+            <div style="text-align:left">
+                <h1 style="font-size:20px;font-weight:800;margin:0;color:#f1f5f9">{{ company_name }}</h1>
+                {% if company_phone %}<p style="font-size:12px;color:#94a3b8;margin:2px 0 0;font-weight:400">{{ company_phone }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- INVOICE INFORMATION -->
+    <div class="glass-card">
+        <div class="section-title"><i class="fas fa-file-invoice"></i> Invoice Information</div>
+        <div class="row g-2">
+            <div class="col-6 mb-3">
+                <div class="info-label"><i class="fas fa-hashtag me-1" style="font-size:11px;color:#64748b"></i> Invoice Number</div>
+                <div class="info-value text-start mt-1">{{ invoice.invoice_number }}</div>
+            </div>
+            <div class="col-6 mb-3">
+                <div class="info-label"><i class="fas fa-calendar-alt me-1" style="font-size:11px;color:#64748b"></i> Date &amp; Time</div>
+                <div class="info-value text-start mt-1">{{ invoice_date }}</div>
+            </div>
+            <div class="col-6">
+                <div class="info-label"><i class="fas fa-user me-1" style="font-size:11px;color:#64748b"></i> Customer Name</div>
+                <div class="info-value text-start mt-1">{{ customer_name }}</div>
+            </div>
+            <div class="col-6">
+                <div class="info-label"><i class="fas fa-phone me-1" style="font-size:11px;color:#64748b"></i> Customer Phone</div>
+                <div class="info-value text-start mt-1" style="font-size:13px;word-break:break-all">{{ customer_phone }}</div>
+            </div>
+        </div>
+        <div class="row g-2 mt-2">
+            <div class="col-6">
+                <div class="info-label"><i class="fas fa-credit-card me-1" style="font-size:11px;color:#64748b"></i> Payment Method</div>
+                <div class="info-value text-start mt-1" style="text-transform:uppercase">{{ payment_method }}</div>
+            </div>
+            <div class="col-6">
+                <div class="info-label"><i class="fas fa-percentage me-1" style="font-size:11px;color:#64748b"></i> Tax Percentage</div>
+                <div class="info-value text-start mt-1">{{ tax_pct }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ORDER ITEMS -->
+    <div class="glass-card">
+        <div class="section-title"><i class="fas fa-shopping-bag"></i> Items Ordered</div>
+        {% for item in items %}
+        <div class="item-row d-flex justify-content-between align-items-start">
+            <div>
+                <div class="item-name">{{ item.product_name }}</div>
+                <div class="item-meta"><i class="fas fa-times me-1" style="font-size:10px"></i> {{ item.quantity }} &times; {% format_currency item.price 0 %}</div>
+            </div>
+            <div class="item-total">{% format_currency item.subtotal 0 %}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ORDER SUMMARY -->
+    <div class="glass-card">
+        <div class="section-title"><i class="fas fa-receipt"></i> Order Summary</div>
+        <div class="summary-row">
+            <span class="summary-label">Subtotal</span>
+            <span class="summary-value">{% format_currency subtotal 0 %}</span>
+        </div>
+        {% if invoice.deal %}
+        <div class="summary-row">
+            <span class="summary-label" style="color:#8b5cf6">Today's Deal: {{ invoice.deal.title }}</span>
+        </div>
+        {% endif %}
+        {% if invoice.deal_discount_amount and invoice.deal_discount_amount > 0 %}
+        <div class="summary-row">
+            <span class="summary-label" style="color:#f59e0b">Deal Discount</span>
+            <span class="summary-value" style="color:#f59e0b">-{% format_currency invoice.deal_discount_amount 0 %}</span>
+        </div>
+        {% elif invoice.qr_offer_discount_percentage and invoice.qr_offer_discount_amount %}
+        <div class="summary-row">
+            <span class="summary-label" style="color:#f59e0b">Discount ({{ invoice.qr_offer_discount_percentage|floatformat:0 }}%)</span>
+            <span class="summary-value" style="color:#f59e0b">-{% format_currency invoice.qr_offer_discount_amount 0 %}</span>
+        </div>
+        {% endif %}
+        <div class="summary-row">
+            <span class="summary-label">Tax ({{ tax_pct }}%)</span>
+            <span class="summary-value">{% format_currency tax 0 %}</span>
+        </div>
+        {% if loyalty_used > 0 %}
+        <div class="summary-row">
+            <span class="summary-label" style="color:#f59e0b">Loyalty Redeemed</span>
+            <span class="summary-value" style="color:#f59e0b">-{% format_currency loyalty_used 0 %}</span>
+        </div>
+        {% endif %}
+        <div class="summary-row total">
+            <span class="summary-label" style="font-size:16px;font-weight:700;color:#f1f5f9">Grand Total</span>
+            <span class="summary-value grand">{% format_currency original_grand_total 0 %}</span>
+        </div>
+    </div>
+
+    <!-- VERIFICATION -->
+    <div class="glass-card text-center" style="padding:24px">
+        <div class="verify-badge verify-valid">
+            <i class="fas fa-check-circle"></i>
+            <span>Verified Invoice</span>
+        </div>
+        <p style="color:#94a3b8;font-size:13px;margin:16px 0 0;font-weight:400">
+            <i class="fas fa-shield-alt me-1" style="font-size:11px"></i>
+            This invoice was generated by the {{ company_name }} Management System.
+        </p>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="glass-card page-footer">
+        <p><i class="fas fa-heart me-2" style="color:#f59e0b;font-size:12px"></i> Thank you for purchasing with us <i class="fas fa-heart ms-2" style="color:#f59e0b;font-size:12px"></i></p>
+    </div>
+
+    {% else %}
+
+    <!-- INVALID INVOICE -->
+    <div style="min-height:80vh;display:flex;align-items:center;justify-content:center">
+        <div class="glass-card text-center" style="max-width:480px;width:100%;padding:48px 32px">
+            <div style="width:80px;height:80px;border-radius:50%;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;border:1px solid rgba(239,68,68,0.2)">
+                <i class="fas fa-exclamation-triangle" style="font-size:36px;color:#ef4444"></i>
+            </div>
+            <div class="verify-badge verify-invalid" style="margin:0 auto 20px">
+                <i class="fas fa-times-circle"></i>
+                <span>Invalid Invoice</span>
+            </div>
+            <p style="color:#94a3b8;font-size:15px;margin:0;font-weight:400;line-height:1.6">{{ error }}</p>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+
+<script>
+(function() {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    document.cookie = "user_timezone=" + encodeURIComponent(tz) + "; path=/; max-age=" + (365*24*60*60);
+    fetch("{% url 'users:set_timezone' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({timezone: tz})
+    });
+})();
+</script>
+</body>
+</html>

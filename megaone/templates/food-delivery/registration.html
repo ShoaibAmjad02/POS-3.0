@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block html_attributes %}{% endblock html_attributes %}
+
+{% block title %}{{ company_name }} | Register{% endblock title %}
+
+{% block css %}
+<link href="{% static '/vendor/css/bundle.min.css' %}" rel="stylesheet">
+<!-- Plugin Css -->
+
+<link href="{% static 'food-delivery/css/line-awesome.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/revolution-settings.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/jquery.fancybox.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/owl.carousel.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/cubeportfolio.min.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/LineIcons.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick-theme.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/slick.css' %}" rel="stylesheet">
+<link href="{% static '/vendor/css/wow.css' %}" rel="stylesheet">
+
+<!-- Style Sheet -->
+<link href="{% static 'food-delivery/css/nouislider.min.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/range-slider.css' %}" rel="stylesheet">
+<link href="{% static 'food-delivery/css/style.css' %}" rel="stylesheet">
+
+{% endblock css %}
+
+{% block body_attributes %}data-spy="scroll" data-target=".navbar" data-offset="90"{% endblock body_attributes %}
+
+{% block content %}
+
+<!-- Preloader -->
+<div class="preloader">
+    <div class="center">
+        <div class="spinner">
+            <div class="blob top"></div>
+            <div class="blob bottom"></div>
+            <div class="blob left"></div>
+            <div class="blob move-blob"></div>
+        </div>
+    </div>
+</div>
+<!-- Preloader End -->
+<!--login start-->
+<section class="p-lg-0 login-sec">
+    <div class="container-fluid">
+
+        <div class="row">
+            <div class="col-12 col-lg-6 order-2 order-lg-1 position-relative d-flex align-items-center bg-1">
+                <div class="login-content text-center text-lg-left">
+
+                    <!--logo-->
+                    <div class="float-middle-logo">
+                        <a class="navbar-brand link" href="/">
+                            <img src="{% static 'food-delivery/img/logo.png' %}" class="" alt="logo">
+                        </a>
+                    </div>
+
+                    <!--title-->
+                    <div class="title d-inline-block mb-4">
+                        <h6 class="mb-3 sub-heading">Lorem ipsum dolor sit amet</h6>
+                        <h3 class="mb-3 heading">Get more things, done with Registeration platform.</h3>
+                        <p class="text">Access to the most powerfull tool in the entire design and web industry.</p>
+                    </div>
+
+                    <!--form-->
+                    {% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-warning">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+                    <form method="POST" action="{% url 'users:register' %}">
+{% csrf_token %}
+
+<input
+    class="form-control"
+    type="text"
+    name="name"
+    placeholder="Full Name"
+    required>
+
+<input
+    class="form-control"
+    type="email"
+    name="email"
+    placeholder="Email Address"
+    required>
+
+<input
+    class="form-control"
+    type="password"
+    name="password1"
+    placeholder="Password"
+    required>
+
+<input
+    class="form-control"
+    type="password"
+    name="password2"
+    placeholder="Confirm Password"
+    required>
+
+<button type="submit"
+        class="btn btn-large rounded-pill main-btn">
+    Register
+</button>
+
+</form>
+                </div>
+                <!--bottom nav start-->
+                <div class="bottom-mini-nav">
+                    <div class="row no-gutters">
+                        <div class="col-12 col-lg-12 simple-navbar d-flex align-items-center justify-content-start">
+                            <nav class="navbar">
+                                <a class="nav-link link" href="{% url 'users:food_delivery_restaurant_detail' %}">Browse Products</a>
+                                <a class="nav-link link" href="/#app-sec">Download App</a>
+                                <a class="nav-link link" href="/#about-sec">About Us</a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                <!--bottom nav end-->
+            </div>
+            <div class="col-12 col-lg-6 p-0 order-1 order-lg-2 login-side-background"
+                style="background-image: url('{% static "food-delivery/img/reg-half-block.jpg" %}');">
+                <!--Feature Image Half-->
+            </div>
+        </div>
+
+
+    </div>
+</section>
+
+{% endblock content %}
+
+
+{% block javascript %}
+<script src="{% static '/vendor/js/bundle.min.js' %}"></script>
+<!-- Plugin Js -->
+<script src="{% static '/vendor/js/jquery.fancybox.min.js' %}"></script>
+<script src="{% static '/vendor/js/owl.carousel.min.js' %}"></script>
+<script src="{% static '/vendor/js/parallaxie.min.js' %}"></script>
+<script src="{% static '/vendor/js/wow.min.js' %}"></script>
+<!-- REVOLUTION JS FILES -->
+<script src="{% static '/vendor/js/jquery.themepunch.tools.min.js' %}"></script>
+<script src="{% static '/vendor/js/jquery.themepunch.revolution.min.js' %}"></script>
+<!-- SLIDER REVOLUTION EXTENSIONS -->
+<script src="{% static '/vendor/js/extensions/revolution.extension.actions.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.carousel.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.kenburn.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.layeranimation.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.migration.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.navigation.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.parallax.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.slideanims.min.js' %}"></script>
+<script src="{% static '/vendor/js/extensions/revolution.extension.video.min.js' %}"></script>
+<!--Tilt Js-->
+<script src="{% static '/vendor/js/TweenMax.min.js' %}"></script>
+<!-- custom script-->
+<script src="{% static 'food-delivery/js/nouislider.min.js' %}"></script>
+<script src="{% static 'food-delivery/js/slick.min.js' %}"></script>
+<script src="{% static '/vendor/js/contact_us.js' %}"></script>
+<script src="{% static 'food-delivery/js/script.js' %}"></script>
+{% endblock javascript %}
