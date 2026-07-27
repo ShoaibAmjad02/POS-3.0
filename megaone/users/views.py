@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import secrets
 import string
 import uuid
@@ -2508,40 +2509,116 @@ def loyalty_card_view(request):
 
 @login_required
 def download_loyalty_pdf(request, card_number):
+    logger = logging.getLogger(__name__)
     try:
-        card = get_object_or_404(LoyaltyCard, card_number=card_number, user=request.user)
+        card = LoyaltyCard.objects.filter(card_number=card_number).first()
+        if not card:
+            # Card with the given card_number does not exist.
+            # Check if the user already has a card with a different number.
+            user_card = LoyaltyCard.objects.filter(user=request.user).first()
+            if user_card:
+                # User has a card — redirect to the correct download URL.
+                logger.warning(
+                    "Loyalty card %s not found. Redirecting user %s to their card %s.",
+                    card_number, request.user, user_card.card_number
+                )
+                return redirect('users:download_loyalty_pdf', card_number=user_card.card_number)
+
+            # User has no card at all. Auto-create one if they are a regular customer
+            # (matching the business logic in loyalty_card_view).
+            if request.user.is_staff or request.user.is_superuser or getattr(request.user, 'is_operator', False):
+                logger.warning(
+                    "Staff/operator user %s attempted to download a loyalty card but has none.",
+                    request.user
+                )
+                messages.error(request, "No loyalty card found for this customer.")
+                return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
+
+            logger.info("Creating new loyalty card for user %s during PDF download request.", request.user)
+            card = LoyaltyCard.objects.create(user=request.user, status='ACTIVE')
+
+        # Verify card ownership — staff/superuser can download any card.
+        if not (request.user.is_staff or request.user.is_superuser or card.user == request.user):
+            logger.warning(
+                "Unauthorized loyalty card download attempt. card_number=%s user=%s",
+                card_number, request.user
+            )
+            messages.error(request, "You do not have permission to download this loyalty card.")
+            return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
+
+        # Ensure QR code and PDF are generated / up-to-date.
         if not card.qr_code_image or not card.qr_code_image.storage.exists(card.qr_code_image.name):
             generate_qr_code_image(card, request)
             card.refresh_from_db()
         if not card.card_pdf or not card.card_pdf.storage.exists(card.card_pdf.name):
             card = generate_loyalty_card_pdf(card, request)
+
         card.card_pdf.open('rb')
         response = FileResponse(card.card_pdf, as_attachment=True, filename=f"loyalty_card_{card.card_number}.pdf")
         response['Content-Type'] = 'application/pdf'
         response['Content-Disposition'] = f'attachment; filename="loyalty_card_{card.card_number}.pdf"'
         return response
     except Exception as e:
-        messages.error(request, f"Could not generate PDF. Please try again. Error: {str(e)}")
-        return redirect('users:loyalty_card_view')
+        logger.exception("Error generating loyalty card PDF. card_number=%s user=%s", card_number, request.user)
+        messages.error(request, "Could not generate PDF. Please try again. Error: " + str(e))
+        return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
 
 
 @login_required
 def download_loyalty_image(request, card_number):
+    logger = logging.getLogger(__name__)
     try:
-        card = get_object_or_404(LoyaltyCard, card_number=card_number, user=request.user)
+        card = LoyaltyCard.objects.filter(card_number=card_number).first()
+        if not card:
+            # Card with the given card_number does not exist.
+            # Check if the user already has a card with a different number.
+            user_card = LoyaltyCard.objects.filter(user=request.user).first()
+            if user_card:
+                # User has a card — redirect to the correct download URL.
+                logger.warning(
+                    "Loyalty card %s not found. Redirecting user %s to their card %s.",
+                    card_number, request.user, user_card.card_number
+                )
+                return redirect('users:download_loyalty_image', card_number=user_card.card_number)
+
+            # User has no card at all. Auto-create one if they are a regular customer
+            # (matching the business logic in loyalty_card_view).
+            if request.user.is_staff or request.user.is_superuser or getattr(request.user, 'is_operator', False):
+                logger.warning(
+                    "Staff/operator user %s attempted to download a loyalty card image but has none.",
+                    request.user
+                )
+                messages.error(request, "No loyalty card found for this customer.")
+                return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
+
+            logger.info("Creating new loyalty card for user %s during image download request.", request.user)
+            card = LoyaltyCard.objects.create(user=request.user, status='ACTIVE')
+
+        # Verify card ownership — staff/superuser can download any card.
+        if not (request.user.is_staff or request.user.is_superuser or card.user == request.user):
+            logger.warning(
+                "Unauthorized loyalty card image download attempt. card_number=%s user=%s",
+                card_number, request.user
+            )
+            messages.error(request, "You do not have permission to download this loyalty card.")
+            return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
+
+        # Ensure QR code and image are generated / up-to-date.
         if not card.qr_code_image or not card.qr_code_image.storage.exists(card.qr_code_image.name):
             generate_qr_code_image(card, request)
             card.refresh_from_db()
         if not card.card_image or not card.card_image.storage.exists(card.card_image.name):
             card = generate_loyalty_card_image(card, request)
+
         card.card_image.open('rb')
         response = FileResponse(card.card_image, as_attachment=True, filename=f"loyalty_card_{card.card_number}.png")
         response['Content-Type'] = 'image/png'
         response['Content-Disposition'] = f'attachment; filename="loyalty_card_{card.card_number}.png"'
         return response
     except Exception as e:
-        messages.error(request, f"Could not generate card image. Please try again. Error: {str(e)}")
-        return redirect('users:loyalty_card_view')
+        logger.exception("Error generating loyalty card image. card_number=%s user=%s", card_number, request.user)
+        messages.error(request, "Could not generate card image. Please try again. Error: " + str(e))
+        return redirect(request.META.get('HTTP_REFERER', 'users:loyalty_card_view'))
 
 
 @login_required
