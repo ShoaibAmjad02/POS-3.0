@@ -253,7 +253,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         </div>
         {% endif %}
         <div class="menu-label" style="margin-top:10px">Account</div>
-        <a href="{% url 'users:logout' %}"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+        <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()});"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
     </div>
 </div>
 
@@ -289,8 +289,57 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script>AOS.init({duration:800,once:true});</script>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered modal-sm">
+<div class="modal-content" style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;color:var(--text-primary)">
+<div class="modal-body" style="padding:28px 24px 20px;text-align:center">
+<i class="bi bi-exclamation-triangle" style="font-size:40px;color:var(--color-warning);display:block;margin-bottom:12px"></i>
+<p id="confirmMessage" style="font-size:15px;font-weight:500;margin:0;line-height:1.5;color:var(--text-primary)"></p>
+</div>
+<div class="modal-footer" style="border:none;padding:0 24px 24px;justify-content:center;gap:12px">
+<button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600" id="confirmCancelBtn">Cancel</button>
+<button type="button" class="btn btn-danger-custom" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;color:#fff" id="confirmOkBtn">OK</button>
+</div>
+</div></div></div>
+
 <script>
 window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
+
+var confirmResolve = null;
+
+function confirmAction(message) {
+    return new Promise(function(resolve) {
+        document.getElementById('confirmMessage').textContent = message;
+        confirmResolve = resolve;
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: false});
+        modal.show();
+    });
+}
+
+document.getElementById('confirmOkBtn').addEventListener('click', function() {
+    var modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+    modal.hide();
+    if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+});
+
+document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+function performLogout() {
+    window.location.href = '{% url "users:logout" %}';
+}
+
+function confirmSubmit(form, message) {
+    confirmAction(message).then(function(r) {
+        if (r) form.submit();
+    });
+}
 
 function formatNumber(value, decimals) {
     if (value === null || value === undefined || value === '') return '0';

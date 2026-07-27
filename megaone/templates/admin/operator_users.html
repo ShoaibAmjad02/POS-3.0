@@ -227,6 +227,8 @@ function resetOperatorPassword() {
     const id = document.getElementById('resetId').value;
     const password = document.getElementById('resetPassword').value.trim();
 
+    confirmAction('Are you sure you want to reset this operator\'s password? They will need the new password to log in.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch(`/users/reset-operator-password/${id}/`, {
         method: "POST",
         headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
@@ -234,35 +236,24 @@ function resetOperatorPassword() {
     })
     .then(r => r.json())
     .then(data => {
-        Swal.fire({icon:'success',title:'Password Reset!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
         const mEl = document.getElementById('resetPasswordModal');
         if (mEl) { const m = new bootstrap.Modal(mEl); m.hide(); }
+        window.location.reload();
+    });
     });
 }
 
 function deleteOperator(id, name) {
-    Swal.fire({
-        title: 'Delete Operator?',
-        text: `${name} will be permanently deleted.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Yes, delete',
-        background: '#1e293b',
-        color: '#e2e8f0',
-    }).then(result => {
-        if (result.isConfirmed) {
-            fetch(`/users/delete-operator/${id}/`, {
-                method: "POST",
-                headers: {"X-CSRFToken": "{{ csrf_token }}"},
-            })
-            .then(r => r.json())
-            .then(data => {
-                Swal.fire({icon:'success',title:'Deleted!',text:data.message,background:'#1e293b',color:'#e2e8f0',timer:2000,showConfirmButton:false});
-                loadOperators();
-            });
-        }
+    confirmAction('Delete operator ' + name + '? They will be permanently deleted.').then(function(confirmed) {
+        if (!confirmed) return;
+        fetch(`/users/delete-operator/${id}/`, {
+            method: "POST",
+            headers: {"X-CSRFToken": "{{ csrf_token }}"},
+        })
+        .then(r => r.json())
+        .then(data => {
+            loadOperators();
+        });
     });
 }
 

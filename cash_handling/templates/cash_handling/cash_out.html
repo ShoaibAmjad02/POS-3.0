@@ -30,6 +30,8 @@ function submitOp(){
     var amt=document.getElementById('amount').value;
     var reason=document.getElementById('reason').value;
     if(!amt||parseFloat(amt)<=0){alert('Enter a valid amount');return;}
+    confirmAction('Are you sure you want to remove ' + window.currencySymbol + parseFloat(amt).toFixed(2) + ' cash from the register?').then(function(confirmed) {
+    if (!confirmed) return;
     fetch('{% url "cash_handling:cash_out" %}',{
         method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
         body:JSON.stringify({amount:amt,reason:reason})
@@ -37,6 +39,7 @@ function submitOp(){
         if(d.success){alert('Cash removed! New balance: {{ currency_symbol }}'+d.balance_after);window.location.href='{% url "cash_handling:dashboard" %}';}
         else{alert(d.error||'Error');}
     }).catch(e=>alert('Error:'+e.message));
+    });
 }
 </script>
 {% endblock %}

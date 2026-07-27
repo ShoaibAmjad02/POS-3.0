@@ -125,7 +125,7 @@
                                     <ul>
                                         {% if user.is_authenticated %}
                                         <li><a href="{% url 'users:loyalty_card_view' %}"><i class="lni lni-star"></i>My Loyalty Card</a></li>
-                                        <li><a href="{% url 'users:logout' %}"><i class="lni lni-lock"></i>Logout</a></li>
+                                        <li><a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()})"><i class="lni lni-lock"></i>Logout</a></li>
                                         {% else %}
                                         <li><a href="{% url 'food-delivery:food_delivery_login' %}"><i class="lni lni-key"></i>Login</a></li>
                                         <li><a href="{% url 'food-delivery:food_delivery_registration' %}"><i class="lni lni-pointer-right"></i>Register</a></li>

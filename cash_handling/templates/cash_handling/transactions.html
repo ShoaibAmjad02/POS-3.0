@@ -254,6 +254,8 @@ function submitCashOut() {
     var amount = document.getElementById('cashOutAmount').value;
     var reason = document.getElementById('cashOutReason').value;
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount'); return; }
+    confirmAction('Are you sure you want to remove ' + window.currencySymbol + parseFloat(amount).toFixed(2) + ' cash from the register?').then(function(confirmed) {
+    if (!confirmed) return;
     fetch('{% url "cash_handling:cash_out" %}', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
@@ -262,12 +264,15 @@ function submitCashOut() {
         if (d.success) { location.reload(); }
         else { alert(d.error || 'Error processing request'); }
     }).catch(e => alert('Error: ' + e.message));
+    });
 }
 
 function submitDrop() {
     var amount = document.getElementById('dropAmount').value;
     var reason = document.getElementById('dropReason').value;
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount'); return; }
+    confirmAction('Are you sure you want to record a cash drop of ' + window.currencySymbol + parseFloat(amount).toFixed(2) + '? This amount will be removed from the register.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch('{% url "cash_handling:cash_drop" %}', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
@@ -276,11 +281,14 @@ function submitDrop() {
         if (d.success) { location.reload(); }
         else { alert(d.error || 'Error processing request'); }
     }).catch(e => alert('Error: ' + e.message));
+    });
 }
 
 function submitClose() {
     var balance = document.getElementById('closeBalance').value;
     var notes = document.getElementById('closeNotes').value;
+    confirmAction('Are you sure you want to close this cash session? This action cannot be undone.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch('{% url "cash_handling:session_close" %}', {
         method: 'POST',
         headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()},
@@ -289,6 +297,7 @@ function submitClose() {
         if (d.success) { location.reload(); }
         else { alert(d.error || 'Error processing request'); }
     }).catch(e => alert('Error: ' + e.message));
+    });
 }
 
 function showCashInModal() { document.getElementById('cashInModal').style.display = 'flex'; }

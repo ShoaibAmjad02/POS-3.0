@@ -28,6 +28,8 @@ function getCSRFToken(){return '{{ csrf_token }}'}
 function closeSession(){
     var bal=document.getElementById('closeBalance').value;
     var notes=document.getElementById('closeNotes').value;
+    confirmAction('Are you sure you want to close this cash session? This action cannot be undone.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch('{% url "cash_handling:session_close" %}',{
         method:'POST',
         headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
@@ -39,6 +41,7 @@ function closeSession(){
             window.location.href='{% url "cash_handling:dashboard" %}';
         }else{alert(d.error||'Error');}
     }).catch(e=>alert('Error:'+e.message));
+    });
 }
 </script>
 {% endblock %}

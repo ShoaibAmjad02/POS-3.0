@@ -42,12 +42,12 @@
           <td>
             <a href="{% url 'users:super_admin_edit' u.pk %}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
             <a href="{% url 'users:super_admin_reset_password' u.pk %}" class="btn btn-sm btn-outline-info" title="Reset Password"><i class="bi bi-key"></i></a>
-            <form method="post" action="{% url 'users:super_admin_toggle' u.pk %}" style="display:inline">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-sm btn-outline-{% if u.is_active %}danger{% else %}success{% endif %}" title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}" onclick="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} Super Admin {{ u.name }}?')">
-                <i class="bi bi-{% if u.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
-              </button>
-            </form>
+<form method="post" action="{% url 'users:super_admin_toggle' u.pk %}" style="display:inline">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-sm btn-outline-{% if u.is_active %}danger{% else %}success{% endif %}" title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}" onclick="confirmSubmit(this.closest('form'),'{% if u.is_active %}Deactivate{% else %}Activate{% endif %} Super Admin {{ u.name }}?')">
+                                        <i class="bi bi-{% if u.is_active %}pause-circle{% else %}play-circle{% endif %}"></i>
+                                    </button>
+                                </form>
           </td>
         </tr>
         {% empty %}

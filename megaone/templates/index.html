@@ -256,7 +256,7 @@
                                         </li>
                                         <li>
                                             <div class="overlay-link"></div>
-                                            <a href="{% url 'users:logout' %}"><i class="lni lni-lock"></i>Logout</a>
+                                            <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()})"><i class="lni lni-lock"></i>Logout</a>
                                         </li>
                                     </ul>
                                 </div>

@@ -44,14 +44,14 @@
         <form method="POST" action="{% url 'users:admin_toggle_card_status' card.card_number %}">
             {% csrf_token %}
             {% if card.status == 'ACTIVE' %}
-            <button type="submit" class="btn btn-outline-danger btn-sm" style="border-radius:10px" onclick="return confirm('Block this card?')"><i class="bi bi-lock me-1"></i>Block Card</button>
+            <button type="button" class="btn btn-outline-danger btn-sm" style="border-radius:10px" onclick="confirmSubmit(this.closest('form'),'Block this loyalty card? The card will be deactivated.')"><i class="bi bi-lock me-1"></i>Block Card</button>
             {% else %}
-            <button type="submit" class="btn btn-outline-success btn-sm" style="border-radius:10px" onclick="return confirm('Activate this card?')"><i class="bi bi-unlock me-1"></i>Activate Card</button>
+            <button type="button" class="btn btn-outline-success btn-sm" style="border-radius:10px" onclick="confirmSubmit(this.closest('form'),'Activate this loyalty card?')"><i class="bi bi-unlock me-1"></i>Activate Card</button>
             {% endif %}
         </form>
         <form method="POST" action="{% url 'users:admin_reset_points' card.card_number %}">
             {% csrf_token %}
-            <button type="submit" class="btn btn-outline-warning btn-sm" style="border-radius:10px" onclick="return confirm('Reset all points and transactions? This cannot be undone.')"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Points</button>
+            <button type="button" class="btn btn-outline-warning btn-sm" style="border-radius:10px" onclick="confirmSubmit(this.closest('form'),'Reset all points and transactions for this card? This cannot be undone.')"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset Points</button>
         </form>
         <a href="{% url 'users:download_loyalty_pdf' card.card_number %}" class="btn btn-outline-info btn-sm" style="border-radius:10px" target="_blank"><i class="bi bi-filetype-pdf me-1"></i>Download PDF</a>
     </div>

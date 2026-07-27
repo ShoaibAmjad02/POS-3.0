@@ -104,10 +104,10 @@
                     <td>
                         <a href="{% url 'users:expense_detail' e.id %}" class="btn btn-sm btn-outline-info" title="View"><i class="bi bi-eye"></i></a>
                         <a href="{% url 'users:expense_edit' e.id %}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="bi bi-pencil"></i></a>
-                        <form method="POST" action="{% url 'users:expense_delete' e.id %}" style="display:inline" onsubmit="return confirm('Delete this expense?')">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                        </form>
+<form method="POST" action="{% url 'users:expense_delete' e.id %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" onclick="confirmSubmit(this.closest('form'),'Delete this expense?')"><i class="bi bi-trash"></i></button>
+                            </form>
                     </td>
                 </tr>
                 {% empty %}

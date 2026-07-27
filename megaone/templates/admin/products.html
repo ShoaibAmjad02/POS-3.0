@@ -115,9 +115,9 @@
                         </button>
                         <a href="{% url 'users:edit_product' product.id %}" class="btn btn-sm btn-outline-warning me-1" title="Edit"><i class="bi bi-pencil"></i></a>
                         <a href="{% url 'users:barcode_print' product.id %}" class="btn btn-sm btn-outline-info me-1" title="Print Barcode" target="_blank"><i class="bi bi-upc-scan"></i></a>
-                        <form action="{% url 'users:delete_product' product.id %}" method="POST" class="d-inline" onsubmit="return confirm('Delete {{ product.name }}?');">
+                        <form action="{% url 'users:delete_product' product.id %}" method="POST" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmSubmit(this.closest('form'),'Delete {{ product.name }}?')"><i class="bi bi-trash"></i></button>
                         </form>
                     </td>
                 </tr>

@@ -116,7 +116,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
             <h5><i class="bi bi-shop text-warning"></i> {{ company_name }} <small style="font-size:10px;color:var(--text-muted);font-weight:400">| POS</small></h5>
             <div class="d-flex gap-3 align-items-center">
                 <span id="clock" style="color:var(--text-secondary);font-size:12px;font-weight:600"></span>
-                <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
+                <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()});" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
             </div>
         </div>
 
@@ -271,6 +271,20 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
 <!-- Toast -->
 <div class="toast-msg" id="toastMsg"></div>
 
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered modal-sm">
+<div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border-card);border-radius:16px;color:var(--text-primary)">
+<div class="modal-body" style="padding:28px 24px 20px;text-align:center">
+<i class="bi bi-exclamation-triangle" style="font-size:40px;color:var(--color-warning);display:block;margin-bottom:12px"></i>
+<p id="confirmMessage" style="font-size:15px;font-weight:500;margin:0;line-height:1.5;color:var(--text-primary)"></p>
+</div>
+<div class="modal-footer" style="border:none;padding:0 24px 24px;justify-content:center;gap:12px">
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;background:var(--btn-secondary-bg);border:1px solid var(--btn-secondary-border);color:var(--btn-secondary-color)" id="confirmCancelBtn">Cancel</button>
+<button type="button" class="btn btn-danger" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;background:#dc2626;border:none;color:#fff" id="confirmOkBtn">OK</button>
+</div>
+</div></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
@@ -304,6 +318,35 @@ function toTitleCase(str) {
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     }).join(' ');
 }
+
+var confirmResolve = null;
+function performLogout() {
+    window.location.href = '{% url "users:logout" %}';
+}
+function confirmAction(message) {
+    return new Promise(function(resolve) {
+        document.getElementById('confirmMessage').textContent = message;
+        confirmResolve = resolve;
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: false});
+        modal.show();
+    });
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'confirmOkBtn') {
+        var modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+        if (modal) modal.hide();
+        if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+    }
+});
+
+document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
 
 document.addEventListener('blur', function(e) {
     var el = e.target;
@@ -430,13 +473,15 @@ function removeCart(foodId) {
 }
 
 function clearCart() {
-    if (!confirm('Clear cart?')) return;
+    confirmAction('Are you sure you want to clear the entire cart? This will remove all items.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch("{% url 'users:operator_cart_clear' %}", {
         method: "POST",
         headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"}
     })
     .then(r => r.json())
     .then(data => renderCart([], 0));
+    });
 }
 
 function updateCartTax(foodId, taxRate) {
@@ -597,7 +642,8 @@ function resumeHeld(id) {
 }
 
 function deleteHeld(id) {
-    if (!confirm('Delete this held invoice?')) return;
+    confirmAction('Are you sure you want to permanently delete this held invoice? This cannot be undone.').then(function(confirmed) {
+    if (!confirmed) return;
     fetch("{% url 'users:operator_delete_held' 0 %}".replace('/0/', '/' + id + '/'), {
         method: "POST",
         headers: {"X-CSRFToken": "{{ csrf_token }}"}
@@ -605,6 +651,7 @@ function deleteHeld(id) {
     .then(r => r.json())
     .then(data => {
         if (data.success) showHeldModal();
+    });
     });
 }
 
@@ -990,6 +1037,8 @@ function openCashSession() {
 }
 
 function closeCashSession() {
+    confirmAction('Are you sure you want to close the current cash session? This will end the session and prevent further transactions.').then(function(confirmed) {
+    if (!confirmed) return;
     var balance = prompt('Enter actual cash count:', '');
     if (balance === null) return;
     balance = parseFloat(balance) || 0;
@@ -1010,6 +1059,7 @@ function closeCashSession() {
         }
     })
     .catch(function(e) { showToast('Error: ' + e.message, true); });
+    });
 }
 
 updateSessionBanner();

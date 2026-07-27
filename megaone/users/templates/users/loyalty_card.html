@@ -58,7 +58,7 @@ body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-heig
         <a class="navbar-brand" href="/"><i class="bi bi-star-fill me-2"></i>{{ company_name }}</a>
         <div class="d-flex align-items-center gap-3">
             <a href="{% url 'users:food_delivery_restaurant_detail' %}" class="nav-link"><i class="bi bi-shop me-1"></i>Menu</a>
-            <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-warning" style="border-radius:10px;padding:6px 16px"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+            <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()})" class="btn btn-sm btn-outline-warning" style="border-radius:10px;padding:6px 16px"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
         </div>
     </div>
 </nav>
@@ -190,7 +190,48 @@ body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-heig
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered modal-sm">
+<div class="modal-content" style="background:#fff;border:1px solid #dee2e6;border-radius:16px;color:#212529">
+<div class="modal-body" style="padding:28px 24px 20px;text-align:center">
+<i class="bi bi-exclamation-triangle" style="font-size:40px;color:#f59e0b;display:block;margin-bottom:12px"></i>
+<p id="confirmMessage" style="font-size:15px;font-weight:500;margin:0;line-height:1.5;color:#212529"></p>
+</div>
+<div class="modal-footer" style="border:none;padding:0 24px 24px;justify-content:center;gap:12px">
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;background:#6c757d;border:none;color:#fff" id="confirmCancelBtn">Cancel</button>
+<button type="button" class="btn btn-danger" style="min-width:100px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;background:#dc2626;border:none;color:#fff" id="confirmOkBtn">OK</button>
+</div>
+</div></div></div>
+
 <script>
+var confirmResolve = null;
+function performLogout() {
+    window.location.href = '{% url "users:logout" %}';
+}
+function confirmAction(message) {
+    return new Promise(function(resolve) {
+        document.getElementById('confirmMessage').textContent = message;
+        confirmResolve = resolve;
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: false});
+        modal.show();
+    });
+}
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'confirmOkBtn') {
+        var modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+        if (modal) modal.hide();
+        if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+    }
+});
+document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
 function refreshCardData() {
     fetch("{% url 'users:loyalty_card_data' %}")
     .then(r => r.json())

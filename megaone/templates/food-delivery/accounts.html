@@ -92,7 +92,7 @@
                                         </li>
                                         <li>
                                             <div class="overlay-link"></div>
-                                            <a href="{% url 'users:logout' %}"><i class="lni lni-lock"></i>Logout</a>
+                                            <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()})"><i class="lni lni-lock"></i>Logout</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -199,10 +199,10 @@
                                         class="lni lni-pointer-right mr-1"></i>Account</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="{% url 'users:logout' %}">
+                                <a class="nav-link" href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()})">
                                   <i class="lni lni-lock mr-1"></i>
                                        Logout
-                               </a>
+                                </a>
                             </li>
                         </ul>
                     </div>

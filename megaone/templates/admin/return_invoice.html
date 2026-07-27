@@ -99,7 +99,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
                 <span id="invBadge" style="display:none;font-size:11px;padding:4px 10px;border-radius:50px;background:var(--color-danger-bg);color:var(--color-danger);font-weight:600"><i class="bi bi-receipt me-1"></i><span id="invBadgeText"></span></span>
                 <span id="clock" style="color:var(--text-secondary);font-size:12px;font-weight:600"></span>
                 <button class="return-history-btn" onclick="window.location.href='{% url 'users:return_invoice_history' %}'"><i class="bi bi-clock-history me-1"></i>History</button>
-                <a href="{% url 'users:logout' %}" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
+                <a href="#" onclick="event.preventDefault();confirmAction('Are you sure you want to log out?').then(function(r){if(r)performLogout()});" class="btn btn-sm btn-outline-danger" style="font-size:11px;padding:3px 10px;border-radius:6px"><i class="bi bi-box-arrow-right"></i></a>
             </div>
         </div>
 
@@ -394,10 +394,12 @@ function removeFromReturnCart(itemId) {
 
 function clearReturnCart() {
     if (returnCart.length === 0) return;
-    if (!confirm('Clear return cart?')) return;
+    confirmAction('Are you sure you want to clear the return cart? All items will be removed.').then(function(r) {
+    if (!r) return;
     returnCart = [];
     renderReturnCart();
     filterInvoiceProducts();
+    });
 }
 
 function renderReturnCart() {
@@ -448,6 +450,8 @@ function renderReturnCart() {
 // ================================
 function processReturn() {
     if (!selectedInvoiceId || returnCart.length === 0) return;
+    confirmAction('Are you sure you want to process this return? This will update inventory and cannot be undone.').then(function(confirmed) {
+    if (!confirmed) return;
     const items = returnCart.map(c => ({ item_id: c.item_id, quantity: c.qty }));
     const notes = document.getElementById('returnNotes').value.trim();
     const btn = document.getElementById('processReturnBtn');
@@ -466,9 +470,9 @@ function processReturn() {
             showToast(data.message, false);
             if (data.return_invoice_id) {
                 setTimeout(() => {
-                    if (confirm('Return ' + (data.return_number || '') + ' processed! Refund: ' + formatCurrency(data.total_refund_amount, 0) + '\n\nPrint Return Invoice?')) {
-                        window.open("/users/return-invoice/print/" + data.return_invoice_id + "/", "_blank");
-                    }
+                    confirmAction('Return ' + (data.return_number || '') + ' processed! Refund: ' + formatCurrency(data.total_refund_amount, 0) + '. Print Return Invoice?').then(function(printIt) {
+                        if (printIt) window.open("/users/return-invoice/print/" + data.return_invoice_id + "/", "_blank");
+                    });
                 }, 500);
             }
             changeInvoice();
@@ -481,6 +485,7 @@ function processReturn() {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Process Return';
         showToast('Error processing return', true);
+    });
     });
 }
 
