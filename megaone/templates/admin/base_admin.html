@@ -177,7 +177,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
         </div>
         {% endif %}
         {% if 'customers' in enabled_modules and user_perms.customers.manage %}
-        <a href="{% url 'users:admin_loyalty_list' %}" class="{% if active_page == 'loyalty' %}active{% endif %}"><i class="bi bi-star"></i><span>Customer Loyalty</span></a>
+        <a href="{% url 'users:admin_loyalty_list' %}" class="{% if active_page == 'loyalty' %}active{% endif %}"><i class="bi bi-star"></i><span>Loyalty Cards</span></a>
         {% endif %}
         {% if 'offers' in enabled_modules and user_perms.products.create %}
         <div class="has-sub" id="sub-offers">
@@ -273,11 +273,13 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
     </div>
     {% endif %}
     {% if user.is_staff and not user.is_software_owner %}
+    {% if active_page != 'dashboard' %}
     <div class="back-nav">
         <a onclick="event.preventDefault();(window.history.length>1)?history.back():window.location.href='{% url 'users:admin_dashboard' %}'">
             <i class="bi bi-arrow-left"></i> Back
         </a>
     </div>
+    {% endif %}
     {% endif %}
     {% block content %}{% endblock %}
 </div>

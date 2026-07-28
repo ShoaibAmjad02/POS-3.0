@@ -987,15 +987,7 @@ def admin_dashboard(request):
     low_stock_products = Food.objects.filter(stock__gt=0, stock__lte=5)[:20]
     out_of_stock_products = Food.objects.filter(stock=0)[:20]
 
-    # Offer & Deal stats
     from django.db.models import Sum
-    total_offers = TimeBasedOffer.objects.count()
-    active_offers = TimeBasedOffer.objects.filter(is_active=True).count()
-    expired_offers = TimeBasedOffer.objects.filter(is_active=False).count()
-    total_deals = TodayDeal.objects.count()
-    active_deals = TodayDeal.objects.filter(is_active=True).count()
-    offer_usage = Invoice.objects.aggregate(total=Sum('qr_offer_discount_amount'))['total'] or 0
-    offer_discount_given = Invoice.objects.filter(qr_offer_discount_amount__gt=0).count()
 
     revenue = Invoice.objects.aggregate(total=Sum("total_amount"))["total"] or 0
     wholesale_revenue = WholesaleInvoice.objects.aggregate(total=Sum("total_amount"))["total"] or 0
@@ -1040,7 +1032,12 @@ def admin_dashboard(request):
 
     returned_qty = ReturnInvoiceItem.objects.aggregate(total=Sum("quantity"))["total"] or 0
 
+    retail_discounts = float(Invoice.objects.aggregate(total=Sum(F("qr_offer_discount_amount") + F("deal_discount_amount")))["total"] or 0)
+    wholesale_discounts = float(WholesaleInvoice.objects.aggregate(total=Sum("discount_amount"))["total"] or 0)
+    total_discount_given = round(retail_discounts + wholesale_discounts, 2)
+
     return render(request, "admin/dashboard.html", {
+        "active_page": "dashboard",
         "foods_count": foods_count,
         "invoices_count": invoices_count,
         "users_count": users_count,
@@ -1056,13 +1053,6 @@ def admin_dashboard(request):
         "total_orders": invoices_count,
         "low_stock_products": low_stock_products,
         "out_of_stock_products": out_of_stock_products,
-        "total_offers": total_offers,
-        "active_offers": active_offers,
-        "expired_offers": expired_offers,
-        "total_deals": total_deals,
-        "active_deals": active_deals,
-        "offer_usage": offer_usage,
-        "offer_discount_given": offer_discount_given,
         "pending_approvals_count": pending_approvals_count,
         "pending_approvals": pending_approvals,
         "last_backup_time": last_backup_display,
@@ -1080,6 +1070,7 @@ def admin_dashboard(request):
         "yearly_returns": float(yearly_returns),
         "yearly_net_sales": yearly_net_sales,
         "returned_qty": returned_qty,
+        "total_discount_given": total_discount_given,
     })
 
 
@@ -2199,7 +2190,7 @@ def _get_pos_permission_groups():
 
     MODULE_LABELS = {
         'sales': 'Sales & POS',
-        'customers': 'Customers',
+        'customers': 'Loyalty Cards',
         'return_invoice': 'Returns',
         'wholesale': 'Wholesale',
         'cash_handling': 'Cash Handling',
@@ -7429,7 +7420,7 @@ SYSTEM_MODULES = [
     ('pos', 'POS'),
     ('wholesale', 'Wholesale'),
     ('products', 'Products'),
-    ('customers', 'Customers'),
+    ('customers', 'Loyalty Cards'),
     ('inventory', 'Inventory'),
     ('purchases', 'Purchases'),
     ('returns', 'Returns'),

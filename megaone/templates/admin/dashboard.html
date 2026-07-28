@@ -110,10 +110,19 @@
     <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
         <div class="stat-card gradient-orders" style="cursor:pointer" onclick="window.location.href='{% url 'users:invoice_search_page' %}'">
             <div class="stat-value" id="plTotalOrders">{{ total_orders }}</div>
-            <div class="stat-label">Total Orders</div>
+            <div class="stat-label">Total Invoices</div>
             <i class="bi bi-cart-check stat-icon"></i>
         </div>
     </div>
+    {% if user_perms.reports.view %}
+    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#d97706);cursor:pointer" onclick="window.location.href='{% url 'users:profit_loss_statement' %}'">
+            <div class="stat-value" id="plDiscountGiven">{% format_currency total_discount_given 0 %}</div>
+            <div class="stat-label">Discount Given</div>
+            <i class="bi bi-tag stat-icon"></i>
+        </div>
+    </div>
+    {% endif %}
     {% if user_perms.return_invoice %}
     <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="50">
         <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);cursor:pointer" onclick="window.location.href='{% url 'users:return_invoice_history' %}'">
@@ -150,52 +159,8 @@
     <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="250">
         <div class="stat-card gradient-customers" style="cursor:pointer" onclick="window.location.href='{% url 'users:admin_loyalty_list' %}'">
             <div class="stat-value">{{ customers_count }}</div>
-            <div class="stat-label">Customers</div>
+            <div class="stat-label">Loyalty Cards</div>
             <i class="bi bi-person-badge stat-icon"></i>
-        </div>
-    </div>
-    {% endif %}
-    {% if user_perms.products.view %}
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="300">
-        <div class="stat-card" style="background:linear-gradient(135deg,#f59e0b,#d97706);cursor:pointer" onclick="window.location.href='{% url 'users:offer_list' %}'">
-            <div class="stat-value">{{ total_offers }}</div>
-            <div class="stat-label">Total Offers</div>
-            <i class="bi bi-megaphone stat-icon"></i>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="350">
-        <div class="stat-card" style="background:linear-gradient(135deg,#22c55e,#16a34a);cursor:pointer" onclick="window.location.href='{% url 'users:offer_list' %}'">
-            <div class="stat-value">{{ active_offers }}</div>
-            <div class="stat-label">Active Offers</div>
-            <i class="bi bi-check-circle stat-icon"></i>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="400">
-        <div class="stat-card" style="background:linear-gradient(135deg,#ef4444,#dc2626);cursor:pointer" onclick="window.location.href='{% url 'users:offer_list' %}'">
-            <div class="stat-value">{{ expired_offers }}</div>
-            <div class="stat-label">Expired Offers</div>
-            <i class="bi bi-clock-history stat-icon"></i>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="450">
-        <div class="stat-card" style="background:linear-gradient(135deg,#8b5cf6,#a855f7);cursor:pointer" onclick="window.location.href='{% url 'users:deal_list' %}'">
-            <div class="stat-value">{{ total_deals }}</div>
-            <div class="stat-label">Today's Deals</div>
-            <i class="bi bi-fire stat-icon"></i>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="500">
-        <div class="stat-card" style="background:linear-gradient(135deg,#14b8a6,#06b6d4);cursor:pointer" onclick="window.location.href='{% url 'users:offer_list' %}'">
-            <div class="stat-value">{{ offer_discount_given }}</div>
-            <div class="stat-label">Offer Usage Count</div>
-            <i class="bi bi-graph-up stat-icon"></i>
-        </div>
-    </div>
-    <div class="col-xl-3 col-md-6" data-aos="fade-up" data-aos-delay="550">
-        <div class="stat-card" style="background:linear-gradient(135deg,#f97316,#ea580c);cursor:pointer" onclick="window.location.href='{% url 'users:offer_list' %}'">
-            <div class="stat-value">{% format_currency offer_usage 0 %}</div>
-            <div class="stat-label">Discount Given</div>
-            <i class="bi bi-cash-coin stat-icon"></i>
         </div>
     </div>
     {% endif %}

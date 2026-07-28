@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
             name='ModulePermission',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('module_code', models.CharField(choices=[('pos', 'POS'), ('wholesale', 'Wholesale'), ('retail', 'Retail'), ('inventory', 'Inventory'), ('customers', 'Customers'), ('suppliers', 'Suppliers'), ('expenses', 'Expenses'), ('reports', 'Reports'), ('profit_loss', 'Profit & Loss'), ('credit_management', 'Credit Management')], max_length=50)),
+                ('module_code', models.CharField(choices=[('pos', 'POS'), ('wholesale', 'Wholesale'), ('retail', 'Retail'), ('inventory', 'Inventory'), ('customers', 'Loyalty Cards'), ('suppliers', 'Suppliers'), ('expenses', 'Expenses'), ('reports', 'Reports'), ('profit_loss', 'Profit & Loss'), ('credit_management', 'Credit Management')], max_length=50)),
                 ('is_enabled', models.BooleanField(default=True)),
                 ('company', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='module_permissions', to='users.company')),
             ],
