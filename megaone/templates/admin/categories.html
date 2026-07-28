@@ -20,7 +20,9 @@
 {% block content %}
 <div class="top-bar">
 <div><h2>Category <span>Management</span></h2><p style="color:var(--text-muted);margin:0;font-size:14px">Manage product categories and discounts</p></div>
+<div class="d-flex gap-2 flex-wrap">
 <button class="btn btn-warning btn-action" data-bs-toggle="modal" data-bs-target="#addModal"><i class="bi bi-plus-circle me-1"></i> Add Category</button>
+<a href="{% url 'users:categories_export_csv' %}" class="btn btn-outline-success btn-action"><i class="bi bi-download me-1"></i> Export CSV</a>
 </div>
 
 {% if messages %}

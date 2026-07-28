@@ -6,6 +6,15 @@ from .views import (
     admin_dashboard, food_delivery_login,
     register_view, search_users,
     user_detail_view, user_redirect_view, user_update_view,
+    products_export_csv,
+    categories_export_csv,
+    expense_categories_export_csv,
+    loyalty_cards_export_csv,
+    stock_movements_export_csv, stock_position_export_csv,
+    invoices_export_csv, wholesale_invoices_export_csv,
+    returns_export_csv, suppliers_export_csv, customers_export_csv,
+    offers_export_csv, deals_export_csv,
+    wholesale_customers_export_csv,
 )
 from megaone.users import views
 
@@ -243,5 +252,21 @@ urlpatterns = [
     path("settings/", views.system_settings, name="system_settings"),
     path("audit-logs/", views.audit_logs, name="audit_logs"),
     path("save-theme/", views.save_theme, name="save_theme"),
+
+    # CSV Export
+    path("products/export/", products_export_csv, name="products_export_csv"),
+    path("categories/export/", categories_export_csv, name="categories_export_csv"),
+    path("expense-categories/export/", expense_categories_export_csv, name="expense_categories_export_csv"),
+    path("loyalty-cards/export/", loyalty_cards_export_csv, name="loyalty_cards_export_csv"),
+    path("stock-movements/export/", stock_movements_export_csv, name="stock_movements_export_csv"),
+    path("stock-position/export/", stock_position_export_csv, name="stock_position_export_csv"),
+    path("invoices/export/", invoices_export_csv, name="invoices_export_csv"),
+    path("wholesale-invoices/export/", wholesale_invoices_export_csv, name="wholesale_invoices_export_csv"),
+    path("returns/export/", returns_export_csv, name="returns_export_csv"),
+    path("wholesale-customers/export/", wholesale_customers_export_csv, name="wholesale_customers_export_csv"),
+    path("suppliers/export/", suppliers_export_csv, name="suppliers_export_csv"),
+    path("customers/export/", customers_export_csv, name="customers_export_csv"),
+    path("offers/export/", offers_export_csv, name="offers_export_csv"),
+    path("deals/export/", deals_export_csv, name="deals_export_csv"),
 
 ]

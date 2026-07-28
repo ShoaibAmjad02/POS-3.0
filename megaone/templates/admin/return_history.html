@@ -17,7 +17,8 @@
         <h2>Return <span>History</span></h2>
         <p style="color:#64748b;margin:0;font-size:14px">View all processed returns. Reprint invoices as needed.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:returns_export_csv' %}" class="btn btn-outline-success btn-action"><i class="bi bi-download me-1"></i> Export CSV</a>
         <a href="{% url 'users:return_invoice_page' %}" class="btn btn-sm btn-warning"><i class="bi bi-arrow-return-left"></i> New Return</a>
     </div>
 </div>

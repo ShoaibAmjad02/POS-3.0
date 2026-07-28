@@ -9,6 +9,7 @@
         <p style="color:var(--text-muted);margin:0;font-size:14px">Current inventory valuation with quick access to stock history</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'users:stock_position_export_csv' %}" class="btn btn-outline-success btn-action"><i class="bi bi-download me-1"></i> Export CSV</a>
         <a href="{% url 'users:stock_history' %}" class="btn btn-sm btn-outline-info"><i class="bi bi-clock-history"></i> Stock History</a>
         <a href="{% url 'users:stock_movement_report' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-file-text"></i> Report</a>
         <a href="{% url 'users:admin_dashboard' %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-speedometer2"></i> Dashboard</a>

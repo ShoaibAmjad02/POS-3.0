@@ -7602,6 +7602,281 @@ def system_settings(request):
     return render(request, 'admin/system_settings.html', context)
 
 
+# =========================
+# CSV EXPORT
+# =========================
+
+@login_required
+@module_access_required('products')
+def products_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    from menu.models import Food
+    qs = Food.objects.select_related('category').all().order_by('id')
+    field_map = [
+        ('id', 'ID'),
+        ('name', 'Product Name'),
+        ('category.name', 'Category'),
+        ('sku', 'SKU'),
+        ('barcode', 'Barcode'),
+        ('price', 'Price'),
+        ('wholesale_price', 'Wholesale Price'),
+        ('cost_price', 'Cost Price'),
+        ('stock', 'Stock Qty'),
+        ('available', 'Available'),
+        ('discount_type', 'Discount Type'),
+        ('discount_value', 'Discount Value'),
+        ('reward_points', 'Reward Points'),
+        ('description', 'Description'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'products.csv')
+
+
+@login_required
+@module_access_required('products')
+def categories_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    from menu.models import Category
+    qs = Category.objects.all().order_by('id')
+    field_map = [
+        ('id', 'ID'),
+        ('name', 'Category Name'),
+        ('is_active', 'Active'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'categories.csv')
+
+
+
+
+
+@login_required
+@module_access_required('expenses')
+def expense_categories_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = ExpenseCategory.objects.all().order_by('id')
+    field_map = [
+        ('id', 'ID'),
+        ('name', 'Category Name'),
+        ('is_active', 'Active'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'expense_categories.csv')
+
+
+@login_required
+@module_access_required('customers')
+def loyalty_cards_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = LoyaltyCard.objects.select_related('user').all().order_by('-created_at')
+    field_map = [
+        ('card_number', 'Card Number'),
+        ('user.name', 'Customer Name'),
+        ('user.email', 'Customer Email'),
+        ('user.phone', 'Customer Phone'),
+        ('total_points', 'Total Points'),
+        ('used_points', 'Used Points'),
+        ('remaining_points', 'Remaining Points'),
+        ('status', 'Status'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'loyalty_cards.csv')
+
+
+@login_required
+@module_access_required('inventory')
+def stock_movements_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    from .models import StockMovement
+    qs = StockMovement.objects.select_related('food', 'created_by').all().order_by('-created_at')
+    field_map = [
+        ('id', 'ID'),
+        ('food.name', 'Product'),
+        ('transaction_type', 'Type'),
+        ('reference_number', 'Reference'),
+        ('quantity_change', 'Qty Change'),
+        ('stock_before', 'Stock Before'),
+        ('stock_after', 'Stock After'),
+        ('notes', 'Notes'),
+        ('created_by.name', 'Created By'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'stock_movements.csv')
+
+
+@login_required
+@module_access_required('inventory')
+def stock_position_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    from menu.models import Food
+    qs = Food.objects.select_related('category').all().order_by('name')
+    field_map = [
+        ('id', 'ID'),
+        ('name', 'Product Name'),
+        ('category.name', 'Category'),
+        ('sku', 'SKU'),
+        ('stock', 'Current Stock'),
+        ('cost_price', 'Cost Price'),
+        ('price', 'Selling Price'),
+        ('available', 'Available'),
+    ]
+    return export_to_csv_response(qs, field_map, 'stock_position.csv')
+
+
+@login_required
+@module_access_required('reports')
+def invoices_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = Invoice.objects.select_related('user').all().order_by('-created_at')
+    field_map = [
+        ('invoice_number', 'Invoice #'),
+        ('customer_name', 'Customer'),
+        ('customer_email', 'Email'),
+        ('customer_phone', 'Phone'),
+        ('subtotal_amount', 'Subtotal'),
+        ('tax_amount', 'Tax'),
+        ('total_amount', 'Total'),
+        ('payment_method', 'Payment'),
+        ('created_by.email', 'Created By'),
+        ('created_at', 'Date'),
+    ]
+    return export_to_csv_response(qs, field_map, 'invoices.csv')
+
+
+@login_required
+@module_access_required('reports')
+def wholesale_invoices_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = WholesaleInvoice.objects.select_related('wholesale_customer').all().order_by('-created_at')
+    field_map = [
+        ('invoice_number', 'Invoice #'),
+        ('wholesale_customer.company_name', 'Customer'),
+        ('subtotal_amount', 'Subtotal'),
+        ('tax_amount', 'Tax'),
+        ('discount_amount', 'Discount'),
+        ('total_amount', 'Total'),
+        ('payment_status', 'Status'),
+        ('payment_method', 'Payment'),
+        ('created_at', 'Date'),
+    ]
+    return export_to_csv_response(qs, field_map, 'wholesale_invoices.csv')
+
+
+@login_required
+def returns_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    if not has_permission(request.user, 'can_view_reports') and not request.user.is_staff:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    qs = ReturnInvoice.objects.select_related('original_invoice', 'returned_by').all().order_by('-created_at')
+    field_map = [
+        ('return_number', 'Return #'),
+        ('original_invoice.invoice_number', 'Original Invoice'),
+        ('customer_name', 'Customer'),
+        ('total_refund_amount', 'Refund Amount'),
+        ('payment_method', 'Payment Method'),
+        ('returned_by.email', 'Returned By'),
+        ('created_at', 'Date'),
+    ]
+    return export_to_csv_response(qs, field_map, 'returns.csv')
+
+
+@login_required
+@module_access_required('wholesale')
+def wholesale_customers_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = WholesaleCustomer.objects.all().order_by('-created_at')
+    field_map = [
+        ('id', 'ID'),
+        ('company_name', 'Company Name'),
+        ('contact_person', 'Contact Person'),
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+        ('address', 'Address'),
+        ('credit_limit', 'Credit Limit'),
+        ('balance', 'Balance'),
+        ('account_status', 'Account Status'),
+        ('is_active', 'Active'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'wholesale_customers.csv')
+
+
+@login_required
+@module_access_required('reports')
+def suppliers_export_csv(request):
+    import csv
+    from .csv_utils import export_to_csv_response
+    supplier_names = (InventoryBatch.objects.exclude(supplier__isnull=True).exclude(supplier__exact='')
+                      .values_list('supplier', flat=True).distinct().order_by('supplier'))
+    rows = []
+    for i, name in enumerate(supplier_names, start=1):
+        batches = InventoryBatch.objects.filter(supplier=name)
+        total_purchases = batches.aggregate(total=Sum('total_cost'))['total'] or 0
+        rows.append({'id': i, 'name': name, 'total_purchases': float(total_purchases), 'batch_count': batches.count()})
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="suppliers.csv"'
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Supplier Name', 'Total Purchases', 'Batch Count'])
+    for r in rows:
+        writer.writerow([r['id'], r['name'], r['total_purchases'], r['batch_count']])
+    return response
+
+
+@login_required
+@module_access_required('reports')
+def customers_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = User.objects.filter(is_staff=False, is_operator=False).order_by('-date_joined')
+    field_map = [
+        ('id', 'ID'),
+        ('name', 'Name'),
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+        ('is_active', 'Active'),
+        ('date_joined', 'Registered'),
+    ]
+    return export_to_csv_response(qs, field_map, 'customers.csv')
+
+
+@login_required
+@module_access_required('reports')
+def offers_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = TimeBasedOffer.objects.all().order_by('-created_at')
+    field_map = [
+        ('id', 'ID'),
+        ('title', 'Title'),
+        ('description', 'Description'),
+        ('discount_percentage', 'Discount %'),
+        ('is_active', 'Active'),
+        ('usage_count', 'Usage Count'),
+        ('start_date', 'Start Date'),
+        ('end_date', 'End Date'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'offers.csv')
+
+
+@login_required
+@module_access_required('reports')
+def deals_export_csv(request):
+    from .csv_utils import export_to_csv_response
+    qs = TodayDeal.objects.all().order_by('-created_at')
+    field_map = [
+        ('id', 'ID'),
+        ('title', 'Title'),
+        ('description', 'Description'),
+        ('combo_price', 'Combo Price'),
+        ('discount_percentage', 'Discount %'),
+        ('free_product', 'Free Product'),
+        ('is_active', 'Active'),
+        ('start_date', 'Start Date'),
+        ('end_date', 'End Date'),
+        ('created_at', 'Created At'),
+    ]
+    return export_to_csv_response(qs, field_map, 'deals.csv')
+
+
 @login_required
 def save_theme(request):
     if request.method == 'POST':
