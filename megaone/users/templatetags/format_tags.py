@@ -64,6 +64,17 @@ def thousand_separator(value, decimals=2):
 
 
 @register.filter
+def get_item(value, arg):
+    try:
+        return value[arg]
+    except (TypeError, KeyError, IndexError):
+        try:
+            return value[int(arg)]
+        except (ValueError, TypeError, IndexError, KeyError):
+            return None
+
+
+@register.filter
 def multiply(value, arg):
     try:
         return float(value) * float(arg)

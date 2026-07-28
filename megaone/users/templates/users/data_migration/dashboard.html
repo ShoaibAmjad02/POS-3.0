@@ -1,0 +1,55 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Data Migration - {{ company_name }}{% endblock %}
+{% block content %}
+<div class="top-bar">
+  <h2>Data <span>Migration</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Import data from external POS/ERP systems into {{ company_name }}.</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-8">
+    <div class="form-card">
+      <h5 class="mb-3"><i class="bi bi-upload me-2"></i>Start a New Migration</h5>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">
+        Upload files from your existing system — Excel (.xlsx/.xls), CSV, SQL dumps, SQLite databases (.db/.sqlite), or ZIP archives — and our smart mapping engine will automatically detect your data structure.
+      </p>
+      <ul class="mb-3" style="font-size:13px;color:var(--text-secondary)">
+        <li>Auto-detect modules (Products, Customers, Sales, Inventory, etc.)</li>
+        <li>Intelligent field matching with customisable mappings</li>
+        <li>Duplicate detection and conflict resolution</li>
+        <li>Preview and validate before any data is written</li>
+        <li>10-step wizard — full control from upload to final report</li>
+      </ul>
+      <div class="alert alert-warning" style="font-size:13px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.2);color:var(--text-primary);border-radius:12px">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>No data is written to the database</strong> until you explicitly confirm on the final confirmation step. You can review, adjust mappings, skip duplicates, and validate at every stage.
+      </div>
+      <form method="post" action="{% url 'users:data_migration:start' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-warning px-5 py-2 mt-3"><i class="bi bi-arrow-right-circle me-2"></i>Start New Migration</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="form-card">
+      <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>Supported Formats</h5>
+      <div style="font-size:13px;color:var(--text-secondary)">
+        <p><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx / .xls)</p>
+        <p><i class="bi bi-file-earmark-text me-2 text-info"></i>CSV (.csv)</p>
+        <p><i class="bi bi-file-earmark-code me-2 text-warning"></i>SQL Dump (.sql)</p>
+        <p><i class="bi bi-database me-2 text-danger"></i>SQLite (.db / .sqlite)</p>
+        <p><i class="bi bi-file-earmark-zip me-2 text-secondary"></i>ZIP Archive (containing any of the above)</p>
+      </div>
+      <hr style="opacity:.1">
+      <h5 class="mb-3"><i class="bi bi-boxes me-2"></i>Detectable Modules</h5>
+      <div style="font-size:13px;color:var(--text-secondary)">
+        {% for m in modules %}
+        <span class="badge bg-secondary me-1 mb-1" style="font-weight:400;padding:4px 10px">{{ m }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

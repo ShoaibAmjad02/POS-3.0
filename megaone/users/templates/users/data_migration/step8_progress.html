@@ -1,0 +1,98 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Import Progress - Data Migration{% endblock %}
+{% block extra_css %}
+<style>
+  .progress-wrapper { text-align: center; padding: 60px 20px }
+  .progress-ring { width: 120px; height: 120px; border-radius: 50%; border: 8px solid var(--border-color); border-top-color: var(--accent); animation: spin 1s linear infinite; margin: 0 auto 24px }
+  @keyframes spin { to { transform: rotate(360deg) } }
+  .progress-status { font-size: 18px; font-weight: 600; margin-bottom: 8px }
+  .progress-detail { color: var(--text-muted); font-size: 14px }
+  .progress-bar-track { height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden; margin-top: 24px; max-width: 500px; margin-left: auto; margin-right: auto }
+  .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .5s; width: 0% }
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar">
+  <h2>Step 8: <span>Import Progress</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Importing data into the database. Please wait...</p>
+</div>
+
+<div class="form-card">
+  <div class="progress-wrapper" id="progressWrapper">
+    <div class="progress-ring" id="progressRing"></div>
+    <div class="progress-status" id="progressStatus">Starting import...</div>
+    <div class="progress-detail" id="progressDetail">This may take a few moments depending on the data size.</div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressBarFill"></div>
+    </div>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-muted)" id="progressPercent">0%</div>
+  </div>
+
+  <div id="progressComplete" style="display:none">
+    <div class="text-center py-4" id="progressResult"></div>
+    <div class="d-flex justify-content-center mt-3" id="progressActions" style="display:none">
+      <a href="{% url 'users:data_migration:step9_report' session.id %}" class="btn btn-warning px-5 py-2"><i class="bi bi-file-text me-2"></i>View Full Report</a>
+      <a href="{% url 'users:data_migration:dashboard' %}" class="btn btn-secondary-custom px-4 py-2 ms-2"><i class="bi bi-house me-2"></i>Dashboard</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var sessionId = '{{ session.id }}';
+  var url = '{% url "users:data_migration:import_progress" session.id %}';
+
+  function pollProgress() {
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}' } })
+      .then(function(r) { return r.json() })
+      .then(function(data) {
+        if (data.error) {
+          document.getElementById('progressStatus').textContent = 'Error: ' + data.error;
+          return;
+        }
+
+        var pct = data.progress || 0;
+        document.getElementById('progressBarFill').style.width = pct + '%';
+        document.getElementById('progressPercent').textContent = pct + '%';
+
+        if (data.current_module) {
+          document.getElementById('progressStatus').textContent = 'Importing ' + data.current_module + '...';
+        }
+
+        if (data.module_progress) {
+          document.getElementById('progressDetail').textContent =
+            data.module_progress.current + ' of ' + data.module_progress.total + ' records';
+        }
+
+        if (data.completed) {
+          document.getElementById('progressRing').style.animation = 'none';
+          document.getElementById('progressRing').style.borderTopColor = '#22c55e';
+          document.getElementById('progressStatus').textContent = 'Import Complete!';
+          document.getElementById('progressStatus').style.color = '#22c55e';
+
+          var summary = '';
+          if (data.results) {
+            summary = 'Imported: ' + (data.results.imported || 0) +
+                      ' | Updated: ' + (data.results.updated || 0) +
+                      ' | Skipped: ' + (data.results.skipped || 0) +
+                      ' | Failed: ' + (data.results.failed || 0) +
+                      ' | Total: ' + (data.results.total || 0);
+          }
+          document.getElementById('progressDetail').textContent = summary;
+          document.getElementById('progressComplete').style.display = 'block';
+          document.getElementById('progressActions').style.display = 'flex';
+        } else {
+          setTimeout(pollProgress, 1000);
+        }
+      })
+      .catch(function() {
+        setTimeout(pollProgress, 2000);
+      });
+  }
+
+  setTimeout(pollProgress, 500);
+});
+</script>
+{% endblock %}

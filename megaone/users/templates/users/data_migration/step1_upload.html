@@ -1,0 +1,42 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Upload File - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:dashboard' %}"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+</div>
+<div class="top-bar">
+  <h2>Step 1: <span>Upload File</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Upload data exported from your previous POS/ERP system.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:12px;color:var(--text-primary)">
+  <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <div class="form-card text-center">
+      <div style="font-size:64px;color:var(--accent);opacity:.6;margin-bottom:16px">
+        <i class="bi bi-cloud-upload"></i>
+      </div>
+      <h5 class="mb-3">Select your data file</h5>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:24px">
+        Supported formats: Excel (.xlsx, .xls), CSV (.csv), SQL dumps (.sql), SQLite databases (.db, .sqlite), or ZIP archives containing any of these.
+      </p>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+          <input type="file" name="file" class="form-control form-control-lg" accept=".xlsx,.xls,.csv,.sql,.db,.sqlite,.zip" style="max-width:400px;margin:0 auto">
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">
+          Maximum file size: {{ max_upload_size|default:"100 MB" }}
+        </div>
+        <button type="submit" class="btn btn-warning px-5 py-2"><i class="bi bi-upload me-2"></i>Upload & Analyze</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

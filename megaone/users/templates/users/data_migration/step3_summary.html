@@ -1,0 +1,84 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Summary - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:step2_analyze' session.id %}"><i class="bi bi-arrow-left"></i> Back to Analysis</a>
+</div>
+<div class="top-bar">
+  <h2>Step 3: <span>Summary</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Overview of what was found in your file.</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card gradient-revenue text-white">
+      <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+      <div class="stat-value">{{ total_modules }}</div>
+      <div class="stat-label">Modules Detected</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-orders text-white">
+      <div class="stat-icon"><i class="bi bi-table"></i></div>
+      <div class="stat-value">{{ total_records }}</div>
+      <div class="stat-label">Total Records</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-kitchen text-white">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-value">{{ selected|length }}</div>
+      <div class="stat-label">Selected for Import</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-customers text-white">
+      <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="stat-value">{{ total_warnings }}</div>
+      <div class="stat-label">Warnings</div>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+  <h5 class="mb-3"><i class="bi bi-boxes me-2"></i>Detected Modules</h5>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th>Fields Mapped</th>
+          <th>Estimated Records</th>
+          <th>Warnings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for module, info in modules.items %}
+        <tr>
+          <td><strong>{{ module }}</strong></td>
+          <td>{{ info.mapped_count|default:"0" }} / {{ info.field_count|default:"0" }}</td>
+          <td>{{ info.estimated_count|default:"0" }}</td>
+          <td>
+            {% if info.warnings %}
+              {% for w in info.warnings %}
+              <span class="badge badge-warning" style="font-weight:400">{{ w }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">None</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="d-flex gap-2 mt-3">
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-warning px-5 py-2"><i class="bi bi-arrow-right me-2"></i>Continue to Module Selection</button>
+    </form>
+    <a href="{% url 'users:data_migration:step7_confirm' session.id %}" class="btn btn-danger px-5 py-2"><i class="bi bi-database-up me-2"></i>Continue to Import</a>
+  </div>
+</div>
+{% endblock %}

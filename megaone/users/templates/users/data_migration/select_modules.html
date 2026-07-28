@@ -1,0 +1,36 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Select Modules - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:step3_summary' session.id %}"><i class="bi bi-arrow-left"></i> Back to Summary</a>
+</div>
+<div class="top-bar">
+  <h2>Select <span>Modules</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Choose which modules to include in the import.</p>
+</div>
+
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+      {% for module, info in modules.items %}
+      <div class="col-md-4">
+        <div class="form-check">
+          <input type="checkbox" name="modules" value="{{ module }}" class="form-check-input" id="mod_{{ forloop.counter }}"
+            {% if module in selected %}checked{% endif %}>
+          <label class="form-check-label fw-semibold" for="mod_{{ forloop.counter }}">{{ module }}</label>
+          <div style="font-size:12px;color:var(--text-muted)">
+            {{ info.mapped_count|default:"0" }} / {{ info.field_count|default:"0" }} fields mapped
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4">
+      <button type="submit" class="btn btn-warning px-5 py-2"><i class="bi bi-arrow-right me-2"></i>Save Selection</button>
+      <a href="{% url 'users:data_migration:step3_summary' session.id %}" class="btn btn-secondary-custom px-4 py-2 ms-2">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

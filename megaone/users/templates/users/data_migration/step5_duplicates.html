@@ -1,0 +1,82 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% load migration_filters %}
+{% block title %}Duplicate Detection - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:step3_summary' session.id %}"><i class="bi bi-arrow-left"></i> Back to Summary</a>
+</div>
+<div class="top-bar">
+  <h2>Step 5: <span>Duplicate Detection</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Review detected duplicates and choose how to handle them for each module.</p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  {% for module, result in dup_results.items %}
+  <div class="form-card mb-4">
+    <h5 class="mb-3">
+      <i class="bi bi-files me-2"></i>{{ module }}
+      <span class="badge {% if result.total_duplicates > 0 %}badge-warning{% else %}badge-success{% endif %} ms-2" style="font-weight:400">
+        {{ result.total_duplicates }} duplicate{{ result.total_duplicates|pluralize }}
+      </span>
+    </h5>
+
+    {% if result.total_duplicates > 0 %}
+    <div class="mb-3">
+      <label class="fw-semibold mb-2" style="font-size:13px">Duplicate Strategy for {{ module }}:</label>
+      <select name="dup_action_{{ module }}" class="form-select" style="max-width:300px">
+        {% for strategy in dup_strategies %}
+        <option value="{{ strategy }}" {% if session.dup_actions|get_item:module == strategy %}selected{% endif %}>
+          {{ strategy|title }}
+        </option>
+        {% endfor %}
+      </select>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+        {% if session.dup_actions|get_item:module == 'create_new' %}Create new records for all, including duplicates
+        {% elif session.dup_actions|get_item:module == 'update_existing' %}Update existing records with new data
+        {% elif session.dup_actions|get_item:module == 'skip' %}Skip duplicate records, keep only new ones
+        {% elif session.dup_actions|get_item:module == 'merge' %}Merge data from duplicate records{% endif %}
+      </div>
+    </div>
+
+    {% for key_name, dups in result.duplicates.items %}
+    <div class="mb-3">
+      <strong style="font-size:13px;color:var(--text-secondary)">Duplicates by {{ key_name }}:</strong>
+      <span style="font-size:13px;color:var(--text-muted)">({{ dups|length }} group{{ dups|length|pluralize }})</span>
+      <div style="max-height:200px;overflow-y:auto;margin-top:8px">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Key Value</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for dup in dups|slice:":20" %}
+            <tr>
+              <td>{{ dup.key }}</td>
+              <td><span class="badge badge-warning">{{ dup.count }}</span></td>
+            </tr>
+            {% endfor %}
+            {% if dups|length > 20 %}
+            <tr><td colspan="2" class="text-muted" style="font-size:12px">... and {{ dups|length|add:"-20" }} more</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p style="color:var(--text-secondary);font-size:13px"><i class="bi bi-check-circle text-success me-1"></i>No duplicates detected for {{ module }}.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="d-flex justify-content-between">
+    <a href="{% url 'users:data_migration:step3_summary' session.id %}" class="btn btn-secondary-custom px-4 py-2"><i class="bi bi-arrow-left me-2"></i>Back</a>
+    <button type="submit" class="btn btn-warning px-5 py-2"><i class="bi bi-arrow-right me-2"></i>Continue to Validation</button>
+  </div>
+</form>
+{% endblock %}

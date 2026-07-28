@@ -1,0 +1,90 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Validation - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:step5_duplicates' session.id %}"><i class="bi bi-arrow-left"></i> Back to Duplicates</a>
+</div>
+<div class="top-bar">
+  <h2>Step 6: <span>Data Validation</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Review validation results for each module. Fix errors in your source file and re-upload if needed.</p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+
+  {% for module, mod_val in validation.items %}
+  <div class="form-card mb-4">
+    <h5 class="mb-3">
+      <i class="bi bi-check-circle me-2"></i>{{ module }}
+      <span class="badge {% if mod_val.errors|length > 0 %}badge-danger{% elif mod_val.warnings|length > 0 %}badge-warning{% else %}badge-success{% endif %} ms-2" style="font-weight:400">
+        {{ mod_val.total_rows }} rows
+        {% if mod_val.errors|length > 0 %} | {{ mod_val.errors|length }} error{{ mod_val.errors|length|pluralize }}{% endif %}
+        {% if mod_val.warnings|length > 0 %} | {{ mod_val.warnings|length }} warning{{ mod_val.warnings|length|pluralize }}{% endif %}
+      </span>
+    </h5>
+
+    {% if mod_val.errors %}
+    <div class="mb-3">
+      <strong style="font-size:13px;color:var(--color-danger)"><i class="bi bi-x-circle me-1"></i>Errors:</strong>
+      <div style="max-height:300px;overflow-y:auto;margin-top:8px">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Field</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for err in mod_val.errors %}
+            <tr>
+              <td>{{ err.row }}</td>
+              <td>{{ err.field }}</td>
+              <td class="color-danger">{{ err.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if mod_val.warnings %}
+    <div class="mb-3">
+      <strong style="font-size:13px;color:var(--color-warning)"><i class="bi bi-exclamation-circle me-1"></i>Warnings:</strong>
+      <div style="max-height:200px;overflow-y:auto;margin-top:8px">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>Field</th>
+              <th>Warning</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for warn in mod_val.warnings %}
+            <tr>
+              <td>{{ warn.row }}</td>
+              <td>{{ warn.field }}</td>
+              <td class="color-warning">{{ warn.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not mod_val.errors and not mod_val.warnings %}
+    <p style="color:var(--text-secondary);font-size:13px"><i class="bi bi-check-circle text-success me-1"></i>All rows passed validation.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="d-flex justify-content-between">
+    <a href="{% url 'users:data_migration:step5_duplicates' session.id %}" class="btn btn-secondary-custom px-4 py-2"><i class="bi bi-arrow-left me-2"></i>Back</a>
+    <button type="submit" class="btn btn-warning px-5 py-2"><i class="bi bi-arrow-right me-2"></i>Continue to Confirmation</button>
+  </div>
+</form>
+{% endblock %}

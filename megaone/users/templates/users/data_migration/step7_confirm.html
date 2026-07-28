@@ -1,0 +1,87 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% load migration_filters %}
+{% block title %}Confirm Import - Data Migration{% endblock %}
+{% block content %}
+<div class="back-nav">
+  <a href="{% url 'users:data_migration:step6_validate' session.id %}"><i class="bi bi-arrow-left"></i> Back to Validation</a>
+</div>
+<div class="top-bar">
+  <h2>Step 7: <span>Confirm Import</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Final confirmation before data is written to the database. This is your last chance to review.</p>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card gradient-revenue text-white">
+      <div class="stat-icon"><i class="bi bi-database"></i></div>
+      <div class="stat-value">{{ total }}</div>
+      <div class="stat-label">Total Records to Import</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-orders text-white">
+      <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+      <div class="stat-value">{{ module_counts|length }}</div>
+      <div class="stat-label">Modules</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-kitchen text-white">
+      <div class="stat-icon"><i class="bi bi-file-earmark"></i></div>
+      <div class="stat-value">{{ session.file_name }}</div>
+      <div class="stat-label">Source File</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card gradient-customers text-white">
+      <div class="stat-icon"><i class="bi bi-shield-exclamation"></i></div>
+      <div class="stat-value text-warning">Irreversible</div>
+      <div class="stat-label">Once confirmed</div>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+  <h5 class="mb-3"><i class="bi bi-list-check me-2"></i>Import Plan</h5>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th>Records</th>
+          <th>Duplicate Strategy</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in module_data_list %}
+        <tr>
+          <td><strong>{{ item.module }}</strong></td>
+          <td>{{ item.count }}</td>
+          <td><span class="badge bg-secondary" style="font-weight:400">{{ item.dup_action|title }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-warning" style="background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:12px;color:var(--text-primary)">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  <strong>Warning:</strong> This action will write data to your database. This cannot be automatically undone. Please ensure you have a recent backup before proceeding.
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="import_all">
+  <div class="d-flex justify-content-between mt-4">
+    <div>
+      <a href="{% url 'users:data_migration:step6_validate' session.id %}" class="btn btn-secondary-custom px-4 py-2"><i class="bi bi-arrow-left me-2"></i>Back</a>
+      <button type="submit" name="action" value="select_modules" class="btn btn-outline-warning-custom px-4 py-2 ms-2"><i class="bi bi-boxes me-2"></i>Change Modules</button>
+    </div>
+    <button type="submit" class="btn btn-danger px-5 py-2" onclick="return confirm('Are you sure you want to import {{ total }} records into the database? This cannot be undone.');">
+      <i class="bi bi-database-up me-2"></i>Import All Data
+    </button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Import Report - Data Migration{% endblock %}
+{% block content %}
+<div class="top-bar">
+  <h2>Step 9: <span>Import Report</span></h2>
+  <p style="color:var(--text-muted);margin:0;font-size:14px">Results of the data migration import.</p>
+</div>
+
+{% if results.error %}
+<div class="alert alert-danger" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:12px;color:var(--text-primary)">
+  <i class="bi bi-exclamation-triangle me-1"></i> {{ results.error }}
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <div class="col-md-2">
+    <div class="stat-card gradient-revenue text-white">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-value">{{ results.imported|default:"0" }}</div>
+      <div class="stat-label">Imported</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card gradient-orders text-white">
+      <div class="stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="stat-value">{{ results.updated|default:"0" }}</div>
+      <div class="stat-label">Updated</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card gradient-customers text-white">
+      <div class="stat-icon"><i class="bi bi-skip-forward"></i></div>
+      <div class="stat-value">{{ results.skipped|default:"0" }}</div>
+      <div class="stat-label">Skipped</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card gradient-kitchen text-white">
+      <div class="stat-icon"><i class="bi bi-merge"></i></div>
+      <div class="stat-value">{{ results.merged|default:"0" }}</div>
+      <div class="stat-label">Merged</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card" style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);color:var(--text-primary)">
+      <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
+      <div class="stat-value" style="color:#dc2626">{{ results.failed|default:"0" }}</div>
+      <div class="stat-label">Failed</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="stat-card gradient-neutral text-white">
+      <div class="stat-icon"><i class="bi bi-clock"></i></div>
+      <div class="stat-value" style="font-size:20px">{{ results.elapsed_formatted|default:"0s" }}</div>
+      <div class="stat-label">Elapsed</div>
+    </div>
+  </div>
+</div>
+
+<div class="form-card">
+  <h5 class="mb-3"><i class="bi bi-table me-2"></i>Per-Module Results</h5>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Module</th>
+          <th>Imported</th>
+          <th>Updated</th>
+          <th>Skipped</th>
+          <th>Merged</th>
+          <th>Failed</th>
+          <th>Total</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for module, mod_res in results.modules.items %}
+        <tr>
+          <td><strong>{{ module }}</strong></td>
+          <td>{{ mod_res.imported|default:"0" }}</td>
+          <td>{{ mod_res.updated|default:"0" }}</td>
+          <td>{{ mod_res.skipped|default:"0" }}</td>
+          <td>{{ mod_res.merged|default:"0" }}</td>
+          <td>{{ mod_res.failed|default:"0" }}</td>
+          <td>{{ mod_res.total|default:"0" }}</td>
+          <td>
+            {% if mod_res.failed > 0 %}
+            <span class="badge badge-danger">Partial</span>
+            {% elif mod_res.imported > 0 or mod_res.updated > 0 %}
+            <span class="badge badge-success">Success</span>
+            {% else %}
+            <span class="badge badge-warning">Skipped</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr style="font-weight:700">
+          <td>Total</td>
+          <td>{{ results.imported|default:"0" }}</td>
+          <td>{{ results.updated|default:"0" }}</td>
+          <td>{{ results.skipped|default:"0" }}</td>
+          <td>{{ results.merged|default:"0" }}</td>
+          <td>{{ results.failed|default:"0" }}</td>
+          <td>{{ results.total|default:"0" }}</td>
+          <td>
+            {% if results.failed > 0 %}
+            <span class="badge badge-danger">Partial</span>
+            {% else %}
+            <span class="badge badge-success">Complete</span>
+            {% endif %}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+{% if results.errors %}
+<div class="form-card">
+  <h5 class="mb-3"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Errors</h5>
+  <div style="max-height:300px;overflow-y:auto">
+    <ul style="font-size:13px;color:var(--color-danger)">
+      {% for err in results.errors %}
+      <li class="mb-1">{{ err }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between mt-4">
+  <div>
+    <a href="{% url 'users:data_migration:download_report' session.id %}" class="btn btn-outline-warning-custom px-4 py-2"><i class="bi bi-download me-2"></i>Download Report (CSV)</a>
+    {% if results.errors %}
+    <a href="{% url 'users:data_migration:download_errors' session.id %}" class="btn btn-outline-warning-custom px-4 py-2 ms-2"><i class="bi bi-download me-2"></i>Download Errors (CSV)</a>
+    {% endif %}
+  </div>
+  <div>
+    <a href="{% url 'users:data_migration:clear' session.id %}" class="btn btn-warning px-5 py-2"><i class="bi bi-plus-circle me-2"></i>Start New Migration</a>
+    <a href="{% url 'users:data_migration:dashboard' %}" class="btn btn-secondary-custom px-4 py-2 ms-2"><i class="bi bi-house me-2"></i>Dashboard</a>
+  </div>
+</div>
+{% endblock %}

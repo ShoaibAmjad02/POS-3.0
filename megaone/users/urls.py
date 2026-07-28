@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from .views import (
     food_delivery_restaurant_detail,
     logout_view, add_product, product_list,
@@ -246,6 +246,9 @@ urlpatterns = [
     path("wholesale/credit/settlements/<int:pk>/", views.wholesale_credit_settlement_detail, name="wholesale_credit_settlement_detail"),
     path("wholesale/credit/outstanding-invoices/", views.wholesale_customer_outstanding_invoices, name="wholesale_customer_outstanding_invoices"),
     path("wholesale/credit/report/", views.wholesale_credit_report, name="wholesale_credit_report"),
+
+    # Data Migration
+    path("data-migration/", include("megaone.users.data_migration.urls")),
 
     # Software Owner
     path("software-owner/dashboard/", views.software_owner_dashboard, name="software_owner_dashboard"),
