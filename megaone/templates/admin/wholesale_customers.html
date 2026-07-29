@@ -27,6 +27,7 @@
         <table class="table" id="wsCustomersTable">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>ID</th>
                     <th>Company</th>
                     <th>Contact Person</th>
@@ -41,7 +42,8 @@
             </thead>
             <tbody>
                 {% for c in customers %}
-                <tr>
+                <tr data-row-id="{{ c.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td>#{{ c.id }}</td>
                     <td class="fw-semibold">{{ c.company_name }}</td>
                     <td>{{ c.contact_person }}</td>
@@ -71,7 +73,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="10" class="text-center text-muted py-4">No wholesale customers found</td></tr>
+                <tr><td colspan="11" class="text-center text-muted py-4">No wholesale customers found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -80,6 +82,10 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+var selMode = new SelectionMode({tableSelector: '#wsCustomersTable', idAttr: 'data-row-id', deleteConfig: {url: '{% url "users:bulk_action" %}', opts: {model: 'wholesale_customers'}}});
+window._selMode = selMode;
+$('#wsCustomersTable').on('draw.dt', function() { selMode.refresh(); });
+document.getElementById('selBulkExport').addEventListener('click', function() { selMode.bulkExport('{% url "users:wholesale_customers_export_csv" %}'); });
 AOS.init({duration:800,once:true});
 $('#wsCustomersTable').DataTable({
     pageLength:10,

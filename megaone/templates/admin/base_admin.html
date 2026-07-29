@@ -121,6 +121,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
 .sub-menu a{padding-left:52px!important;font-size:13px!important}
 
 </style>
+<link rel="stylesheet" href="{% static 'admin/css/selection-mode.css' %}">
 {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -291,6 +292,9 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
 <script>AOS.init({duration:800,once:true});</script>
+<script src="{% static 'admin/js/selection-mode.js' %}"></script>
+
+{% include 'admin/includes/selection_toolbar.html' %}
 
 <!-- Confirmation Modal -->
 <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
@@ -298,6 +302,7 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
 <div class="modal-content" style="background:var(--modal-bg);border:1px solid var(--modal-border);border-radius:16px;color:var(--text-primary)">
 <div class="modal-body" style="padding:28px 24px 20px;text-align:center">
 <i class="bi bi-exclamation-triangle" style="font-size:40px;color:var(--color-warning);display:block;margin-bottom:12px"></i>
+<h6 id="confirmTitle" style="font-size:16px;font-weight:600;margin:0 0 8px;color:var(--text-primary);display:none"></h6>
 <p id="confirmMessage" style="font-size:15px;font-weight:500;margin:0;line-height:1.5;color:var(--text-primary)"></p>
 </div>
 <div class="modal-footer" style="border:none;padding:0 24px 24px;justify-content:center;gap:12px">
@@ -311,11 +316,20 @@ window.currencySymbol = '{{ currency_symbol|escapejs }}' || 'Rs ';
 
 var confirmResolve = null;
 
-function confirmAction(message) {
+function confirmAction(message, title, okButtonText) {
     return new Promise(function(resolve) {
         document.getElementById('confirmMessage').textContent = message;
+        var titleEl = document.getElementById('confirmTitle');
+        if (title) {
+            titleEl.textContent = title;
+            titleEl.style.display = 'block';
+        } else {
+            titleEl.style.display = 'none';
+        }
+        var okBtn = document.getElementById('confirmOkBtn');
+        okBtn.textContent = okButtonText || 'OK';
         confirmResolve = resolve;
-        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: false});
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: true});
         modal.show();
     });
 }

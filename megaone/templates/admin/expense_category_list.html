@@ -26,11 +26,12 @@
     <div class="table-responsive">
         <table class="table">
             <thead>
-                <tr><th>ID</th><th>Name</th><th>Status</th><th>Created</th><th width="160">Actions</th></tr>
+                <tr><th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th><th>ID</th><th>Name</th><th>Status</th><th>Created</th><th width="160">Actions</th></tr>
             </thead>
             <tbody>
                 {% for c in categories %}
-                <tr>
+                <tr data-row-id="{{ c.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td>#{{ c.id }}</td>
                     <td class="fw-semibold">{{ c.name }}</td>
                     <td>{% if c.is_active %}<span class="badge-active">Active</span>{% else %}<span class="badge-disabled">Disabled</span>{% endif %}</td>
@@ -43,7 +44,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="5" class="text-center text-muted py-4">No categories yet</td></tr>
+                <tr><td colspan="6" class="text-center text-muted py-4">No categories yet</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -51,5 +52,9 @@
 </div>
 {% endblock %}
 {% block extra_js %}
-<script>AOS.init({duration:800,once:true})</script>
+<script>
+var selMode = new SelectionMode({tableSelector: 'table', idAttr: 'data-row-id', deleteConfig: {url: '{% url "users:bulk_action" %}', opts: {model: 'expense_categories'}}});
+window._selMode = selMode;
+document.getElementById('selBulkExport').addEventListener('click', function() { selMode.bulkExport('{% url "users:expense_categories_export_csv" %}'); });
+AOS.init({duration:800,once:true})</script>
 {% endblock %}

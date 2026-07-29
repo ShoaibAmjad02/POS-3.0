@@ -1,0 +1,13 @@
+<div id="selToolbar" class="sel-toolbar">
+  <div class="sel-toolbar-left">
+    <span class="sel-count" id="selCount">0 items selected</span>
+    <button type="button" class="sel-btn sel-btn-primary" data-sel-action="select-all"><i class="bi bi-check-all me-1"></i>Select All</button>
+    <button type="button" class="sel-btn" data-sel-action="clear"><i class="bi bi-x-lg me-1"></i>Clear</button>
+  </div>
+  <div class="sel-toolbar-right">
+    <div id="selExtraActions" style="display:inline-flex;gap:6px;flex-wrap:wrap"></div>
+    <button type="button" class="sel-btn sel-btn-danger" data-sel-action="bulk-delete" id="selBulkDelete"><i class="bi bi-trash3 me-1"></i>Delete</button>
+    <button type="button" class="sel-btn sel-btn-success" data-sel-action="bulk-export" id="selBulkExport"><i class="bi bi-download me-1"></i>Export</button>
+    <button type="button" class="sel-btn sel-btn-exit" data-sel-action="exit"><i class="bi bi-x-circle me-1"></i>Exit</button>
+  </div>
+</div>

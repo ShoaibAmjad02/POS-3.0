@@ -32,6 +32,7 @@ class Food(models.Model):
         Category, on_delete=models.CASCADE, related_name="foods"
     )
     name = models.CharField(max_length=200)
+    company_name = models.CharField(max_length=200, blank=True, default='')
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)

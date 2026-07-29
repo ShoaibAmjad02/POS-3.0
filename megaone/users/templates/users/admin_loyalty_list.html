@@ -45,6 +45,7 @@
         <table class="table mb-0">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>Card #</th>
                     <th>Customer</th>
                     <th>Phone</th>
@@ -58,7 +59,8 @@
             </thead>
             <tbody>
                 {% for c in cards %}
-                <tr>
+                <tr data-row-id="{{ c.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td style="font-family:monospace;font-weight:600">{{ c.card_number }}</td>
                     <td>{{ c.user.name|default:"N/A" }}</td>
                     <td style="color:#94a3b8">{{ c.user.phone|default:"N/A" }}</td>
@@ -70,10 +72,17 @@
                     <td><a href="{% url 'users:admin_loyalty_detail' c.card_number %}" class="btn btn-sm btn-outline-warning" style="border-radius:8px">View</a></td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="9" class="text-center py-4" style="color:#64748b">No loyalty cards found</td></tr>
+                <tr><td colspan="10" class="text-center py-4" style="color:#64748b">No loyalty cards found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+var selMode = new SelectionMode({tableSelector: 'table', idAttr: 'data-row-id', deleteConfig: {url: '{% url "users:bulk_action" %}', opts: {model: 'loyalty_cards'}}});
+window._selMode = selMode;
+document.getElementById('selBulkExport').addEventListener('click', function() { selMode.bulkExport('{% url "users:loyalty_cards_export_csv" %}'); });
+</script>
 {% endblock %}

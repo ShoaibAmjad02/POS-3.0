@@ -62,6 +62,7 @@
         <table class="table" id="offersTable">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>Title</th>
                     <th>Discount %</th>
                     <th>Start Date</th>
@@ -74,7 +75,8 @@
             </thead>
             <tbody>
                 {% for offer in offers %}
-                <tr>
+                <tr data-row-id="{{ offer.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td><strong>{{ offer.title }}</strong></td>
                     <td><span class="badge bg-warning text-dark">{{ offer.discount_percentage }}%</span></td>
                     <td>{{ offer.start_date|date:"d-m-Y" }} {{ offer.start_time|time:"g:i A" }}</td>
@@ -97,7 +99,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="text-center text-muted py-4">No offers found. <a href="{% url 'users:offer_add' %}" class="text-warning">Create one</a></td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">No offers found. <a href="{% url 'users:offer_add' %}" class="text-warning">Create one</a></td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -135,6 +137,10 @@ function confirmDelete(id, name) {
     document.getElementById('deleteForm').action = "{% url 'users:offer_delete' 0 %}".replace('/0/', '/' + id + '/');
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
+var selMode = new SelectionMode({tableSelector: '#offersTable', idAttr: 'data-row-id', deleteConfig: {url: '{% url "users:bulk_action" %}', opts: {model: 'offers'}}});
+window._selMode = selMode;
+$('#offersTable').on('draw.dt', function() { selMode.refresh(); });
+document.getElementById('selBulkExport').addEventListener('click', function() { selMode.bulkExport('{% url "users:offers_export_csv" %}'); });
 $(document).ready(function() {
     $('#offersTable').DataTable({
         pageLength:10,

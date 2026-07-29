@@ -73,6 +73,7 @@
         <table class="table" id="stockHistoryTable">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>Date & Time</th>
                     <th>Product</th>
                     <th>Type</th>
@@ -86,7 +87,8 @@
             </thead>
             <tbody>
                 {% for m in movements %}
-                <tr>
+                <tr data-row-id="{{ m.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td style="white-space:nowrap">{{ m.created_at|date:"Y-m-d H:i" }}</td>
                     <td class="fw-semibold">{{ m.food.name }}</td>
                     <td><span class="badge bg-secondary" style="font-size:11px">{{ m.get_transaction_type_display }}</span></td>
@@ -98,7 +100,7 @@
                     <td style="color:var(--text-secondary);font-size:13px">{{ m.created_by.name|default:m.created_by.email|default:"—" }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="9" class="text-center text-muted py-4">No stock movements found</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-4">No stock movements found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -107,6 +109,9 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+var selMode = new SelectionMode({tableSelector: '#stockHistoryTable', idAttr: 'data-row-id'});
+window._selMode = selMode;
+$('#stockHistoryTable').on('draw.dt', function() { selMode.refresh(); });
 AOS.init({duration:800,once:true});
 $('#stockHistoryTable').DataTable({
     pageLength:25,

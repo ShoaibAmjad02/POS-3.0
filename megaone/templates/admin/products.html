@@ -52,9 +52,11 @@
         <table class="table" id="productsTable">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>ID</th>
                     <th>Image</th>
                     <th>Name</th>
+                    <th>Company</th>
                     <th>Category</th>
                     <th>Barcode</th>
                     <th>Code</th>
@@ -69,7 +71,8 @@
             </thead>
             <tbody>
                 {% for product in products %}
-                <tr>
+                <tr data-row-id="{{ product.id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td>#{{ product.id }}</td>
                     <td>
                         {% if product.image %}
@@ -81,6 +84,7 @@
                         {% endif %}
                     </td>
                     <td class="fw-semibold">{{ product.name }}</td>
+                    <td>{{ product.company_name|default:"-" }}</td>
                     <td>{{ product.category.name }}</td>
                     <td><code class="text-info">{{ product.barcode|default:"-" }}</code></td>
                     <td><code class="text-primary">{{ product.product_code|default:"-" }}</code></td>
@@ -123,7 +127,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="13" class="text-center text-muted py-4">No products found</td></tr>
+                <tr><td colspan="14" class="text-center text-muted py-4">No products found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -233,6 +237,30 @@
 <script src="{% static 'vendor/js/select2.min.js' %}"></script>
 <script>
 AOS.init({duration:800,once:true});
+var selMode = new SelectionMode({
+    tableSelector: '#productsTable',
+    idAttr: 'data-row-id',
+    deleteConfig: {
+        url: '{% url "users:bulk_action" %}',
+        opts: { model: 'products' }
+    }
+});
+window._selMode = selMode;
+
+// Product-specific extra actions
+selMode.addExtraAction('Change Category', 'folder', 'sel-btn-warning', function(ids) {
+    // Will open a category selector modal
+    alert('Change Category for ' + ids.length + ' products - modal TBD');
+});
+
+// Bulk export
+document.getElementById('selBulkExport').addEventListener('click', function() {
+    selMode.bulkExport('{% url "users:products_export_csv" %}');
+});
+
+// DataTable re-init on draw to refresh selection mode
+$('#productsTable').on('draw.dt', function() { selMode.refresh(); });
+
 $('#productsTable').DataTable({
     pageLength:10,
     order:[[0,'desc']],

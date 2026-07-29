@@ -1532,6 +1532,13 @@ def product_list(request):
 def add_product(request):
     categories = Category.objects.all()
     if request.method == "POST":
+        company_name = request.POST.get("company_name", "").strip()
+        if not company_name:
+            return render(request, "admin/add_product.html", {
+                "categories": categories,
+                "error": "Company Name is required.",
+                "form_data": request.POST,
+            })
         category = Category.objects.get(id=request.POST.get("category"))
         ws_price = request.POST.get("wholesale_price")
         stock_qty = int(request.POST.get("stock", 0))
@@ -1539,6 +1546,7 @@ def add_product(request):
         food = Food.objects.create(
             category=category,
             name=request.POST.get("name"),
+            company_name=company_name,
             description=request.POST.get("description"),
             cost_price=cost_price,
             default_purchase_cost=cost_price,
@@ -1581,9 +1589,18 @@ def edit_product(request, pk):
     product = get_object_or_404(Food, pk=pk)
     categories = Category.objects.all()
     if request.method == "POST":
+        company_name = request.POST.get("company_name", "").strip()
+        if not company_name:
+            return render(request, "admin/edit_product.html", {
+                "product": product,
+                "categories": categories,
+                "error": "Company Name is required.",
+                "form_data": request.POST,
+            })
         old_stock = product.stock
         new_purchase_cost = Decimal(str(request.POST.get("cost_price", 0)))
         product.name = request.POST.get("name")
+        product.company_name = company_name
         product.description = request.POST.get("description")
         product.price = request.POST.get("price")
         ws_price = request.POST.get("wholesale_price")
@@ -1619,7 +1636,6 @@ def edit_product(request, pk):
                     notes=request.POST.get("stock_reason", "Stock adjustment"),
                 )
             elif qty_diff < 0:
-                # Consume from batches using FIFO/AVCO when stock is decreased
                 svc.consume(product, abs(qty_diff))
             _record_stock_movement(
                 food=product,
@@ -1769,6 +1785,7 @@ def search_products(request):
     if q:
         products = products.filter(
             Q(name__icontains=q) |
+            Q(company_name__icontains=q) |
             Q(barcode__icontains=q) |
             Q(product_code__icontains=q) |
             Q(sku__icontains=q) |
@@ -1781,6 +1798,7 @@ def search_products(request):
         "products": [{
             "id": p.id,
             "name": p.name,
+            "company_name": p.company_name or "",
             "price": float(p.price),
             "cost_price": float(p.default_purchase_cost),
             "wholesale_price": float(p.wholesale_price) if p.wholesale_price else 0,
@@ -7615,6 +7633,7 @@ def products_export_csv(request):
     field_map = [
         ('id', 'ID'),
         ('name', 'Product Name'),
+        ('company_name', 'Company Name'),
         ('category.name', 'Category'),
         ('sku', 'SKU'),
         ('barcode', 'Barcode'),
@@ -7903,3 +7922,40 @@ def audit_logs(request):
         'title': 'Audit Logs',
     }
     return render(request, 'admin/audit_logs.html', context)
+
+
+BULK_MODEL_MAP = {
+    'products': Food,
+    'categories': Category,
+    'expenses': BusinessExpense,
+    'expense_categories': ExpenseCategory,
+    'loyalty_cards': LoyaltyCard,
+    'wholesale_customers': WholesaleCustomer,
+    'invoices': Invoice,
+    'offers': TimeBasedOffer,
+    'deals': TodayDeal,
+}
+
+
+@login_required
+def bulk_action(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        data = request.POST
+    model_key = data.get('model', '')
+    action = data.get('action', '')
+    ids = data.get('ids', [])
+    if not ids or not model_key or not action:
+        return JsonResponse({'success': False, 'error': 'Missing model, action, or ids'}, status=400)
+    model_class = BULK_MODEL_MAP.get(model_key)
+    if not model_class:
+        return JsonResponse({'success': False, 'error': f'Unknown model: {model_key}'}, status=400)
+    if action == 'delete':
+        qs = model_class.objects.filter(pk__in=ids)
+        count = qs.count()
+        qs.delete()
+        return JsonResponse({'success': True, 'deleted': count})
+    return JsonResponse({'success': False, 'error': f'Unknown action: {action}'}, status=400)

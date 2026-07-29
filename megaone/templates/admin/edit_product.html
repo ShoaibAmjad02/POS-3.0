@@ -62,7 +62,12 @@ body{padding-bottom:58px}
         <div class="row g-2">
             <div class="col-md-6">
                 <label class="form-label">Product Name</label>
-                <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+                <input type="text" name="name" value="{% if form_data.name %}{{ form_data.name }}{% else %}{{ product.name }}{% endif %}" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Company Name <span style="color:var(--color-danger)">*</span></label>
+                <input type="text" name="company_name" class="form-control {% if error %}is-invalid{% endif %}" placeholder="Company / Brand name" value="{% if form_data.company_name %}{{ form_data.company_name }}{% else %}{{ product.company_name }}{% endif %}" required>
+                {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
             </div>
             <div class="col-md-6">
                 <label class="form-label">Category</label>

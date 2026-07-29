@@ -272,4 +272,7 @@ urlpatterns = [
     path("offers/export/", offers_export_csv, name="offers_export_csv"),
     path("deals/export/", deals_export_csv, name="deals_export_csv"),
 
+    # Bulk Actions
+    path("bulk-action/", views.bulk_action, name="bulk_action"),
+
 ]

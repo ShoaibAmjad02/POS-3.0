@@ -37,6 +37,7 @@
         <table class="table" id="stockTable">
             <thead>
                 <tr>
+                    <th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th>
                     <th>Product</th>
                     <th>Current Stock</th>
                     <th>Avg Batch Cost</th>
@@ -52,7 +53,8 @@
             </thead>
             <tbody>
                 {% for item in stock_data %}
-                <tr>
+                <tr data-row-id="{{ item.food_id }}">
+                    <td><input type="checkbox" class="sel-row-checkbox"></td>
                     <td class="fw-semibold">{{ item.name }}</td>
                     <td>
                         <span class="badge {% if item.closing > 10 %}bg-success{% elif item.closing > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ item.closing }}</span>
@@ -70,7 +72,7 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="11" class="text-center text-muted py-4">No products found</td></tr>
+                <tr><td colspan="12" class="text-center text-muted py-4">No products found</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -79,6 +81,9 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+var selMode = new SelectionMode({tableSelector: '#stockTable', idAttr: 'data-row-id'});
+window._selMode = selMode;
+$('#stockTable').on('draw.dt', function() { selMode.refresh(); });
 AOS.init({duration:800,once:true});
 $('#stockTable').DataTable({
     pageLength:25,

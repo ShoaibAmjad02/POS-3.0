@@ -36,10 +36,11 @@
 <div class="table-card">
 <div class="table-responsive">
 <table class="table" id="categoriesTable">
-<thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Products</th><th>Discount</th><th>Status</th><th>Actions</th></tr></thead>
+<thead><tr><th style="width:40px"><input type="checkbox" class="sel-header-checkbox"></th><th>ID</th><th>Name</th><th>Description</th><th>Products</th><th>Discount</th><th>Status</th><th>Actions</th></tr></thead>
 <tbody>
 {% for cat in categories %}
-<tr>
+<tr data-row-id="{{ cat.id }}">
+<td><input type="checkbox" class="sel-row-checkbox"></td>
 <td>#{{ cat.id }}</td>
 <td class="fw-semibold">{{ cat.name }}</td>
 <td style="color:var(--text-secondary);font-size:13px">{{ cat.description|default:"-"|truncatechars:50 }}</td>
@@ -53,7 +54,7 @@
 </td>
 </tr>
 {% empty %}
-<tr><td colspan="7" class="text-center text-muted py-4">No categories</td></tr>
+<tr><td colspan="8" class="text-center text-muted py-4">No categories</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -95,6 +96,10 @@
 {% endblock %}
 {% block extra_js %}
 <script>
+var selMode = new SelectionMode({tableSelector: '#categoriesTable', idAttr: 'data-row-id', deleteConfig: {url: '{% url "users:bulk_action" %}', opts: {model: 'categories'}}});
+window._selMode = selMode;
+$('#categoriesTable').on('draw.dt', function() { selMode.refresh(); });
+document.getElementById('selBulkExport').addEventListener('click', function() { selMode.bulkExport('{% url "users:categories_export_csv" %}'); });
 $('#categoriesTable').DataTable({pageLength:10,order:[[0,'desc']],language:{search:'',searchPlaceholder:'Search categories...',info:'Showing _START_ to _END_ of _TOTAL_ categories'},dom:'<"row g-2 mb-3"<"col-sm-6"f><"col-sm-6 text-end"l>>rtip'});
 function editCategory(id,name,desc,active,discType,discVal) {
 document.getElementById('editName').value = name;
