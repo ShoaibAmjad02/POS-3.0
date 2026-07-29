@@ -17,6 +17,7 @@ body{background:#fff;padding:20px;font-family:Arial,sans-serif}
 .barcode-wrap svg{max-width:180px}
 .barcode-number{font-size:9px;font-family:monospace;color:#333;letter-spacing:1px}
 @media print{@page{margin:0}body{padding:10px}.label,.single-label{border:1px solid #999}.no-print{display:none!important}}
+@media(max-width:600px){.label-page{justify-content:center}.no-print>div{flex-direction:column!important;align-items:stretch!important;gap:8px!important}.no-print button,.no-print .qty-wrap{width:100%}.no-print span{margin-left:0!important;text-align:center}.qty-wrap{justify-content:center}.single-label{margin:10px auto;width:90%;height:auto;min-height:120px}}
 .qty-wrap{display:inline-flex;align-items:center;gap:8px}
 .qty-label{font-size:13px;font-weight:600;color:#334155;white-space:nowrap}
 .qty-btn-sm{width:30px;height:30px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;font-size:16px;font-weight:700;color:#334155;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.15s ease;user-select:none;line-height:1}

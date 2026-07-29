@@ -19,6 +19,24 @@
 
   {% block css %}{% endblock css %}
 
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow-x:hidden;width:100%;-webkit-text-size-adjust:100%}
+img{max-width:100%;height:auto}
+video,iframe,canvas,svg{max-width:100%}
+table{max-width:100%}
+input,button,select,textarea{font-size:16px}
+@media(max-width:576px){
+  .modal-dialog{margin:10px;max-width:calc(100vw - 20px)}
+  .modal-body{padding:20px 16px!important}
+  .modal-footer{padding:0 16px 16px!important;flex-wrap:wrap;gap:8px!important}
+  .modal-footer .btn{width:100%;justify-content:center;min-height:44px}
+  #confirmMessage{font-size:14px!important}
+}
+@media(min-width:1400px){
+  .container{max-width:1320px}
+}
+</style>
 </head>
 
 <body {% block body_attributes %}{% endblock body_attributes %}>
