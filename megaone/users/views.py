@@ -44,6 +44,7 @@ from reportlab.lib.colors import HexColor
 from reportlab.lib.utils import ImageReader
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def _cs():
@@ -4954,10 +4955,24 @@ def return_invoice_save(request):
         if not invoice_id or not return_items:
             return JsonResponse({"error": "Invoice ID and items are required"}, status=400)
 
+        logger.info(
+            "Return save start: user=%s invoice_id=%s type=%s items=%d",
+            request.user, invoice_id, invoice_type, len([i for i in return_items if i.get("quantity", 0) > 0])
+        )
+
         from django.db import transaction
 
         if invoice_type == "wholesale":
+            logger.info("Processing wholesale return for invoice %s", invoice_id)
             w_invoice = get_object_or_404(WholesaleInvoice, pk=invoice_id)
+
+            # Pre-compute already_returned quantities before the transaction
+            existing_returns = ReturnInvoiceItem.objects.filter(
+                return_invoice__wholesale_original_invoice=w_invoice,
+                original_item_id__in=[ri.get("item_id") for ri in return_items if ri.get("quantity", 0) > 0],
+            ).values("original_item_id").annotate(total=Sum("quantity"))
+            pre_returned = {r["original_item_id"]: r["total"] for r in existing_returns}
+
             with transaction.atomic():
                 return_invoice = ReturnInvoice.objects.create(
                     wholesale_original_invoice=w_invoice,
@@ -4980,23 +4995,22 @@ def return_invoice_save(request):
                     if return_qty <= 0:
                         continue
                     original_item = get_object_or_404(WholesaleInvoiceItem, pk=item_id, wholesale_invoice=w_invoice)
-                    already_returned = ReturnInvoiceItem.objects.filter(
-                        return_invoice__wholesale_original_invoice=w_invoice,
-                        original_item_id=item_id,
-                    ).aggregate(total=Sum("quantity"))["total"] or 0
+                    already_returned = pre_returned.get(item_id, 0)
                     if return_qty > original_item.quantity - already_returned:
                         raise ValueError(
                             f"Cannot return more than {original_item.quantity - already_returned} of '{original_item.product_name}'"
                         )
+                    pre_returned[item_id] = already_returned + return_qty
+
                     item_subtotal = round(return_qty * float(original_item.wholesale_price), 2)
-                    food = Food.objects.filter(name=original_item.product_name).first()
-                    wholesale_cost_price = float(original_item.unit_cost_at_sale) if original_item.unit_cost_at_sale and float(original_item.unit_cost_at_sale) > 0 else (float(food.default_purchase_cost) if food else 0)
+                    food_item = Food.objects.filter(name=original_item.product_name).first()
+                    wholesale_cost_price = float(original_item.unit_cost_at_sale) if original_item.unit_cost_at_sale and float(original_item.unit_cost_at_sale) > 0 else (float(food_item.default_purchase_cost) if food_item else 0)
                     ReturnInvoiceItem.objects.create(
                         return_invoice=return_invoice,
                         original_item_id=original_item.id,
                         product_name=original_item.product_name,
-                        barcode=food.barcode if food else "",
-                        sku=food.sku if food else "",
+                        barcode=food_item.barcode if food_item else "",
+                        sku=food_item.sku if food_item else "",
                         price=float(original_item.wholesale_price),
                         quantity=return_qty,
                         subtotal=item_subtotal,
@@ -5008,12 +5022,11 @@ def return_invoice_save(request):
                         "quantity": return_qty,
                         "price": float(original_item.wholesale_price),
                         "subtotal": item_subtotal,
-                        "barcode": food.barcode if food else "",
-                        "sku": food.sku if food else "",
+                        "barcode": food_item.barcode if food_item else "",
+                        "sku": food_item.sku if food_item else "",
                     })
 
                     # Restock inventory via batch system
-                    food_item = Food.objects.filter(name=original_item.product_name).first()
                     svc = InventoryValuationService()
                     if food_item:
                         old_stock = food_item.stock
@@ -5097,10 +5110,16 @@ def return_invoice_save(request):
                 "message": f"Wholesale Return {return_invoice.return_number} processed. Refund: {_cs()}{total_refund:.0f}",
             })
 
-        # --- RETAIL RETURN (existing logic) ---
+        # --- RETAIL RETURN ---
         invoice = get_object_or_404(Invoice, pk=invoice_id)
-        if getattr(invoice, '_return_processed', False):
-            return JsonResponse({"error": "This return is already being processed"}, status=400)
+        logger.info("Processing retail return for invoice %s", invoice_id)
+
+        # Pre-compute already_returned quantities before the transaction
+        existing_returns = ReturnInvoiceItem.objects.filter(
+            return_invoice__original_invoice=invoice,
+            original_item_id__in=[ri.get("item_id") for ri in return_items if ri.get("quantity", 0) > 0],
+        ).values("original_item_id").annotate(total=Sum("quantity"))
+        pre_returned = {r["original_item_id"]: r["total"] for r in existing_returns}
 
         with transaction.atomic():
             return_invoice = ReturnInvoice.objects.create(
@@ -5125,22 +5144,21 @@ def return_invoice_save(request):
                 if return_qty <= 0:
                     continue
                 original_item = get_object_or_404(InvoiceItem, pk=item_id, invoice=invoice)
-                already_returned = ReturnInvoiceItem.objects.filter(
-                    return_invoice__original_invoice=invoice,
-                    original_item_id=item_id,
-                ).aggregate(total=Sum("quantity"))["total"] or 0
+                already_returned = pre_returned.get(item_id, 0)
                 if return_qty > original_item.quantity - already_returned:
                     raise ValueError(
                         f"Cannot return more than {original_item.quantity - already_returned} of '{original_item.product_name}'"
                     )
+                pre_returned[item_id] = already_returned + return_qty
+
                 item_subtotal = round(return_qty * float(original_item.price), 2)
-                food = Food.objects.filter(name=original_item.product_name).first()
+                food_item = Food.objects.filter(name=original_item.product_name).first()
                 ReturnInvoiceItem.objects.create(
                     return_invoice=return_invoice,
                     original_item_id=original_item.id,
                     product_name=original_item.product_name,
-                    barcode=food.barcode if food else "",
-                    sku=food.sku if food else "",
+                    barcode=food_item.barcode if food_item else "",
+                    sku=food_item.sku if food_item else "",
                     price=float(original_item.price),
                     quantity=return_qty,
                     subtotal=item_subtotal,
@@ -5152,13 +5170,11 @@ def return_invoice_save(request):
                     "quantity": return_qty,
                     "price": float(original_item.price),
                     "subtotal": item_subtotal,
-                    "barcode": food.barcode if food else "",
-                    "sku": food.sku if food else "",
+                    "barcode": food_item.barcode if food_item else "",
+                    "sku": food_item.sku if food_item else "",
                 })
-                food_item = Food.objects.filter(name=original_item.product_name).first()
                 svc = InventoryValuationService()
-                orig_item_ref = InvoiceItem.objects.filter(pk=item_id, invoice=invoice).first()
-                cost_for_return = float(orig_item_ref.unit_cost_at_sale) if orig_item_ref and orig_item_ref.unit_cost_at_sale else None
+                cost_for_return = float(original_item.unit_cost_at_sale) if original_item.unit_cost_at_sale and float(original_item.unit_cost_at_sale) > 0 else None
                 if food_item:
                     old_stock = food_item.stock
                     food_item.stock = F("stock") + return_qty
@@ -5244,12 +5260,13 @@ def return_invoice_save(request):
                             earn_card.total_points = F("total_points") - pts_to_deduct
                             earn_card.remaining_points = F("remaining_points") - pts_to_deduct
                             earn_card.save(update_fields=["total_points", "remaining_points"])
+                            earn_card.refresh_from_db()
                             LoyaltyTransaction.objects.create(
                                 card=earn_card,
                                 order_number=return_invoice.return_number,
                                 earned_points=0,
                                 redeemed_points=pts_to_deduct,
-                                remaining_balance=max(0, earn_card.remaining_points - pts_to_deduct),
+                                remaining_balance=earn_card.remaining_points,
                                 transaction_type='REDEEM',
                             )
                         except Exception:
@@ -5268,8 +5285,10 @@ def return_invoice_save(request):
         })
 
     except ValueError as e:
+        logger.warning("Return validation error: %s", e)
         return JsonResponse({"error": str(e)}, status=400)
     except Exception as e:
+        logger.error("Return processing failed: %s", e, exc_info=True)
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=400)
 

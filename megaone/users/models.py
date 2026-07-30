@@ -557,7 +557,7 @@ class ReturnInvoice(models.Model):
 
 class ReturnInvoiceItem(models.Model):
     return_invoice = models.ForeignKey(ReturnInvoice, on_delete=models.CASCADE, related_name='items')
-    original_item_id = models.IntegerField(null=True, blank=True, help_text="Original InvoiceItem ID")
+    original_item_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Original InvoiceItem ID")
     product_name = models.CharField(max_length=255)
     barcode = models.CharField(max_length=100, blank=True, null=True)
     sku = models.CharField(max_length=100, blank=True, null=True)

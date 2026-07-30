@@ -169,6 +169,23 @@ body{font-family:'Segoe UI',sans-serif;background:var(--bg-body);color:var(--tex
     </div>
 </div>
 
+<!-- Confirm Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border-card);border-radius:14px">
+      <div class="modal-body text-center" style="padding:24px 20px 16px">
+        <div style="font-size:36px;color:var(--color-danger);margin-bottom:10px"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <h6 style="font-weight:700;margin-bottom:6px" id="confirmTitle" style="display:none">Confirm</h6>
+        <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px;line-height:1.5" id="confirmMessage"></p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button id="confirmCancelBtn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;padding:6px 18px;font-size:12px">Cancel</button>
+          <button id="confirmOkBtn" class="btn btn-sm btn-danger" style="border-radius:8px;padding:6px 18px;font-size:12px">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast-msg" id="toastMsg"></div>
 
@@ -179,6 +196,7 @@ let selectedInvoiceType = 'retail';
 let invoiceProducts = [];
 let returnCart = [];
 let searchTimeout = null;
+let confirmResolve = null;
 const currencySymbol = '{{ currency_symbol }}' || 'Rs ';
 
 function showToast(msg, isError) {
@@ -187,6 +205,34 @@ function showToast(msg, isError) {
     t.className = 'toast-msg show' + (isError ? '' : ' success');
     t.style.borderColor = isError ? 'var(--color-danger-border)' : 'var(--color-success-border)';
     setTimeout(() => { t.classList.remove('show'); }, 3500);
+}
+
+function confirmAction(message) {
+    return new Promise(function(resolve) {
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmTitle').style.display = 'none';
+        confirmResolve = resolve;
+        var modal = new bootstrap.Modal(document.getElementById('confirmModal'), {backdrop: 'static', keyboard: true});
+        modal.show();
+    });
+}
+
+document.getElementById('confirmOkBtn').addEventListener('click', function() {
+    var modal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+    if (modal) modal.hide();
+    if (confirmResolve) { confirmResolve(true); confirmResolve = null; }
+});
+
+document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+    if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
+});
+
+function performLogout() {
+    window.location.href = '{% url "users:logout" %}';
 }
 
 function updateClock() { document.getElementById("clock").innerText = new Date().toLocaleString(); }
@@ -242,7 +288,8 @@ function searchInvoices(q) {
                 '</div>' +
             '</div>';
         }).join('');
-    });
+    })
+    .catch(function() { showToast('Error searching invoices', true); });
 }
 
 // ================================
@@ -261,7 +308,6 @@ function selectInvoice(invoiceId, invType) {
     .then(r => r.json())
     .then(data => {
         if (!data.success) { showToast(data.error || 'Error loading invoice', true); return; }
-        // Show invoice info bar
         document.getElementById('invoiceSearchSection').style.display = 'none';
         document.getElementById('invoiceInfoBar').style.display = 'flex';
         document.getElementById('productSearchSection').style.display = 'block';
@@ -270,7 +316,6 @@ function selectInvoice(invoiceId, invType) {
         document.getElementById('selInvDate').textContent = data.invoice.date;
         document.getElementById('invBadge').style.display = 'inline-block';
         document.getElementById('invBadgeText').textContent = data.invoice.invoice_number;
-        // Store products
         invoiceProducts = data.items;
         returnCart = [];
         renderReturnCart();
@@ -279,7 +324,7 @@ function selectInvoice(invoiceId, invType) {
         document.getElementById('productSearch').value = '';
         document.getElementById('productSearch').focus();
     })
-    .catch(() => showToast('Error loading invoice items', true));
+    .catch(function() { showToast('Error loading invoice items', true); });
 }
 
 function changeInvoice() {
@@ -328,18 +373,18 @@ function renderProductGrid(products) {
         const cartQty = inCart ? inCart.qty : 0;
         const remaining = p.returnable - cartQty;
         const canAdd = remaining > 0;
-        return `<div class="product-card" onclick="${canAdd ? "addToReturnCart(" + p.id + ")" : "showToast('Max returnable: " + p.returnable + "', true)"}">
-            <div class="p-img">${p.image ? '<img src="' + p.image + '">' : '<i class="bi bi-box no-img"></i>'}</div>
-            <div class="p-body">
-                <div class="p-name">${p.product_name}</div>
-                ${p.barcode ? '<div class="p-sku"><i class="bi bi-upc-scan"></i> ' + p.barcode + '</div>' : ''}
-                ${p.sku ? '<div class="p-sku">SKU: ' + p.sku + '</div>' : ''}
-                <div class="p-price">${formatCurrency(p.price, 0)}</div>
-                <div class="p-stock">Sold: ${p.quantity} | Returned: ${p.already_returned} | Left: ${p.returnable}</div>
-                <button class="p-add ${canAdd ? 'add' : 'oos'}" onclick="event.stopPropagation();${canAdd ? "addToReturnCart(" + p.id + ")" : "showToast('Max returnable: " + p.returnable + "', true)"}">${canAdd ? '<i class="bi bi-plus-lg"></i> Return' : 'Fully Returned'}</button>
-                ${inCart ? '<div style="text-align:center;font-size:10px;color:var(--color-danger);margin-top:2px;font-weight:600">' + cartQty + ' in cart</div>' : ''}
-            </div>
-        </div>`;
+        return '<div class="product-card" onclick="' + (canAdd ? 'addToReturnCart(' + p.id + ')' : "showToast('Max returnable: " + p.returnable + "', true)") + '">' +
+            '<div class="p-img">' + (p.image ? '<img src="' + p.image + '">' : '<i class="bi bi-box no-img"></i>') + '</div>' +
+            '<div class="p-body">' +
+                '<div class="p-name">' + p.product_name + '</div>' +
+                (p.barcode ? '<div class="p-sku"><i class="bi bi-upc-scan"></i> ' + p.barcode + '</div>' : '') +
+                (p.sku ? '<div class="p-sku">SKU: ' + p.sku + '</div>' : '') +
+                '<div class="p-price">' + formatCurrency(p.price, 0) + '</div>' +
+                '<div class="p-stock">Sold: ' + p.quantity + ' | Returned: ' + p.already_returned + ' | Left: ' + p.returnable + '</div>' +
+                '<button class="p-add ' + (canAdd ? 'add' : 'oos') + '" onclick="event.stopPropagation();' + (canAdd ? "addToReturnCart(" + p.id + ")" : "showToast('Max returnable: " + p.returnable + "', true)") + '">' + (canAdd ? '<i class="bi bi-plus-lg"></i> Return' : 'Fully Returned') + '</button>' +
+                (inCart ? '<div style="text-align:center;font-size:10px;color:var(--color-danger);margin-top:2px;font-weight:600">' + cartQty + ' in cart</div>' : '') +
+            '</div>' +
+        '</div>';
     }).join('');
 }
 
@@ -419,26 +464,26 @@ function renderReturnCart() {
     count.textContent = returnCart.length;
     let totalRefund = 0;
     let totalQty = 0;
-    container.innerHTML = returnCart.map(item => {
+    container.innerHTML = returnCart.map(function(item) {
         const subtotal = item.qty * item.price;
         totalRefund += subtotal;
         totalQty += item.qty;
-        return `<div class="cart-item">
-            <div class="ci-row1">
-                <span class="ci-name">${item.product_name}</span>
-                <span class="ci-price">${formatCurrency(subtotal, 0)}</span>
-                <button class="ci-del" onclick="removeFromReturnCart(${item.item_id})"><i class="bi bi-x-circle"></i></button>
-            </div>
-            <div class="ci-row2">
-                <div class="ci-qty">
-                    <button onclick="updateReturnCartQty(${item.item_id}, ${item.qty - 1})">−</button>
-                    <input type="number" value="${item.qty}" min="0" max="${item.max_qty}" style="width:36px;text-align:center;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;font-size:13px;font-weight:700;padding:1px 2px" oninput="updateReturnCartQty(${item.item_id}, parseInt(this.value) || 0)">
-                    <button onclick="updateReturnCartQty(${item.item_id}, ${item.qty + 1})">+</button>
-                </div>
-                <span style="font-size:11px;color:var(--text-secondary)">${formatCurrency(item.price, 0)} × ${item.qty}</span>
-            </div>
-            <div class="ci-returnable">Max returnable: ${item.max_qty}</div>
-        </div>`;
+        return '<div class="cart-item">' +
+            '<div class="ci-row1">' +
+                '<span class="ci-name">' + item.product_name + '</span>' +
+                '<span class="ci-price">' + formatCurrency(subtotal, 0) + '</span>' +
+                '<button class="ci-del" onclick="removeFromReturnCart(' + item.item_id + ')"><i class="bi bi-x-circle"></i></button>' +
+            '</div>' +
+            '<div class="ci-row2">' +
+                '<div class="ci-qty">' +
+                    '<button onclick="updateReturnCartQty(' + item.item_id + ', ' + (item.qty - 1) + ')">&minus;</button>' +
+                    '<input type="number" value="' + item.qty + '" min="0" max="' + item.max_qty + '" style="width:36px;text-align:center;background:var(--bg-body);border:1px solid var(--border-input);color:var(--text-primary);border-radius:4px;font-size:13px;font-weight:700;padding:1px 2px" oninput="updateReturnCartQty(' + item.item_id + ', parseInt(this.value) || 0)">' +
+                    '<button onclick="updateReturnCartQty(' + item.item_id + ', ' + (item.qty + 1) + ')">+</button>' +
+                '</div>' +
+                '<span style="font-size:11px;color:var(--text-secondary)">' + formatCurrency(item.price, 0) + ' &times; ' + item.qty + '</span>' +
+            '</div>' +
+            '<div class="ci-returnable">Max returnable: ' + item.max_qty + '</div>' +
+        '</div>';
     }).join('');
     document.getElementById('returnCount').textContent = returnCart.length + ' items';
     document.getElementById('returnTotalQty').textContent = totalQty;
@@ -447,30 +492,33 @@ function renderReturnCart() {
 }
 
 // ================================
-// STEP 5: Process Return
+// STEP 5: Process Return (with 30s timeout)
 // ================================
 function processReturn() {
     if (!selectedInvoiceId || returnCart.length === 0) return;
     confirmAction('Are you sure you want to process this return? This will update inventory and cannot be undone.').then(function(confirmed) {
     if (!confirmed) return;
-    const items = returnCart.map(c => ({ item_id: c.item_id, quantity: c.qty }));
+    const items = returnCart.map(function(c) { return { item_id: c.item_id, quantity: c.qty }; });
     const notes = document.getElementById('returnNotes').value.trim();
     const btn = document.getElementById('processReturnBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+    const controller = new AbortController();
+    const timeout = setTimeout(function() { controller.abort(); }, 30000);
     fetch("{% url 'users:return_invoice_save' %}", {
         method: "POST",
         headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-        body: JSON.stringify({ invoice_id: selectedInvoiceId, items: items, notes: notes, invoice_type: selectedInvoiceType })
+        body: JSON.stringify({ invoice_id: selectedInvoiceId, items: items, notes: notes, invoice_type: selectedInvoiceType }),
+        signal: controller.signal
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { clearTimeout(timeout); return r.json(); })
+    .then(function(data) {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Process Return';
         if (data.success) {
             showToast(data.message, false);
             if (data.return_invoice_id) {
-                setTimeout(() => {
+                setTimeout(function() {
                     confirmAction('Return ' + (data.return_number || '') + ' processed! Refund: ' + formatCurrency(data.total_refund_amount, 0) + '. Print Return Invoice?').then(function(printIt) {
                         if (printIt) window.open("/users/return-invoice/print/" + data.return_invoice_id + "/", "_blank");
                     });
@@ -479,13 +527,17 @@ function processReturn() {
             changeInvoice();
         } else {
             showToast(data.error || 'Error processing return', true);
-            btn.disabled = false;
         }
     })
-    .catch(() => {
+    .catch(function(err) {
+        clearTimeout(timeout);
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Process Return';
-        showToast('Error processing return', true);
+        if (err && err.name === 'AbortError') {
+            showToast('Request timed out. The server may be busy. Please try again.', true);
+        } else {
+            showToast('Error processing return', true);
+        }
     });
     });
 }
@@ -494,10 +546,6 @@ function processReturn() {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && selectedInvoiceId) {
         changeInvoice();
-    }
-    // F5 or scan barcode in search field
-    if (!selectedInvoiceId && document.activeElement !== document.getElementById('invoiceSearch')) {
-        // pass
     }
 });
 </script>
