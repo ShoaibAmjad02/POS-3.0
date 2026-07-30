@@ -370,7 +370,7 @@ body.sidebar-open .sidebar{transform:translateX(0)}
         </div>
         {% endif %}
         {% if 'profit_loss' in enabled_modules and user_perms.reports.view %}
-        <a href="{% url 'users:profit_loss_statement' %}" class="{% if active_page == 'profit_loss' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Financial Reports</span></a>
+        <a href="{% url 'users:profit_loss_statement' %}" class="{% if active_page == 'profit_loss' %}active{% endif %}"><i class="bi bi-graph-up-arrow"></i><span>Profit &amp; Loss</span></a>
         {% endif %}
         {% if user_perms.users.manage %}
         <div class="has-sub" id="sub-operations">
