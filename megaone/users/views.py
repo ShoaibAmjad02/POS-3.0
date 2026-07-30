@@ -4936,6 +4936,37 @@ def return_invoice_get_items(request, invoice_id):
         return JsonResponse({"error": str(e)}, status=400)
 
 
+def _record_cash_refund_for_return(return_invoice, refund_amount, user):
+    try:
+        from megaone.users.models import SystemSetting
+        s = SystemSetting.objects.filter(pk=1).first()
+        enabled = s and 'cash_handling' in (s.enabled_modules or [])
+        if not enabled:
+            return
+        if refund_amount <= 0:
+            return
+        payment_method = (return_invoice.payment_method or '').lower()
+        if payment_method and payment_method != 'cash':
+            return
+        from cash_handling.services import CashDrawerService
+        session = CashDrawerService.get_or_create_active_session(user)
+        if not session:
+            return
+        idempotency_key = f"refund_{return_invoice.id}"
+        CashDrawerService.record_refund(
+            session=session,
+            user=user,
+            amount=refund_amount,
+            reference_number=return_invoice.return_number or f"RI-{return_invoice.id:06d}",
+            reference_model='ReturnInvoice',
+            reference_id=return_invoice.id,
+            payment_method=payment_method or 'cash',
+            idempotency_key=idempotency_key,
+        )
+    except Exception:
+        logger.warning("Failed to record cash drawer refund for return %s", return_invoice.id, exc_info=True)
+
+
 @csrf_exempt
 @module_access_required('returns')
 def return_invoice_save(request):
@@ -5064,6 +5095,8 @@ def return_invoice_save(request):
                 return_invoice.total_refund_amount = total_refund
                 return_invoice.subtotal_amount = total_refund
                 return_invoice.save(update_fields=["total_refund_amount", "subtotal_amount"])
+
+                _record_cash_refund_for_return(return_invoice, total_refund, request.user)
 
                 # Update wholesale invoice returned amount tracking
                 w_invoice.total_returned_amount = F("total_returned_amount") + total_refund
@@ -5209,6 +5242,8 @@ def return_invoice_save(request):
                 "total_refund_amount", "subtotal_amount",
                 "discount_amount", "tax_amount",
             ])
+
+            _record_cash_refund_for_return(return_invoice, net_refund, request.user)
 
             invoice.total_returned_amount = F("total_returned_amount") + total_refund
             invoice.total_returned_qty = F("total_returned_qty") + total_return_qty

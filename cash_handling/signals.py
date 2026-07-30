@@ -63,8 +63,6 @@ def process_sale_cash(sender, instance, created, **kwargs):
 
 
 def process_return_cash(sender, instance, created, **kwargs):
-    if not created:
-        return
     if not _get_cash_handling_enabled():
         return
 
