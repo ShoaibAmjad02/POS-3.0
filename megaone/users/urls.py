@@ -52,6 +52,7 @@ urlpatterns = [
 
     # Secure Invoice View -> Redirects to PDF
     path("invoice/<str:uuid_token>/details/", views.secure_invoice_view, name="secure_invoice_view"),
+    path("bulk-invoice-pdf/", views.bulk_invoice_pdf, name="bulk_invoice_pdf"),
 
     # Invoice Detail (by invoice_no, legacy) -> Redirects to PDF
     path("invoice-detail/<str:invoice_no>/", views.invoice_detail, name="invoice_detail"),
@@ -63,6 +64,7 @@ urlpatterns = [
     path("revenue-filter/", views.revenue_filter, name="revenue_filter"),
     path("tax-analytics/", views.tax_analytics, name="tax_analytics"),
     path("profit-loss-data/", views.profit_loss_data, name="profit_loss_data"),
+    path("chart-data/", views.chart_data, name="chart_data"),
     path("profit-loss-statement/", views.profit_loss_statement, name="profit_loss_statement"),
     path("profit-loss-statement/pdf/", views.profit_loss_export_pdf, name="profit_loss_export_pdf"),
     path("profit-loss-statement/excel/", views.profit_loss_export_excel, name="profit_loss_export_excel"),

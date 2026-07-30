@@ -3,17 +3,26 @@
 {% block title %}Invoice Search - {{ company_name }}{% endblock %}
 {% block extra_css %}
 <style>
-.invoice-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:20px;transition:.3s;height:100%;position:relative;overflow:hidden}
+.invoice-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:20px;transition:.3s;height:100%;position:relative;overflow:hidden;cursor:pointer;-webkit-user-select:none;user-select:none}
 .invoice-card:hover{transform:translateY(-4px);box-shadow:0 15px 30px rgba(0,0,0,.3);border-color:rgba(var(--accent-rgb),.3)}
 .invoice-card .inv-number{font-size:16px;font-weight:700;color:var(--accent)}
 .invoice-card .inv-customer{font-size:14px;color:var(--text-primary);margin:8px 0}
 .invoice-card .inv-meta{font-size:12px;color:var(--text-muted)}
 .invoice-card .inv-amount{font-size:22px;font-weight:700;color:var(--color-success)}
+.invoice-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.3);background:rgba(var(--accent-rgb),.05)}
+.invoice-card.selected::after{content:'';position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 24px 24px 0;border-color:transparent var(--accent) transparent transparent}
 
-.search-box{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:24px;margin-bottom:24px}
-.search-box input{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:12px 16px;font-size:15px}
-.search-box input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1)}
+.search-box{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:20px 24px;margin-bottom:24px}
+.search-box input,.search-box select{background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary);border-radius:10px;padding:10px 14px;font-size:14px}
+.search-box input:focus,.search-box select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px rgba(var(--accent-rgb),.1)}
 .search-box input::placeholder{color:var(--text-muted)}
+.search-box .smart-search-wrap{position:relative}
+.search-box .smart-search-wrap .bi-search{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px}
+.search-box .smart-search-wrap input{padding-left:38px;font-size:15px}
+.search-box .filter-row{display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-card)}
+
+.selection-bar{background:var(--bg-card);border-radius:12px;border:1px solid var(--border-card);padding:12px 20px;margin-bottom:16px;display:none;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+@media(max-width:575px){.search-box{padding:16px}}
 </style>
 {% endblock %}
 {% block content %}
@@ -29,28 +38,57 @@
 </div>
 
 <div class="search-box" data-aos="fade-up">
-    <div class="row g-3 align-items-end">
-        <div class="col-md-8">
-            <label class="form-label text-muted small fw-semibold mb-2">Search by Invoice #, Email, or Name</label>
-            <input type="text" id="searchInput" class="form-control" placeholder="Type to search invoices..." oninput="doSearch()">
+    <div class="row g-2 align-items-center">
+        <div class="col">
+            <div class="smart-search-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" id="smartSearch" class="form-control" placeholder="Search by invoice # or customer name...">
+            </div>
         </div>
-        <div class="col-md-4">
-            <label class="form-label text-muted small fw-semibold mb-2">Invoice Type</label>
-            <select id="invTypeFilter" class="form-select" onchange="doSearch()" style="background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary)">
-                <option value="">All Types</option>
-                <option value="retail">Retail</option>
-                <option value="retail_return">Retail Returns</option>
-                <option value="wholesale">Wholesale</option>
-                <option value="wholesale_return">Wholesale Returns</option>
-            </select>
+        <div class="col-auto">
+            <button class="btn btn-outline-secondary" id="filterToggleBtn" onclick="toggleFilters()" style="border-radius:10px;padding:10px 16px;white-space:nowrap">
+                <i class="bi bi-sliders2 me-1"></i> Advanced Filter
+            </button>
         </div>
+    </div>
+    <div class="filter-row" id="filterRow">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-semibold mb-2">Date</label>
+                <input type="date" id="filterDate" class="form-control">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-semibold mb-2">Invoice Type</label>
+                <select id="invTypeFilter" class="form-select" style="background:var(--bg-input);border:1px solid var(--border-input);color:var(--text-primary)">
+                    <option value="">All Types</option>
+                    <option value="retail">Retail</option>
+                    <option value="retail_return">Retail Returns</option>
+                    <option value="wholesale">Wholesale</option>
+                    <option value="wholesale_return">Wholesale Returns</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-outline-danger" onclick="clearFilters()"><i class="bi bi-x-circle"></i> Clear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="selectionBar" class="selection-bar">
+    <div class="d-flex align-items-center gap-2">
+        <span id="selCount" style="color:var(--text-primary);font-size:13px;font-weight:600">0 selected</span>
+        <span style="color:var(--text-muted);font-size:12px">Click / Right-click / Long-press to select</span>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-success" onclick="downloadSelected()"><i class="bi bi-file-pdf"></i> Download PDF</button>
+        <button class="btn btn-sm btn-info" onclick="shareSelected()"><i class="bi bi-share"></i> Share</button>
     </div>
 </div>
 
 <div id="invoiceGrid" class="row g-3">
     <div class="col-12 text-center py-5">
         <i class="bi bi-receipt" style="font-size:60px;color:var(--text-placeholder)"></i>
-        <p class="text-muted mt-3">Type in the search box to find invoices</p>
+        <p class="text-muted mt-3">Start typing to search invoices</p>
     </div>
 </div>
 {% endblock %}
@@ -59,7 +97,22 @@
 <script>
 AOS.init({duration:800,once:true});
 
-let searchTimer;
+var searchTimer;
+var filtersVisible = false;
+var longPressTimer = null;
+
+function toggleFilters() {
+    var row = document.getElementById('filterRow');
+    filtersVisible = !filtersVisible;
+    row.style.display = filtersVisible ? 'block' : 'none';
+    document.getElementById('filterToggleBtn').classList.toggle('active', filtersVisible);
+}
+
+function clearFilters() {
+    document.getElementById('filterDate').value = '';
+    document.getElementById('invTypeFilter').value = '';
+    triggerSearch();
+}
 
 function getTypeBadge(invType) {
     var badges = {
@@ -84,71 +137,284 @@ function getStatusBadge(paymentStatus, invoiceStatus) {
     return html;
 }
 
-function doSearch() {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        const q = document.getElementById('searchInput').value.trim();
-        const invType = document.getElementById('invTypeFilter').value;
-        const grid = document.getElementById('invoiceGrid');
+function getInvUrl(inv) {
+    if (inv.type === 'wholesale') return '/users/wholesale/invoice/' + inv.uuid_token + '/';
+    if (inv.type === 'retail') return '/users/invoice/' + inv.uuid_token + '/';
+    return '/users/return-invoice/print/' + inv.id + '/';
+}
 
-        if (q.length < 1) {
-            grid.innerHTML = `<div class="col-12 text-center py-5"><i class="bi bi-receipt" style="font-size:60px;color:var(--text-placeholder)"></i><p class="text-muted mt-3">Type to search invoices</p></div>`;
+function getSelectedCards() {
+    return document.querySelectorAll('.invoice-card.selected');
+}
+
+function updateSelectionBar() {
+    var cards = getSelectedCards();
+    var count = cards.length;
+    var bar = document.getElementById('selectionBar');
+    if (count > 0) {
+        bar.style.display = 'flex';
+        document.getElementById('selCount').textContent = count + ' selected';
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+function toggleCardSelection(card) {
+    card.classList.toggle('selected');
+    updateSelectionBar();
+}
+
+function doSearch() {
+    var q = document.getElementById('smartSearch').value.trim();
+    var filterDate = document.getElementById('filterDate').value;
+    var inv_type = document.getElementById('invTypeFilter').value;
+
+    if (!q && !filterDate) {
+        document.getElementById('invoiceGrid').innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-receipt" style="font-size:60px;color:var(--text-placeholder)"></i><p class="text-muted mt-3">Start typing to search invoices</p></div>';
+        document.getElementById('selectionBar').style.display = 'none';
+        return;
+    }
+
+    var body = {search: q, inv_type: inv_type};
+    if (filterDate) {
+        body.date_from = filterDate;
+        body.date_to = filterDate;
+    }
+
+    var grid = document.getElementById('invoiceGrid');
+    grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-warning" role="status"></div><p class="text-muted mt-3">Searching...</p></div>';
+
+    fetch("{% url 'users:search_invoice' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify(body)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        let invoices = data.invoices || [];
+        if (invoices.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-search" style="font-size:50px;color:var(--text-placeholder)"></i><p class="text-muted mt-3">No Invoice Found</p></div>';
+            document.getElementById('selectionBar').style.display = 'none';
             return;
         }
+        grid.innerHTML = '';
+        invoices.forEach(function(inv) {
+            var viewUrl = getInvUrl(inv);
+            var typeLabel = getTypeBadge(inv.type);
+            var statusLabel = getStatusBadge(inv.payment_status, inv.invoice_status);
+            var loyaltyInfo = '';
+            if (inv.loyalty_points_used && inv.loyalty_points_used > 0) {
+                loyaltyInfo = '<div style="font-size:11px;color:#f59e0b;margin-top:4px"><i class="bi bi-star me-1"></i>Loyalty: -' + formatCurrency(inv.loyalty_points_used, 0) + '</div>';
+            }
+            var card = document.createElement('div');
+            card.className = 'col-xl-4 col-md-6';
+            card.setAttribute('data-aos', 'fade-up');
+            card.innerHTML =
+                '<div class="invoice-card" data-id="' + inv.id + '" data-type="' + inv.type + '" data-uuid="' + (inv.uuid_token || '') + '">' +
+                    '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                        '<div class="inv-number">' + inv.invoice_number + ' ' + typeLabel + '</div>' +
+                    '</div>' +
+                    '<div class="inv-customer"><i class="bi bi-person me-1"></i>' + (inv.name || 'Walk-in Customer') + '</div>' +
+                    '<div class="inv-meta mb-2"><i class="bi bi-envelope me-1"></i>' + (inv.email || 'N/A') + '</div>' +
+                    '<div class="d-flex justify-content-between align-items-center mb-2">' +
+                        '<div class="inv-amount">' + formatCurrency(inv.total) + '</div>' +
+                        '<div>' + statusLabel + '</div>' +
+                    '</div>' +
+                    loyaltyInfo +
+                    '<div class="inv-meta mb-2" style="font-size:11px">' + inv.created_at + '</div>' +
+                    '<div class="d-flex gap-2">' +
+                        (viewUrl ? '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-outline-warning flex-fill" onclick="event.stopPropagation()"><i class="bi bi-eye"></i> View</a>' : '') +
+                        (inv.uuid_token ? '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-success flex-fill" onclick="event.stopPropagation()"><i class="bi bi-file-pdf"></i> PDF</a>' : '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-info flex-fill" onclick="event.stopPropagation()"><i class="bi bi-printer"></i> Print</a>') +
+                    '</div>' +
+                '</div>';
+            // Click to select/deselect
+            var invoiceCard = card.querySelector('.invoice-card');
+            invoiceCard.addEventListener('click', function(e) {
+                toggleCardSelection(this);
+            });
+            // Right-click to select/deselect (desktop)
+            invoiceCard.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                this.classList.add('selected');
+                updateSelectionBar();
+            });
+            // Long-press to select (mobile)
+            invoiceCard.addEventListener('touchstart', function(e) {
+                longPressTimer = setTimeout(function() {
+                    this.classList.add('selected');
+                    updateSelectionBar();
+                }.bind(this), 500);
+            });
+            invoiceCard.addEventListener('touchend', function() {
+                clearTimeout(longPressTimer);
+            });
+            invoiceCard.addEventListener('touchmove', function() {
+                clearTimeout(longPressTimer);
+            });
+            grid.appendChild(card);
+        });
+        AOS.refresh();
+        updateSelectionBar();
+    })
+    .catch(function() {
+        grid.innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-exclamation-triangle" style="font-size:50px;color:var(--color-danger)"></i><p class="text-muted mt-3">Search failed. Please try again.</p></div>';
+    });
+}
 
-        fetch("{% url 'users:search_invoice' %}", {
+function triggerSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 250);
+}
+
+function getSelectedData() {
+    var data = [];
+    getSelectedCards().forEach(function(card) {
+        data.push({
+            type: card.getAttribute('data-type'),
+            uuid: card.getAttribute('data-uuid'),
+            id: card.getAttribute('data-id')
+        });
+    });
+    return data;
+}
+
+function downloadSelected() {
+    var items = getSelectedData();
+    if (items.length === 0) return;
+    // If only one invoice, download it individually with descriptive name
+    if (items.length === 1) {
+        var url = getInvUrlFromData(items[0]);
+        if (url) { window.open(url + '?download=1', '_blank'); }
+        else Swal.fire('No PDFs', 'Selected invoice cannot be downloaded as PDF.', 'info');
+        return;
+    }
+    // Multiple: POST to bulk endpoint
+    fetch("{% url 'users:bulk_invoice_pdf' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({items: items})
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('Failed');
+        return r.blob();
+    })
+    .then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        var now = new Date();
+        var ds = String(now.getDate()).padStart(2,'0') + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + now.getFullYear();
+        a.download = 'Selected_Invoices_' + ds + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    })
+    .catch(function() {
+        Swal.fire('Error', 'Failed to generate bulk PDF.', 'error');
+    });
+}
+
+function getInvUrlFromData(item) {
+    if (item.type === 'wholesale' && item.uuid) return '/users/wholesale/invoice/' + item.uuid + '/';
+    if (item.type === 'retail' && item.uuid) return '/users/invoice/' + item.uuid + '/';
+    if (item.type === 'retail_return' || item.type === 'wholesale_return') return '/users/return-invoice/print/' + item.id + '/';
+    return '';
+}
+
+function shareSelected() {
+    var items = getSelectedData();
+    if (items.length === 0) return;
+    if (items.length === 1) {
+        var url = getInvUrlFromData(items[0]);
+        if (!url) { Swal.fire('Cannot Share', 'No shareable invoices selected.', 'info'); return; }
+        shareSinglePdf(url, items[0]);
+    } else {
+        // Bulk: fetch from bulk endpoint and share the combined PDF
+        fetch("{% url 'users:bulk_invoice_pdf' %}", {
             method: "POST",
             headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-            body: JSON.stringify({search: q, inv_type: invType})
+            body: JSON.stringify({items: items})
         })
-        .then(r => r.json())
-        .then(data => {
-            let invoices = data.invoices || [];
-            if (invoices.length === 0) {
-                grid.innerHTML = `<div class="col-12 text-center py-5"><i class="bi bi-search" style="font-size:50px;color:var(--text-placeholder)"></i><p class="text-muted mt-3">No invoices found</p></div>`;
-                return;
+        .then(function(r) {
+            if (!r.ok) throw new Error('Failed');
+            return r.blob();
+        })
+        .then(function(blob) {
+            var now = new Date();
+            var ds = String(now.getDate()).padStart(2,'0') + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + now.getFullYear();
+            var file = new File([blob], 'Selected_Invoices_' + ds + '.pdf', {type: 'application/pdf'});
+            if (navigator.canShare && navigator.canShare({files: [file]})) {
+                navigator.share({files: [file], title: 'Selected Invoices'}).catch(function(err) {
+                    if (err.name !== 'AbortError') fallbackShare(null);
+                });
+            } else {
+                // Download as fallback
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url; a.download = 'Selected_Invoices_' + ds + '.pdf';
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             }
-            grid.innerHTML = '';
-            invoices.forEach(inv => {
-                var typeLabel = getTypeBadge(inv.type);
-                var statusLabel = getStatusBadge(inv.payment_status, inv.invoice_status);
-                var viewUrl = '';
-                if (inv.type === 'wholesale') {
-                    viewUrl = '/users/wholesale/invoice/' + inv.uuid_token + '/';
-                } else if (inv.type === 'retail') {
-                    viewUrl = '/users/invoice/' + inv.uuid_token + '/';
-                } else if (inv.type === 'wholesale_return' || inv.type === 'retail_return') {
-                    viewUrl = '/users/return-invoice/print/' + inv.id + '/';
-                }
-                var loyaltyInfo = '';
-                if (inv.loyalty_points_used && inv.loyalty_points_used > 0) {
-                    loyaltyInfo = '<div style="font-size:11px;color:#f59e0b;margin-top:4px"><i class="bi bi-star me-1"></i>Loyalty: -' + formatCurrency(inv.loyalty_points_used, 0) + '</div>';
-                }
-                grid.innerHTML += `
-                <div class="col-xl-4 col-md-6" data-aos="fade-up">
-                    <div class="invoice-card">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="inv-number">${inv.invoice_number} ${typeLabel}</div>
-                        </div>
-                        <div class="inv-customer"><i class="bi bi-person me-1"></i>${inv.name || 'Walk-in Customer'}</div>
-                        <div class="inv-meta mb-2"><i class="bi bi-envelope me-1"></i>${inv.email || 'N/A'}</div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="inv-amount">${formatCurrency(inv.total)}</div>
-                            <div>${statusLabel}</div>
-                        </div>
-                        ${loyaltyInfo}
-                        <div class="inv-meta mb-2" style="font-size:11px">${inv.created_at}</div>
-                        <div class="d-flex gap-2">
-                            ${viewUrl ? '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-outline-warning flex-fill"><i class="bi bi-eye"></i> View</a>' : ''}
-                            ${inv.uuid_token ? '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-success flex-fill"><i class="bi bi-file-pdf"></i> PDF</a>' : '<a href="' + viewUrl + '" target="_blank" class="btn btn-sm btn-info flex-fill"><i class="bi bi-printer"></i> Print</a>'}
-                        </div>
-                    </div>
-                </div>`;
-            });
-            AOS.refresh();
-        });
-    }, 200);
+        })
+        .catch(function() { Swal.fire('Error', 'Failed to generate PDF for sharing.', 'error'); });
+    }
 }
+
+function shareSinglePdf(fullUrl, item) {
+    fetch(fullUrl + '?download=1')
+    .then(function(r) { return r.blob(); })
+    .then(function(blob) {
+        var name = getInvFileDisplayName(item);
+        var file = new File([blob], (name || 'invoice') + '.pdf', {type: 'application/pdf'});
+        if (navigator.canShare && navigator.canShare({files: [file]})) {
+            navigator.share({files: [file], title: 'Invoice'}).catch(function(err) {
+                if (err.name !== 'AbortError') fallbackShare(fullUrl + '?download=1');
+            });
+        } else {
+            fallbackShare(fullUrl + '?download=1');
+        }
+    })
+    .catch(function() { fallbackShare(fullUrl + '?download=1'); });
+}
+
+function getInvFileDisplayName(item) {
+    var type = item.type, uuid = item.uuid, id = item.id;
+    // Try to get name from the card
+    var cards = document.querySelectorAll('.invoice-card.selected');
+    for (var i = 0; i < cards.length; i++) {
+        if (cards[i].getAttribute('data-id') === String(id) && cards[i].getAttribute('data-type') === type) {
+            var num = cards[i].querySelector('.inv-number') ? cards[i].querySelector('.inv-number').textContent.trim().split(' ')[0] : ('INV-' + id);
+            var name = cards[i].querySelector('.inv-customer') ? cards[i].querySelector('.inv-customer').textContent.replace(/^.*?me-1.\s*/, '').trim() : 'Customer';
+            var amt = cards[i].querySelector('.inv-amount') ? cards[i].querySelector('.inv-amount').textContent.replace(/[^0-9.]/g, '') : '0';
+            // Get date from card
+            var dateSpan = cards[i].querySelector('.inv-meta:last-child');
+            var dStr = '';
+            if (dateSpan) dStr = dateSpan.textContent.trim().split(' ')[0];
+            var cleanName = name.replace(/[^a-zA-Z0-9]/g, '_');
+            return (num + '_' + dStr + '_' + cleanName + '_' + Math.round(parseFloat(amt) || 0)).replace(/__+/g, '_');
+        }
+    }
+    return 'invoice_' + Date.now();
+}
+
+function fallbackShare(url) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+            Swal.fire('Link Copied', 'Invoice link copied to clipboard (file sharing not supported on this device).', 'info');
+        }).catch(function() {
+            window.open(url, '_blank');
+        });
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
+// Auto-search
+document.getElementById('smartSearch').addEventListener('input', triggerSearch);
+document.getElementById('invTypeFilter').addEventListener('change', triggerSearch);
+document.getElementById('filterDate').addEventListener('change', triggerSearch);
 </script>
 <script>
 (function() {

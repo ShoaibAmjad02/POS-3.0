@@ -910,7 +910,14 @@ def invoice_pdf(request, uuid_token):
     buffer.seek(0)
 
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{invoice.invoice_number}.pdf"'
+    _cust = (invoice.customer_name or (invoice.user.name if invoice.user else '') or 'Customer').replace(' ', '_')
+    _safe_name = ''.join(c if c.isalnum() or c in '_-' else '_' for c in _cust)
+    _d = invoice.created_at.astimezone(dt_timezone.utc).strftime('%d-%m-%Y')
+    _fname = f"{invoice.invoice_number}_{_d}_{_safe_name}_{float(invoice.total_amount):.0f}.pdf"
+    if request.GET.get('download') == '1':
+        response["Content-Disposition"] = f'attachment; filename="{_fname}"'
+    else:
+        response["Content-Disposition"] = f'inline; filename="{_fname}"'
     return response
 
 # =========================
@@ -978,16 +985,20 @@ def admin_pos(request):
 @staff_member_required
 def admin_dashboard(request):
     foods_count = Food.objects.count()
-    invoices_count = Invoice.objects.count()
+    invoices_count = Invoice.objects.count() + WholesaleInvoice.objects.count()
     users_count = User.objects.count()
     operator_users_count = User.objects.filter(is_operator=True).count()
     customers_count = User.objects.filter(is_staff=False, is_operator=False, is_superuser=False).count()
 
+    total_stock = Food.objects.aggregate(total=Sum('stock'))['total'] or 0
+
+    from megaone.users.models import InventoryBatch
+    total_purchases = InventoryBatch.objects.count()
+    total_suppliers = InventoryBatch.objects.exclude(supplier__isnull=True).exclude(supplier__exact='').values('supplier').distinct().count()
+
     # Low stock alerts
     low_stock_products = Food.objects.filter(stock__gt=0, stock__lte=5)[:20]
     out_of_stock_products = Food.objects.filter(stock=0)[:20]
-
-    from django.db.models import Sum
 
     revenue = Invoice.objects.aggregate(total=Sum("total_amount"))["total"] or 0
     wholesale_revenue = WholesaleInvoice.objects.aggregate(total=Sum("total_amount"))["total"] or 0
@@ -1043,6 +1054,9 @@ def admin_dashboard(request):
         "users_count": users_count,
         "operator_users_count": operator_users_count,
         "customers_count": customers_count,
+        "total_stock": total_stock,
+        "total_purchases": total_purchases,
+        "total_suppliers": total_suppliers,
         "revenue": net_revenue,
         "gross_revenue": float(revenue),
         "returns_total": float(returns_total),
@@ -1071,6 +1085,97 @@ def admin_dashboard(request):
         "yearly_net_sales": yearly_net_sales,
         "returned_qty": returned_qty,
         "total_discount_given": total_discount_given,
+    })
+
+
+@login_required
+def chart_data(request):
+    start_str = request.GET.get("start_date")
+    end_str = request.GET.get("end_date")
+    import logging as _lg
+    _lg.getLogger(__name__).info("chart_data params: start=%s end=%s", start_str, end_str)
+
+    if start_str and end_str:
+        _start_dt = timezone.make_aware(datetime.strptime(start_str, "%Y-%m-%d"), dt_timezone.utc)
+        _end_dt = timezone.make_aware(datetime.strptime(end_str, "%Y-%m-%d") + timedelta(days=1), dt_timezone.utc)
+    else:
+        _end_dt = timezone.make_aware(datetime.combine(timezone.now().date(), datetime.min.time()) + timedelta(days=1), dt_timezone.utc)
+        _start_dt = _end_dt - timedelta(days=30)
+
+    _days = (_end_dt - _start_dt).days
+    from django.db.models.functions import TruncDate, TruncHour
+    if _days <= 1:
+        _group = 'hour'
+        _annotate = lambda: TruncHour('created_at', tzinfo=dt_timezone.utc)
+    else:
+        _group = 'day'
+        _annotate = lambda: TruncDate('created_at', tzinfo=dt_timezone.utc)
+
+    _retail = (
+        Invoice.objects.filter(created_at__range=[_start_dt, _end_dt])
+        .annotate(period=_annotate())
+        .values('period').annotate(total=Sum('subtotal_amount'))
+        .order_by('period')
+    )
+    _wholesale = (
+        WholesaleInvoice.objects.filter(created_at__range=[_start_dt, _end_dt])
+        .annotate(period=_annotate())
+        .values('period').annotate(total=Sum('subtotal_amount'))
+        .order_by('period')
+    )
+    _returns = (
+        ReturnInvoice.objects.filter(created_at__range=[_start_dt, _end_dt])
+        .annotate(period=_annotate())
+        .values('period').annotate(total=Sum('total_refund_amount'))
+        .order_by('period')
+    )
+
+    if _group == 'hour':
+        _key_fmt = '%Y-%m-%d %H:%M:%S'
+    else:
+        _key_fmt = '%Y-%m-%d'
+    _r_map = {r['period'].strftime(_key_fmt): float(r['total']) for r in _retail}
+    _w_map = {r['period'].strftime(_key_fmt): float(r['total']) for r in _wholesale}
+    _rt_map = {r['period'].strftime(_key_fmt): float(r['total']) for r in _returns}
+
+    labels = []
+    retail = []
+    wholesale = []
+    returns = []
+
+    if _group == 'hour':
+        from datetime import time as _time
+        _cur = _start_dt
+        while _cur < _end_dt:
+            _key = _cur.strftime('%Y-%m-%d %H:%M:%S')
+            labels.append(_cur.strftime('%I %p'))
+            retail.append(_r_map.get(_key, 0))
+            wholesale.append(_w_map.get(_key, 0))
+            returns.append(_rt_map.get(_key, 0))
+            _cur += timedelta(hours=1)
+        period_label = 'Hourly'
+    else:
+        _cur = _start_dt
+        while _cur < _end_dt:
+            _key = _cur.strftime('%Y-%m-%d')
+            labels.append(_cur.strftime('%b %d'))
+            retail.append(_r_map.get(_key, 0))
+            wholesale.append(_w_map.get(_key, 0))
+            returns.append(_rt_map.get(_key, 0))
+            _cur += timedelta(days=1)
+        if _days <= 31:
+            period_label = 'Daily'
+        elif _days <= 90:
+            period_label = 'Weekly'
+        else:
+            period_label = 'Monthly'
+
+    return JsonResponse({
+        'labels': labels,
+        'retail': retail,
+        'wholesale': wholesale,
+        'returns': returns,
+        'period_label': period_label,
     })
 
 
@@ -1671,21 +1776,55 @@ def search_invoice(request):
     if request.method == "POST":
         data = json.loads(request.body)
         q = data.get("search", "").strip()
+        invoice_no = data.get("invoice_no", "").strip()
+        customer_name = data.get("customer_name", "").strip()
+        date_from = data.get("date_from", "").strip()
+        date_to = data.get("date_to", "").strip()
         inv_type_filter = data.get("inv_type", "").strip()
-        if not q:
+
+        has_filters = any([q, invoice_no, customer_name, date_from or date_to])
+        if not has_filters:
             return JsonResponse({"invoices": []})
 
         results = []
 
+        def apply_date_filter(qs, field='created_at'):
+            if date_from:
+                try:
+                    _fd = timezone.make_aware(datetime.strptime(date_from, "%Y-%m-%d"), dt_timezone.utc)
+                    qs = qs.filter(**{f'{field}__gte': _fd})
+                except (ValueError, TypeError):
+                    pass
+            if date_to:
+                try:
+                    _td = timezone.make_aware(datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1), dt_timezone.utc)
+                    qs = qs.filter(**{f'{field}__lt': _td})
+                except (ValueError, TypeError):
+                    pass
+            return qs
+
+        def build_search_q(base_fields):
+            _q = Q()
+            search_term = q or invoice_no or customer_name
+            if search_term:
+                _q = Q()
+                for f in base_fields:
+                    _q |= Q(**{f'{f}__icontains': search_term})
+            return _q
+
         # 1. Retail Invoices
         if not inv_type_filter or inv_type_filter == "retail":
-            retail_qs = Invoice.objects.filter(
-                Q(invoice_number__icontains=q) |
-                Q(customer_phone__icontains=q) |
-                Q(customer_name__icontains=q) |
-                Q(user__phone__icontains=q) |
-                Q(user__name__icontains=q)
-            ).order_by('-created_at')[:20]
+            retail_qs = Invoice.objects.all()
+            if q or invoice_no or customer_name:
+                retail_qs = retail_qs.filter(
+                    Q(invoice_number__icontains=(q or invoice_no or customer_name)) |
+                    Q(customer_phone__icontains=(q or invoice_no or customer_name)) |
+                    Q(customer_name__icontains=(q or invoice_no or customer_name)) |
+                    Q(user__phone__icontains=(q or invoice_no or customer_name)) |
+                    Q(user__name__icontains=(q or invoice_no or customer_name))
+                )
+            retail_qs = apply_date_filter(retail_qs)
+            retail_qs = retail_qs.order_by('-created_at')[:20]
             for inv in retail_qs:
                 loyalty_used = inv.loyalty_points_used or 0
                 results.append({
@@ -1708,11 +1847,15 @@ def search_invoice(request):
             ret_return_qs = ReturnInvoice.objects.filter(
                 invoice_type='retail',
                 original_invoice__isnull=False
-            ).filter(
-                Q(return_number__icontains=q) |
-                Q(customer_name__icontains=q) |
-                Q(original_invoice__invoice_number__icontains=q)
-            ).select_related('original_invoice').order_by('-created_at')[:10]
+            )
+            if q or invoice_no or customer_name:
+                ret_return_qs = ret_return_qs.filter(
+                    Q(return_number__icontains=(q or invoice_no or customer_name)) |
+                    Q(customer_name__icontains=(q or invoice_no or customer_name)) |
+                    Q(original_invoice__invoice_number__icontains=(q or invoice_no or customer_name))
+                )
+            ret_return_qs = apply_date_filter(ret_return_qs)
+            ret_return_qs = ret_return_qs.select_related('original_invoice').order_by('-created_at')[:10]
             for ret in ret_return_qs:
                 results.append({
                     "type": "retail_return",
@@ -1729,11 +1872,15 @@ def search_invoice(request):
 
         # 3. Wholesale Invoices
         if not inv_type_filter or inv_type_filter == "wholesale":
-            ws_qs = WholesaleInvoice.objects.filter(
-                Q(invoice_number__icontains=q) |
-                Q(wholesale_customer__company_name__icontains=q) |
-                Q(wholesale_customer__email__icontains=q)
-            ).select_related('wholesale_customer').order_by('-created_at')[:20]
+            ws_qs = WholesaleInvoice.objects.all()
+            if q or invoice_no or customer_name:
+                ws_qs = ws_qs.filter(
+                    Q(invoice_number__icontains=(q or invoice_no or customer_name)) |
+                    Q(wholesale_customer__company_name__icontains=(q or invoice_no or customer_name)) |
+                    Q(wholesale_customer__email__icontains=(q or invoice_no or customer_name))
+                )
+            ws_qs = apply_date_filter(ws_qs)
+            ws_qs = ws_qs.select_related('wholesale_customer').order_by('-created_at')[:20]
             for inv in ws_qs:
                 results.append({
                     "type": "wholesale",
@@ -1753,11 +1900,15 @@ def search_invoice(request):
             ws_return_qs = ReturnInvoice.objects.filter(
                 invoice_type='wholesale',
                 wholesale_original_invoice__isnull=False
-            ).filter(
-                Q(return_number__icontains=q) |
-                Q(customer_name__icontains=q) |
-                Q(wholesale_original_invoice__invoice_number__icontains=q)
-            ).select_related('wholesale_original_invoice').order_by('-created_at')[:10]
+            )
+            if q or invoice_no or customer_name:
+                ws_return_qs = ws_return_qs.filter(
+                    Q(return_number__icontains=(q or invoice_no or customer_name)) |
+                    Q(customer_name__icontains=(q or invoice_no or customer_name)) |
+                    Q(wholesale_original_invoice__invoice_number__icontains=(q or invoice_no or customer_name))
+                )
+            ws_return_qs = apply_date_filter(ws_return_qs)
+            ws_return_qs = ws_return_qs.select_related('wholesale_original_invoice').order_by('-created_at')[:10]
             for ret in ws_return_qs:
                 results.append({
                     "type": "wholesale_return",
@@ -5338,8 +5489,110 @@ def return_invoice_pdf(request, return_id):
     pdf.save()
     buffer.seek(0)
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{ret.return_number or ret.id}.pdf"'
+    _cust = (customer_name or 'Customer').replace(' ', '_')
+    _safe_name = ''.join(c if c.isalnum() or c in '_-' else '_' for c in _cust)
+    _d = ret.created_at.astimezone(dt_timezone.utc).strftime('%d-%m-%Y')
+    _fname = f"{ret.return_number or ('RI-'+str(ret.id))}_{_d}_{_safe_name}_{float(ret.total_refund_amount):.0f}.pdf"
+    if request.GET.get('download') == '1':
+        response["Content-Disposition"] = f'attachment; filename="{_fname}"'
+    else:
+        response["Content-Disposition"] = f'inline; filename="{_fname}"'
     return response
+
+
+@login_required
+def bulk_invoice_pdf(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        data = json.loads(request.body)
+        items = data.get("items", [])
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    if not items:
+        return JsonResponse({"error": "No invoices selected"}, status=400)
+
+    rows = []
+    for it in items:
+        typ = it.get("type", "")
+        uuid = it.get("uuid", "")
+        iid = it.get("id", "")
+        inv_no = date_str = cust_name = total = ""
+        try:
+            if typ == "retail" and uuid:
+                inv = Invoice.objects.get(uuid_token=uuid)
+                inv_no = inv.invoice_number
+                date_str = timezone.localtime(inv.created_at).strftime("%d-%m-%Y")
+                cust_name = inv.customer_name or (inv.user.name if inv.user else "Walk-in Customer")
+                total = f"{float(inv.total_amount):,.2f}"
+            elif typ == "wholesale" and uuid:
+                inv = WholesaleInvoice.objects.get(uuid_token=uuid)
+                inv_no = inv.invoice_number
+                date_str = timezone.localtime(inv.created_at).strftime("%d-%m-%Y")
+                cust_name = inv.wholesale_customer.company_name if inv.wholesale_customer else "Wholesale Customer"
+                total = f"{float(inv.total_amount):,.2f}"
+            elif typ in ("retail_return", "wholesale_return") and iid:
+                inv = ReturnInvoice.objects.get(id=iid)
+                inv_no = inv.return_number or f"RI-{inv.id:06d}"
+                date_str = timezone.localtime(inv.created_at).strftime("%d-%m-%Y")
+                cust_name = inv.customer_name or "Customer"
+                total = f"{float(inv.total_refund_amount):,.2f}"
+        except Exception:
+            continue
+        if inv_no:
+            rows.append([inv_no, date_str, cust_name, total])
+
+    if not rows:
+        return JsonResponse({"error": "No valid invoices found"}, status=400)
+
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors as _clrs
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=30, rightMargin=30, topMargin=30, bottomMargin=30)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    title_style = ParagraphStyle("T", parent=styles["Title"], fontSize=16, spaceAfter=4, textColor=_clrs.HexColor("#1e293b"))
+    sub_style = ParagraphStyle("S", parent=styles["Normal"], fontSize=9, textColor=_clrs.HexColor("#64748b"), spaceAfter=16)
+    cell_style = ParagraphStyle("C", parent=styles["Normal"], fontSize=8, leading=11)
+
+    elements.append(Paragraph("Selected Invoices", title_style))
+    elements.append(Paragraph(f"Total: {len(rows)} invoice(s)  |  Generated: {timezone.localtime(timezone.now()).strftime('%d-%m-%Y %I:%M %p')}", sub_style))
+    elements.append(Spacer(1, 6))
+
+    table_data = [[Paragraph("<b>Invoice No</b>", cell_style), Paragraph("<b>Date</b>", cell_style),
+                   Paragraph("<b>Customer Name</b>", cell_style), Paragraph("<b>Total Amount</b>", cell_style)]]
+    for r in rows:
+        table_data.append([Paragraph(r[0], cell_style), Paragraph(r[1], cell_style),
+                           Paragraph(r[2], cell_style), Paragraph(r[3], cell_style)])
+
+    col_w = [130, 90, 220, 120]
+    table = Table(table_data, colWidths=col_w, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), _clrs.HexColor("#ffffff")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), _clrs.HexColor("#1e293b")),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("ALIGN", (3, 0), (3, -1), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("GRID", (0, 0), (-1, -1), 0.5, _clrs.HexColor("#cbd5e1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [_clrs.HexColor("#ffffff"), _clrs.HexColor("#f8fafc")]),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    buf.seek(0)
+    fname = f"Selected_Invoices_{timezone.localtime(timezone.now()).strftime('%d-%m-%Y')}.pdf"
+    return FileResponse(buf, as_attachment=True, filename=fname)
 
 
 @login_required
@@ -6151,7 +6404,14 @@ def wholesale_invoice_pdf(request, uuid_token):
     pdf.save()
     buffer.seek(0)
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="{invoice.invoice_number}.pdf"'
+    _cust = (cust.company_name if cust else 'Wholesale_Customer').replace(' ', '_')
+    _safe_name = ''.join(c if c.isalnum() or c in '_-' else '_' for c in _cust)
+    _d = invoice.created_at.astimezone(dt_timezone.utc).strftime('%d-%m-%Y')
+    _fname = f"{invoice.invoice_number}_{_d}_{_safe_name}_{float(invoice.total_amount):.0f}.pdf"
+    if request.GET.get('download') == '1':
+        response["Content-Disposition"] = f'attachment; filename="{_fname}"'
+    else:
+        response["Content-Disposition"] = f'inline; filename="{_fname}"'
     return response
 
 
