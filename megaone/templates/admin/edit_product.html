@@ -131,17 +131,30 @@ body{padding-bottom:58px}
 
         <div class="section-title"><i class="bi bi-box-seam"></i> Inventory</div>
         <div class="row g-2">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Stock</label>
                 <input type="number" name="stock" value="{{ product.stock }}" class="form-control" min="0" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">SKU</label>
                 <input type="text" name="sku" value="{{ product.sku|default:'' }}" class="form-control" placeholder="Supplier SKU">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Batch No</label>
+                <input type="text" name="batch_no" value="{{ product.batch_no|default:'' }}" class="form-control" placeholder="Batch/Lot number" maxlength="100">
             </div>
             <div class="col-12">
                 <label class="form-label">Stock Change Reason</label>
                 <input type="text" name="stock_reason" class="form-control" placeholder="Optional: why stock is being adjusted">
+            </div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-calendar-exclamation"></i> Batch &amp; Expiry</div>
+        <div class="row g-2">
+            <div class="col-md-6">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" name="expiry_date" value="{{ product.expiry_date|date:'Y-m-d'|default:'' }}" class="form-control">
+                <small class="help-text">Optional. Alert will show 1 month before expiry.</small>
             </div>
         </div>
 

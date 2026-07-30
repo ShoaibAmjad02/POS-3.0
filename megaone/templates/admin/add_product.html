@@ -125,13 +125,22 @@ body{padding-bottom:58px}
 
         <div class="section-title"><i class="bi bi-box-seam"></i> Inventory</div>
         <div class="row g-2">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Initial Stock</label>
                 <input type="number" name="stock" class="form-control" value="0" min="0" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">SKU (optional)</label>
                 <input type="text" name="sku" class="form-control" placeholder="Supplier SKU">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Batch No</label>
+                <input type="text" name="batch_no" class="form-control" placeholder="Batch/Lot number" maxlength="100">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" name="expiry_date" class="form-control">
+                <small class="help-text">Optional. Alert will show 1 month before expiry.</small>
             </div>
         </div>
 

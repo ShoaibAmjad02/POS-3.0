@@ -54,6 +54,8 @@ class Food(models.Model):
     image = models.ImageField(upload_to="foods/", blank=True, null=True)
     available = models.BooleanField(default=True)
     is_popular = models.BooleanField(default=False)
+    batch_no = models.CharField(max_length=100, blank=True, null=True, verbose_name="Batch No")
+    expiry_date = models.DateField(blank=True, null=True, verbose_name="Expiry Date")
     discount_type = models.CharField(
         max_length=20, choices=DISCOUNT_TYPE_CHOICES, blank=True, null=True
     )

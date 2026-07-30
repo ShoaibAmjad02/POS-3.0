@@ -1625,10 +1625,18 @@ def profit_loss_export_excel(request):
 @module_access_required('products')
 def product_list(request):
     products = Food.objects.all()
+    today = timezone.now().date()
+    soon = today + timedelta(days=30)
     return render(request, "admin/products.html", {
         "products": products,
-        "today": timezone.now(),
+        "today": today,
+        "expiry_soon_date": soon,
         "active_page": "products",
+        "expiring_soon": products.filter(
+            expiry_date__isnull=False,
+            expiry_date__gte=today,
+            expiry_date__lte=soon
+        ).order_by('expiry_date'),
     })
 
 
@@ -1666,6 +1674,8 @@ def add_product(request):
             available=request.POST.get("available") == "on",
             discount_type=request.POST.get("discount_type") or None,
             discount_value=request.POST.get("discount_value", 0),
+            batch_no=request.POST.get("batch_no") or None,
+            expiry_date=request.POST.get("expiry_date") or None,
         )
         if stock_qty > 0:
             svc = InventoryValuationService()
@@ -1719,6 +1729,8 @@ def edit_product(request, pk):
         product.available = request.POST.get("available") == "on"
         product.discount_type = request.POST.get("discount_type") or None
         product.discount_value = request.POST.get("discount_value", 0)
+        product.batch_no = request.POST.get("batch_no") or None
+        product.expiry_date = request.POST.get("expiry_date") or None
         if request.FILES.get("image"):
             product.image = request.FILES.get("image")
 
@@ -1940,8 +1952,16 @@ def search_products(request):
             Q(barcode__icontains=q) |
             Q(product_code__icontains=q) |
             Q(sku__icontains=q) |
-            Q(category__name__icontains=q)
+            Q(category__name__icontains=q) |
+            Q(batch_no__icontains=q)
         )
+        # Also try to parse q as expiry date
+        try:
+            from datetime import datetime
+            parsed_date = datetime.strptime(q, "%Y-%m-%d").date()
+            products = products.filter(Q(expiry_date=parsed_date) | Q(batch_no__icontains=q))
+        except ValueError:
+            pass
     if category_id:
         products = products.filter(category_id=category_id)
     products = products[:50]
@@ -1959,6 +1979,8 @@ def search_products(request):
             "barcode": p.barcode or "",
             "product_code": p.product_code or "",
             "sku": p.sku or "",
+            "batch_no": p.batch_no or "",
+            "expiry_date": p.expiry_date.isoformat() if p.expiry_date else "",
             "available": p.available and p.stock > 0,
             "category": p.category.name,
             "image": p.image.url if p.image else "",
