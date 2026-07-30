@@ -288,8 +288,8 @@ body.sidebar-open .sidebar{transform:translateX(0)}
         <a href="{% url 'users:data_migration:dashboard' %}" class="{% if active_page == 'data_migration' %}active{% endif %}"><i class="bi bi-arrow-left-right"></i><span>Data Migration</span></a>
         {% endif %}
         {% if user.is_staff and not user.is_software_owner %}
+        <a href="{% url 'users:admin_dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
         {% if 'pos' in enabled_modules and user_perms.sales.create %}<a href="{% url 'users:admin_pos' %}"><i class="bi bi-cart"></i><span>Point of Sale</span></a>{% endif %}
-        <a href="{% url 'users:admin_dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}"><i class="bi bi-speedometer2"></i><span>Overview</span></a>
         <a href="{% url 'users:invoice_search_page' %}" class="{% if active_page == 'invoices' %}active{% endif %}"><i class="bi bi-receipt"></i><span>Invoice Management</span></a>
         {% if 'products' in enabled_modules and user_perms.products.create %}
         <div class="has-sub" id="sub-products">
