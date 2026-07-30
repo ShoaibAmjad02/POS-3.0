@@ -10,13 +10,18 @@
 .dash-stat-card .stat-icon{font-size:42px;opacity:.15;position:absolute;right:15px;bottom:10px;transition:.3s}
 .dash-stat-card:hover .stat-icon{opacity:.25;transform:scale(1.1)}
 .dash-stat-card .stat-sub{font-size:11px;opacity:.6;margin-top:2px}
-.chart-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:24px;min-height:380px;position:relative}
-.chart-card .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-.chart-card .chart-header h5{margin:0;font-size:15px;font-weight:600;color:var(--text-primary)}
-.chart-card .chart-header small{color:var(--text-muted);font-size:12px}
-.chart-card .chart-body{position:relative;width:100%;height:300px}
+.chart-card{background:#ffffff;border-radius:16px;border:1px solid rgba(0,0,0,0.08);padding:24px;min-height:380px;position:relative;box-shadow:0 4px 24px rgba(0,0,0,0.10)}
+[data-theme="light"] .chart-card{background:#1e293b;border-color:rgba(255,255,255,0.06);box-shadow:0 4px 24px rgba(0,0,0,0.25)}
+.chart-card .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;padding-bottom:14px;border-bottom:1px solid rgba(0,0,0,0.06)}
+[data-theme="light"] .chart-card .chart-header{border-bottom:1px solid rgba(255,255,255,0.06)}
+.chart-card .chart-header h5{margin:0;font-size:15px;font-weight:600;color:#1e293b}
+[data-theme="light"] .chart-card .chart-header h5{color:#f1f5f9}
+.chart-card .chart-header small{color:#64748b;font-size:12px}
+[data-theme="light"] .chart-card .chart-header small{color:#94a3b8}
+.chart-card .chart-body{position:relative;width:100%;height:300px;border-radius:12px;overflow:hidden}
 .chart-card .chart-wrap{position:absolute;inset:0}
-.chart-card .chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-muted);gap:12px}
+.chart-card .chart-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#64748b}
+[data-theme="light"] .chart-card .chart-empty{color:#94a3b8}
 .chart-card .chart-empty i{font-size:48px;opacity:.3}
 .chart-card .chart-empty p{margin:0;font-size:14px;font-weight:500}
 .chart-card canvas{width:100%!important;height:100%!important}
@@ -516,6 +521,8 @@ function getChartDateRange(period) {
     }
 }
 
+var _lastChartData = null;
+
 function loadChartData() {
     var dates = getChartDateRange(activePeriod);
     var url = "{% url 'users:chart_data' %}?start_date=" + encodeURIComponent(dates.start) + "&end_date=" + encodeURIComponent(dates.end);
@@ -523,6 +530,7 @@ function loadChartData() {
     fetch(url, { credentials: 'same-origin' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+        _lastChartData = data;
         document.getElementById('periodLabel').textContent = data.period_label || 'Daily';
         renderTrendChart(data);
     })
@@ -534,18 +542,61 @@ function loadChartData() {
     });
 }
 
-var _isDark, _gridColor, _textColor, _cardBg, _tooltipTitleColor, _tooltipBodyColor, _tooltipBorder, _sym;
+var _isDark, _gridColor, _textColor, _cardBg, _tooltipBg, _tooltipTitleColor, _tooltipBodyColor, _tooltipBorder, _sym;
+
+function applyThemeBgs() {
+    var isDark = !(document.documentElement.getAttribute('data-theme') === 'light');
+    var bg = isDark ? '#ffffff' : '#1e293b';
+    var cards = document.querySelectorAll('.chart-card');
+    for (var i = 0; i < cards.length; i++) {
+        cards[i].style.background = bg;
+    }
+    var canvases = document.querySelectorAll('.chart-card canvas');
+    for (var i = 0; i < canvases.length; i++) {
+        canvases[i].style.backgroundColor = bg;
+    }
+}
+
+// Refresh theme-dependent chart colors without full data reload
+function refreshChartTheme() {
+    _isDark = !(document.documentElement.getAttribute('data-theme') === 'light');
+    _gridColor = _isDark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    _textColor = _isDark ? '#334155' : '#e2e8f0';
+    _cardBg = _isDark ? '#ffffff' : '#1e293b';
+    _tooltipBg = _isDark ? '#1e293b' : '#ffffff';
+    _tooltipTitleColor = _isDark ? '#f1f5f9' : '#1e293b';
+    _tooltipBodyColor = _isDark ? '#e2e8f0' : '#334155';
+    _tooltipBorder = _isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+    _sym = window.currencySymbol || 'Rs ';
+
+    applyThemeBgs();
+
+    if (_lastChartData) renderTrendChart(_lastChartData);
+    initDoughnutChart();
+}
+
+// Watch data-theme changes for instant card + chart color update
+(function() {
+    var html = document.documentElement;
+    var observer = new MutationObserver(function() {
+        refreshChartTheme();
+    });
+    observer.observe(html, {attributes: true, attributeFilter: ['data-theme']});
+})();
 
 function initChart() {
     loadPlCard();
     _isDark = !(document.documentElement.getAttribute('data-theme') === 'light');
-    _gridColor = _isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-    _textColor = _isDark ? '#94a3b8' : '#64748b';
-    _cardBg = _isDark ? '#1e293b' : '#ffffff';
+    _gridColor = _isDark ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    _textColor = _isDark ? '#334155' : '#e2e8f0';
+    _cardBg = _isDark ? '#ffffff' : '#1e293b';
+    _tooltipBg = _isDark ? '#1e293b' : '#ffffff';
     _tooltipTitleColor = _isDark ? '#f1f5f9' : '#1e293b';
     _tooltipBodyColor = _isDark ? '#e2e8f0' : '#334155';
-    _tooltipBorder = _isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+    _tooltipBorder = _isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
     _sym = window.currencySymbol || 'Rs ';
+
+    applyThemeBgs();
 
     loadChartData();
     initDoughnutChart();
@@ -587,6 +638,7 @@ function renderTrendChart(data) {
     }
 
     canvas.style.display = '';
+    canvas.style.backgroundColor = _cardBg;
     var emptyEl = document.getElementById('trendChartEmpty');
     if (emptyEl) emptyEl.style.display = 'none';
 
@@ -653,7 +705,7 @@ function renderTrendChart(data) {
                     }
                 },
                 tooltip: {
-                    backgroundColor: _cardBg,
+                    backgroundColor: _tooltipBg,
                     titleColor: _tooltipTitleColor,
                     bodyColor: _tooltipBodyColor,
                     borderColor: _tooltipBorder,
@@ -701,6 +753,7 @@ function initDoughnutChart() {
                 salesCanvas.style.display = 'none';
                 showEmpty2('salesChartEmpty');
             } else {
+                salesCanvas.style.backgroundColor = _cardBg;
                 new Chart(salesCanvas, {
                     type: 'doughnut',
                     data: {
@@ -729,7 +782,7 @@ function initDoughnutChart() {
                                 }
                             },
                             tooltip: {
-                                backgroundColor: _cardBg,
+                                backgroundColor: _tooltipBg,
                                 titleColor: _tooltipTitleColor,
                                 bodyColor: _tooltipBodyColor,
                                 borderColor: _tooltipBorder,

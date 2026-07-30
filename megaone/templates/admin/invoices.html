@@ -53,9 +53,13 @@
     </div>
     <div class="filter-row" id="filterRow">
         <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label text-muted small fw-semibold mb-2">Date</label>
-                <input type="date" id="filterDate" class="form-control">
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-semibold mb-2">Start Date</label>
+                <input type="date" id="filterDateFrom" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-semibold mb-2">End Date</label>
+                <input type="date" id="filterDateTo" class="form-control">
             </div>
             <div class="col-md-4">
                 <label class="form-label text-muted small fw-semibold mb-2">Invoice Type</label>
@@ -109,7 +113,8 @@ function toggleFilters() {
 }
 
 function clearFilters() {
-    document.getElementById('filterDate').value = '';
+    document.getElementById('filterDateFrom').value = '';
+    document.getElementById('filterDateTo').value = '';
     document.getElementById('invTypeFilter').value = '';
     triggerSearch();
 }
@@ -166,20 +171,19 @@ function toggleCardSelection(card) {
 
 function doSearch() {
     var q = document.getElementById('smartSearch').value.trim();
-    var filterDate = document.getElementById('filterDate').value;
+    var dateFrom = document.getElementById('filterDateFrom').value;
+    var dateTo = document.getElementById('filterDateTo').value;
     var inv_type = document.getElementById('invTypeFilter').value;
 
-    if (!q && !filterDate) {
+    if (!q && !dateFrom && !dateTo) {
         document.getElementById('invoiceGrid').innerHTML = '<div class="col-12 text-center py-5"><i class="bi bi-receipt" style="font-size:60px;color:var(--text-placeholder)"></i><p class="text-muted mt-3">Start typing to search invoices</p></div>';
         document.getElementById('selectionBar').style.display = 'none';
         return;
     }
 
     var body = {search: q, inv_type: inv_type};
-    if (filterDate) {
-        body.date_from = filterDate;
-        body.date_to = filterDate;
-    }
+    if (dateFrom) body.date_from = dateFrom;
+    if (dateTo) body.date_to = dateTo;
 
     var grid = document.getElementById('invoiceGrid');
     grid.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-warning" role="status"></div><p class="text-muted mt-3">Searching...</p></div>';
@@ -414,7 +418,8 @@ function fallbackShare(url) {
 // Auto-search
 document.getElementById('smartSearch').addEventListener('input', triggerSearch);
 document.getElementById('invTypeFilter').addEventListener('change', triggerSearch);
-document.getElementById('filterDate').addEventListener('change', triggerSearch);
+document.getElementById('filterDateFrom').addEventListener('change', triggerSearch);
+document.getElementById('filterDateTo').addEventListener('change', triggerSearch);
 </script>
 <script>
 (function() {
