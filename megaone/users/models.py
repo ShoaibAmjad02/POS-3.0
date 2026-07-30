@@ -959,3 +959,34 @@ class AuditLog(models.Model):
     def __str__(self):
         username = self.user.email if self.user else 'System'
         return f"{self.get_action_display()} by {username} at {self.created_at}"
+
+
+class KeyboardShortcut(models.Model):
+    action = models.CharField(max_length=100, unique=True)
+    label = models.CharField(max_length=200)
+    category = models.CharField(max_length=100, default='general')
+    key = models.CharField(max_length=50, blank=True, default='')
+    ctrl = models.BooleanField(default=False)
+    shift = models.BooleanField(default=False)
+    alt = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'keyboard_shortcuts'
+        ordering = ['category', 'label']
+        verbose_name = 'Keyboard Shortcut'
+        verbose_name_plural = 'Keyboard Shortcuts'
+
+    def __str__(self):
+        return f"{self.label} ({self.display_key})"
+
+    @property
+    def display_key(self):
+        parts = []
+        if self.ctrl: parts.append('Ctrl')
+        if self.alt: parts.append('Alt')
+        if self.shift: parts.append('Shift')
+        if self.key: parts.append(self.key.upper())
+        return '+'.join(parts) if parts else 'None'

@@ -255,6 +255,9 @@ urlpatterns = [
     # Software Owner
     path("software-owner/dashboard/", views.software_owner_dashboard, name="software_owner_dashboard"),
     path("settings/", views.system_settings, name="system_settings"),
+    path("settings/keyboard-shortcuts/", views.keyboard_shortcuts, name="keyboard_shortcuts"),
+    path("settings/keyboard-shortcuts/pdf/", views.keyboard_shortcuts_pdf, name="keyboard_shortcuts_pdf"),
+    path("settings/active-shortcuts/", views.active_shortcuts, name="active_shortcuts"),
     path("audit-logs/", views.audit_logs, name="audit_logs"),
     path("save-theme/", views.save_theme, name="save_theme"),
 

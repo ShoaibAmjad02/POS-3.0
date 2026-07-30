@@ -387,6 +387,7 @@ body.sidebar-open .sidebar{transform:translateX(0)}
         <a href="{% url 'users:admin_pending_approvals' %}"><i class="bi bi-clock-history"></i><span>Approvals{% if pending_approvals_count > 0 %} <span class="badge bg-warning text-dark ms-1" style="font-size:10px">{{ pending_approvals_count }}</span>{% endif %}</span></a>
         <a href="{% url 'users:mysql_backup' %}" class="{% if active_page == 'backup' %}active{% endif %}"><i class="bi bi-database"></i><span>Database Backup</span></a>
         {% endif %}
+        <a href="{% url 'users:keyboard_shortcuts' %}" class="{% if active_page == 'keyboard_shortcuts' %}active{% endif %}"><i class="bi bi-keyboard"></i><span>Keyboard Shortcuts</span></a>
         {% elif user.is_operator %}
         <a href="{% url 'users:operator_dashboard' %}"><i class="bi bi-cart"></i><span>Point of Sale</span></a>
         {% with cash_submenu_id="sub-cash-handling-operator" %}{% include "cash_handling/menu.html" %}{% endwith %}
@@ -609,6 +610,83 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.remove('sidebar-open');
         }
     });
+})();
+
+// ─── Global Keyboard Shortcuts ───────────────────────────────
+(function() {
+    var shortcuts = [];
+    var tagNames = ['INPUT', 'TEXTAREA', 'SELECT'];
+
+    function isFormField(el) {
+        if (!el) return false;
+        if (tagNames.indexOf(el.tagName) !== -1) return true;
+        if (el.isContentEditable) return true;
+        return false;
+    }
+
+    function loadShortcuts() {
+        fetch('{% url "users:active_shortcuts" %}')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            shortcuts = data.shortcuts || [];
+        })
+        .catch(function() {});
+    }
+
+    function matchAction(action) {
+        var mapping = {
+            'dashboard.open': "{% url 'users:admin_dashboard' %}",
+            'pos.open': "{% url 'users:admin_pos' %}",
+            'invoices.list': "{% url 'users:invoice_search_page' %}",
+            'invoices.search': "{% url 'users:invoice_search_page' %}",
+            'products.list': "{% url 'users:product_list' %}",
+            'customers.list': "{% url 'users:admin_dashboard' %}",
+            'suppliers.list': "{% url 'users:admin_dashboard' %}",
+            'reports.open': "{% url 'users:admin_dashboard' %}",
+            'expenses.list': "{% url 'users:admin_dashboard' %}",
+            'settings.open': "{% url 'users:system_settings' %}",
+            'sale.new': "{% url 'users:admin_pos' %}",
+            'product.new': "{% url 'users:add_product' %}",
+            'customer.new': "{% url 'users:admin_dashboard' %}",
+        };
+        var url = mapping[action];
+        if (url) { window.location.href = url; return true; }
+
+        // DOM interactions
+        if (action === 'save') {
+            var btn = document.querySelector('[type=submit]');
+            if (btn) { btn.click(); return true; }
+        }
+        if (action === 'print') {
+            window.print(); return true;
+        }
+        if (action === 'invoice.search') {
+            var inp = document.getElementById('smartSearch') || document.querySelector('[type=search], input[placeholder*="search" i]');
+            if (inp) { inp.focus(); inp.select(); return true; }
+        }
+
+        return false;
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (isFormField(e.target)) return;
+        if (e.key === 'Escape') return;
+
+        for (var i = 0; i < shortcuts.length; i++) {
+            var s = shortcuts[i];
+            if (s.key.toUpperCase() !== e.key.toUpperCase()) continue;
+            if (s.ctrl !== e.ctrlKey) continue;
+            if (s.shift !== e.shiftKey) continue;
+            if (s.alt !== e.altKey) continue;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (matchAction(s.action)) return;
+        }
+    });
+
+    loadShortcuts();
 })();
 </script>
 {% block extra_js %}{% endblock %}

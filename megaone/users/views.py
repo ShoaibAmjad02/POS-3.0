@@ -7902,6 +7902,187 @@ def system_settings(request):
     return render(request, 'admin/system_settings.html', context)
 
 
+DEFAULT_KEYBOARD_SHORTCUTS = [
+    ('dashboard.open', 'Open Dashboard', 'navigation', 'D', True, True, False),
+    ('pos.open', 'Open Point of Sale', 'navigation', 'P', True, False, False),
+    ('products.list', 'Open Products', 'navigation', 'P', True, True, False),
+    ('invoices.list', 'Open Invoices', 'navigation', 'I', True, True, False),
+    ('reports.open', 'Open Reports', 'navigation', 'R', True, True, False),
+    ('customers.list', 'Open Customers', 'navigation', 'C', True, True, False),
+    ('suppliers.list', 'Open Suppliers', 'navigation', 'S', True, True, False),
+    ('expenses.list', 'Open Expenses', 'navigation', 'E', True, True, False),
+    ('settings.open', 'Open Settings', 'navigation', 'S', True, False, True),
+    ('sale.new', 'New Sale', 'actions', 'N', True, False, False),
+    ('save', 'Save / Submit', 'forms', 'S', True, False, False),
+    ('invoice.search', 'Focus Search', 'actions', 'F', True, False, False),
+    ('print', 'Print', 'actions', 'P', True, True, False),
+    ('delete', 'Delete Selected', 'actions', 'D', True, False, False),
+    ('download_pdf', 'Download PDF', 'actions', 'D', True, True, False),
+    ('share', 'Share', 'actions', 'S', True, True, False),
+]
+
+
+@login_required
+@staff_member_required
+def keyboard_shortcuts(request):
+    from .models import KeyboardShortcut
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        shortcut_id = request.POST.get('id')
+        if action == 'save':
+            # Save individual shortcut from inline edit
+            obj = get_object_or_404(KeyboardShortcut, id=shortcut_id)
+            key = request.POST.get('key', '').strip()
+            obj.key = key.upper() if key else ''
+            obj.ctrl = request.POST.get('ctrl') == 'on'
+            obj.shift = request.POST.get('shift') == 'on'
+            obj.alt = request.POST.get('alt') == 'on'
+            obj.is_active = request.POST.get('is_active') == 'on'
+
+            # Check duplicates
+            dup = KeyboardShortcut.objects.filter(
+                key=obj.key, ctrl=obj.ctrl, shift=obj.shift, alt=obj.alt
+            ).exclude(id=obj.id)
+            if obj.key and dup.exists():
+                conflict = dup.first()
+                messages.warning(request, f"Shortcut {obj.display_key} already assigned to \"{conflict.label}\"")
+            else:
+                obj.save()
+                messages.success(request, f"Shortcut for \"{obj.label}\" saved.")
+        elif action == 'reset':
+            KeyboardShortcut.objects.all().delete()
+            _seed_default_shortcuts()
+            messages.success(request, "All shortcuts reset to defaults.")
+        elif action == 'disable_all':
+            KeyboardShortcut.objects.update(is_active=False)
+            messages.success(request, "All shortcuts disabled.")
+        elif action == 'enable_all':
+            KeyboardShortcut.objects.update(is_active=True)
+            messages.success(request, "All shortcuts enabled.")
+        return redirect('users:keyboard_shortcuts')
+
+    shortcuts = KeyboardShortcut.objects.all()
+    if not shortcuts.exists():
+        _seed_default_shortcuts()
+        shortcuts = KeyboardShortcut.objects.all()
+    categories = shortcuts.values_list('category', flat=True).distinct()
+    return render(request, 'admin/keyboard_shortcuts.html', {
+        'shortcuts': shortcuts,
+        'categories': categories,
+        'title': 'Keyboard Shortcuts',
+    })
+
+
+def _seed_default_shortcuts():
+    from .models import KeyboardShortcut
+    for action, label, category, key, ctrl, shift, alt in DEFAULT_KEYBOARD_SHORTCUTS:
+        KeyboardShortcut.objects.get_or_create(
+            action=action,
+            defaults={
+                'label': label,
+                'category': category,
+                'key': key,
+                'ctrl': ctrl,
+                'shift': shift,
+                'alt': alt,
+            }
+        )
+
+
+@login_required
+def active_shortcuts(request):
+    from .models import KeyboardShortcut
+    shortcuts = KeyboardShortcut.objects.filter(is_active=True).exclude(key='')
+    return JsonResponse({
+        "shortcuts": [{
+            "action": s.action,
+            "label": s.label,
+            "key": s.key,
+            "ctrl": s.ctrl,
+            "shift": s.shift,
+            "alt": s.alt,
+        } for s in shortcuts]
+    })
+
+
+@login_required
+@staff_member_required
+def keyboard_shortcuts_pdf(request):
+    from .models import KeyboardShortcut
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    import io
+    from datetime import date
+
+    shortcuts = KeyboardShortcut.objects.exclude(key='').order_by('category', 'label')
+    if not shortcuts.exists():
+        from django.contrib import messages
+        messages.warning(request, "No shortcuts configured. Seed defaults first.")
+        return redirect('users:keyboard_shortcuts')
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=40, rightMargin=40, topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    title_style = ParagraphStyle("Title2", parent=styles["Title"], fontSize=18, spaceAfter=6, textColor=colors.HexColor("#1e293b"))
+    subtitle_style = ParagraphStyle("Sub", parent=styles["Normal"], fontSize=10, textColor=colors.HexColor("#64748b"), spaceAfter=20)
+
+    elements.append(Paragraph("Keyboard Shortcuts", title_style))
+    elements.append(Paragraph(f"Generated on {date.today().strftime('%d-%m-%Y')}", subtitle_style))
+    elements.append(Spacer(1, 12))
+
+    def key_display(k):
+        parts = []
+        if k.ctrl: parts.append("Ctrl")
+        if k.alt: parts.append("Alt")
+        if k.shift: parts.append("Shift")
+        parts.append(k.key.upper())
+        return " + ".join(parts)
+
+    header_style = ParagraphStyle("Header", parent=styles["Normal"], fontSize=10, textColor=colors.white, fontName="Helvetica-Bold", alignment=1)
+    cell_style = ParagraphStyle("Cell", parent=styles["Normal"], fontSize=9, leading=14, alignment=0)
+    status_style = ParagraphStyle("Status", parent=styles["Normal"], fontSize=9, leading=14, alignment=1, textColor=colors.HexColor("#16a34a"))
+
+    def cell(t, bold=False):
+        s = ParagraphStyle("C", parent=cell_style, fontName="Helvetica-Bold" if bold else "Helvetica")
+        return Paragraph(t, s)
+
+    header_cells = [
+        Paragraph("Shortcut Key", header_style),
+        Paragraph("Action", header_style),
+        Paragraph("Description", header_style),
+        Paragraph("Status", header_style),
+    ]
+
+    data = [header_cells]
+    for s in shortcuts:
+        data.append([cell(key_display(s)), cell(s.label), cell(s.action), Paragraph("Active", status_style)])
+
+    col_widths = [120, 120, 200, 60]
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1e293b")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+        ("LINEBELOW", (0, 0), (-1, 0), 1, colors.HexColor("#1e293b")),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    buf.seek(0)
+    filename = f"Keyboard_Shortcuts_{date.today().strftime('%d-%m-%Y')}.pdf"
+    return FileResponse(buf, as_attachment=True, filename=filename)
+
+
 # =========================
 # CSV EXPORT
 # =========================

@@ -1,0 +1,136 @@
+{% extends 'admin/base_admin.html' %}
+{% load static %}
+{% block title %}Keyboard Shortcuts - {{ company_name }}{% endblock %}
+{% block extra_css %}
+<style>
+.shortcut-form-card{background:var(--bg-card);border-radius:16px;border:1px solid var(--border-card);padding:24px;margin-bottom:24px}
+.category-heading{font-size:14px;font-weight:700;color:var(--accent);padding:8px 0;margin:16px 0 8px;border-bottom:1px solid var(--border-color);text-transform:uppercase;letter-spacing:.5px}
+.shortcut-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-color);flex-wrap:wrap}
+.shortcut-row:last-child{border-bottom:none}
+.shortcut-label{flex:1;min-width:160px;font-size:14px;color:var(--text-primary);font-weight:500}
+.shortcut-label small{display:block;color:var(--text-muted);font-size:11px;font-weight:400}
+.key-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--bg-input);border:1px solid var(--border-input);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;color:var(--text-primary);min-width:32px;font-family:monospace}
+.key-toggle{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-input);cursor:pointer;font-size:12px;color:var(--text-secondary);transition:.2s;background:transparent;user-select:none}
+.key-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.key-toggle.active{background:rgba(var(--accent-rgb),.15);border-color:var(--accent);color:var(--accent)}
+.shortcut-input{width:60px;text-align:center;padding:6px 8px;border-radius:6px;border:1px solid var(--border-input);background:var(--bg-input);color:var(--text-primary);font-size:14px;font-weight:600;font-family:monospace;text-transform:uppercase}
+.shortcut-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px rgba(var(--accent-rgb),.15)}
+.toggle-wrap{position:relative;width:40px;height:22px;cursor:pointer}
+.toggle-wrap input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--bg-input);border:1px solid var(--border-input);border-radius:11px;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--text-muted);top:2px;left:2px;transition:.3s}
+.toggle-wrap input:checked+.toggle-slider{background:rgba(16,185,129,.2);border-color:#10b981}
+.toggle-wrap input:checked+.toggle-slider:before{background:#10b981;transform:translateX(18px)}
+.action-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.shortcut-row form{display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap}
+</style>
+{% endblock %}
+{% block content %}
+<div class="top-bar" data-aos="fade-down">
+    <div>
+        <h2>Keyboard <span>Shortcuts</span></h2>
+        <p style="color:var(--text-muted);margin:0;font-size:13px">Manage system-wide keyboard shortcuts</p>
+    </div>
+</div>
+
+<form method="POST" style="display:inline" class="action-bar">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="enable_all">
+    <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-toggle-on me-1"></i> Enable All</button>
+</form>
+<form method="POST" style="display:inline" class="action-bar">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="disable_all">
+    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-toggle-off me-1"></i> Disable All</button>
+</form>
+<form method="POST" style="display:inline" class="action-bar" onsubmit="return confirm('Reset all shortcuts to defaults? This cannot be undone.')">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reset">
+    <button type="submit" class="btn btn-sm btn-outline-warning"><i class="bi bi-arrow-counterclockwise me-1"></i> Reset to Defaults</button>
+</form>
+<a href="{% url 'users:keyboard_shortcuts_pdf' %}" class="btn btn-sm btn-outline-primary" style="margin-right:5px"><i class="bi bi-file-pdf me-1"></i> Download PDF</a>
+<button class="btn btn-sm btn-outline-secondary" onclick="sharePDF()"><i class="bi bi-share me-1"></i> Share PDF</button>
+
+{% if messages %}
+<div style="margin-bottom:16px">
+    {% for msg in messages %}
+    <div class="alert alert-{% if msg.tags == 'warning' %}warning{% else %}info{% endif %} alert-dismissible fade show" role="alert" style="border-radius:10px;font-size:13px">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="font-size:12px"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="shortcut-form-card">
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">
+        <i class="bi bi-info-circle me-1 text-warning"></i>
+        Shortcuts do not trigger when typing in input fields. Leave key empty to disable.
+    </p>
+
+    {% regroup shortcuts by category as category_list %}
+    {% for group in category_list %}
+    <div class="category-heading"><i class="bi bi-tag me-1"></i> {{ group.grouper|title }}</div>
+    {% for shortcut in group.list %}
+    <div class="shortcut-row">
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="id" value="{{ shortcut.id }}">
+            <div class="shortcut-label">
+                {{ shortcut.label }}
+                <small>{{ shortcut.action }}</small>
+            </div>
+            <div class="shortcut-keys">
+                <label class="key-toggle ctrl-label {% if shortcut.ctrl %}active{% endif %}">
+                    Ctrl <input type="checkbox" name="ctrl" {% if shortcut.ctrl %}checked{% endif %} style="display:none" onchange="this.closest('label').classList.toggle('active')">
+                </label>
+                <label class="key-toggle alt-label {% if shortcut.alt %}active{% endif %}">
+                    Alt <input type="checkbox" name="alt" {% if shortcut.alt %}checked{% endif %} style="display:none" onchange="this.closest('label').classList.toggle('active')">
+                </label>
+                <label class="key-toggle shift-label {% if shortcut.shift %}active{% endif %}">
+                    Shift <input type="checkbox" name="shift" {% if shortcut.shift %}checked{% endif %} style="display:none" onchange="this.closest('label').classList.toggle('active')">
+                </label>
+                <span style="color:var(--text-muted);margin:0 2px">+</span>
+                <input type="text" name="key" class="shortcut-input" value="{{ shortcut.key }}" placeholder="Key" maxlength="1">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+                <label class="toggle-wrap" title="Toggle shortcut">
+                    <input type="checkbox" name="is_active" {% if shortcut.is_active %}checked{% endif %} onchange="this.closest('form').querySelector('[type=submit]').click()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <button type="submit" class="btn btn-sm btn-warning" style="border-radius:6px;padding:4px 12px;font-size:12px" title="Save"><i class="bi bi-check"></i></button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+    {% endfor %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+AOS.init({duration:800,once:true});
+
+document.querySelectorAll('.shortcut-input').forEach(function(inp) {
+    inp.addEventListener('keydown', function(e) {
+        if ([8, 46, 9, 27].indexOf(e.keyCode) !== -1) return;
+        if (!/^[a-zA-Z0-9]$/.test(e.key)) { e.preventDefault(); }
+    });
+    inp.addEventListener('input', function() {
+        this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 1).toUpperCase();
+    });
+});
+
+function sharePDF() {
+    var url = "{% url 'users:keyboard_shortcuts_pdf' %}";
+    if (navigator.share) {
+        fetch(url).then(function(r){return r.blob()}).then(function(blob){
+            var file = new File([blob], "Keyboard_Shortcuts.pdf", {type:"application/pdf"});
+            navigator.share({title:"Keyboard Shortcuts",files:[file]}).catch(function(){});
+        }).catch(function(){window.open(url,"_blank")});
+    } else {
+        window.open(url, "_blank");
+    }
+}
+</script>
+{% endblock %}
